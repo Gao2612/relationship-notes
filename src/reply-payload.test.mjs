@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildReplyPayload} from './reply-payload.js';
+test('deleted profile values and confirmed inferences are not sent as current facts',()=>{
+ const p=buildReplyPayload({provider:'p',model:'m',scenario:'continue',tone:'gentle',intent:''},{self:'我',target:'你',messages:[{sender:'你',text:'你好'}],profileSummary:[{field:'job',value:'已删除秘密',status:'deleted'},{field:'inference',value:'可能在生气',status:'active',confirmed:true},{field:'interests',value:'摄影',status:'active',confirmed:true}]});
+ assert(!JSON.stringify(p).includes('已删除秘密'));assert(!p.facts.some(f=>f.field==='inference'));assert(p.facts.some(f=>f.value==='摄影'));
+});
 test('payload keeps the latest messages and daily timeline within the host serialized-length cap',()=>{const state={provider:'p',model:'m',scenario:'continue',tone:'gentle',intent:'你好'},contact={self:'我',target:'你',messages:Array.from({length:20},(_,i)=>({sender:i%2?'你':'我',text:'\\"'.repeat(500),timestamp:`2026-10-${String(1+i%20).padStart(2,'0')} 12:00:00`})),facts:[{field:'interests',value:'x'.repeat(900)}]};const p=buildReplyPayload(state,contact);assert(JSON.stringify(p).length<=60000);assert.equal(p.messages.at(-1).sender,'你');assert(p.facts[0].value.length<=500);assert(p.messages.length<=12);assert(p.dailyTimeline.length>0);assert.equal(p.dailyTimeline[0].date,'2026-10-01');});
 test('preview and sent data share the same bounded result including chat timestamps and a dated summary',()=>{const p=buildReplyPayload({provider:'p',model:'m',scenario:'continue',tone:'gentle',intent:''},{self:'a',target:'b',messages:[{sender:'b',text:'真实原文',timestamp:'2026-10-30 10:00:00'}],facts:[]});assert.deepEqual(JSON.parse(JSON.stringify(p)).messages,[{sender:'b',text:'真实原文',timestamp:'2026-10-30 10:00:00'}]);assert.equal(p.dailyTimeline[0].date,'2026-10-30');});
 

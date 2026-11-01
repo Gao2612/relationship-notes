@@ -17,3 +17,13 @@ test('explicit dislike is not counted as positive wording',()=>{
  assert.equal(analyzeInteractionMetrics(contact).indicators.find(i=>i.kind==='positive').count,0);
  assert.equal(analyzeDailyTimeline(contact.messages,'我','你').days[0].positiveCues,0);
 });
+test('daily and overall metrics share vocabulary, exclusions and contextual caution',()=>{
+ for(const text of ['我也很开心见到你。','你周末有空么？','我今天买了书','不想见你','他说“喜欢你”是台词','今天项目让我很生气']){
+  const message={sender:'你',text,timestamp:'2026-11-01'},contact={self:'我',target:'你',messages:[message]};
+  assert.equal(analyzeInteractionMetrics(contact).score,analyzeDailyTimeline(contact.messages,'我','你').days[0].affinityScore,text);
+ }
+ for(const text of ['他说“喜欢你”是台词','今天项目让我很生气','不想见你']){
+  const result=analyzeInteractionMetrics({self:'我',target:'你',messages:[{sender:'你',text}]});
+  assert.equal(result.indicators.find(i=>i.kind==='positive').count,0);
+ }
+});

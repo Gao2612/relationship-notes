@@ -20,3 +20,14 @@ test('accepts complete text block output and rejects invalid self profiles or sa
  for(const profile of [null,[],42])assert.equal((await createInterpretationHandler(provider)(request({...input(),selfProfile:profile}))).status,400);
  assert.equal((await createInterpretationHandler(provider)(request({...input(),self:' 对方 '}))).status,400);
 });
+test('final indexed blocks replace partial deltas without leaking reasoning or losing later blocks',async()=>{
+ const json=JSON.stringify(output()),mid=Math.floor(json.length/2);
+ const provider={async prepareCall(){return {config:{},async *stream(){
+  yield {type:'text-delta',index:0,text:json.slice(0,10)};
+  yield {type:'block-end',index:0,block:{type:'text',text:json.slice(0,mid)}};
+  yield {type:'block-end',index:1,block:{type:'reasoning',text:'private reasoning'}};
+  yield {type:'block-end',index:2,block:{type:'text',text:json.slice(mid)}};
+  yield {type:'finish',reason:'stop'};
+ }}}};
+ const response=await createInterpretationHandler(provider)(request(input()));assert.equal(response.status,200);assert.deepEqual((await response.json()).interpretations,output().interpretations);
+});

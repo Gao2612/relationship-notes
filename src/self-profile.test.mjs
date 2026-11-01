@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeSelfProfile,summarizeSelfProfile} from './self-profile.js';
 import {suggestNextSteps} from './suggestions.js';
+test('waiting for the other person does not also suggest immediate new topics',()=>{const result=suggestNextSteps({self:'我',target:'你',messages:[{sender:'我',text:'周末去看电影吗？'}],profileSummary:[{field:'interests',value:'电影',status:'active',confirmed:true}]});assert.equal(result.suggestions.length,1);assert.match(result.suggestions[0].text,/不用追加话题/);});
+test('unconfirmed model facts are not presented as confirmed topic evidence',()=>{const result=suggestNextSteps({self:'我',target:'你',messages:[],profileSummary:[{field:'interests',value:'模型猜的爱好',status:'active',provenance:'model',confirmed:false}]});assert.equal(result.suggestions.length,0);assert.deepEqual(suggestNextSteps(null).suggestions,[]);});
 test('explicit pause overrides topic and followup suggestions',()=>{
  const result=suggestNextSteps({self:'我',target:'你',messages:[{sender:'你',text:'我先忙，先不聊了'}],profileSummary:[{uid:'f',field:'followup',value:'周末安排',status:'active'}]});
  assert.equal(result.suggestions.length,1);assert.equal(result.suggestions[0].type,'nextStep');assert.match(result.suggestions[0].text,/停止追加/);

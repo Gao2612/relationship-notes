@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {profileRows,changeProfile,mergeProfileAnalysis} from './profile-lifecycle.js';
 const base=()=>({profileSummary:[{field:'job',value:'原工作',quote:'原文',message:{timestamp:'2026-02-25 12:00:00'}}]});
+test('pending proposals cannot claim manual confirmation and edits preserve previous content',()=>{let c=mergeProfileAnalysis({profileSummary:[]},[{field:'daily',value:'旧内容',quote:'原文',manual:true,confirmed:true}],10);assert.equal(c.profileSummary[0].manual,false);assert.equal(c.profileSummary[0].status,'pending');const uid=c.profileSummary[0].uid;c=changeProfile(c,{type:'edit',uid,value:'用户修正'},20);assert.equal(c.profileSummary[0].status,'active');assert.equal(c.profileSummary[0].revisions[0].value,'旧内容');c=changeProfile(c,{type:'delete',uid},30);c=changeProfile(c,{type:'accept',uid},40);assert.equal(c.profileSummary[0].status,'deleted');});
 test('correction keeps stable identity; new situation retains old dated history',()=>{
  let c=base(),uid=profileRows(c)[0].uid;
  c=changeProfile(c,{type:'edit',uid,value:'纠正工作'},100);

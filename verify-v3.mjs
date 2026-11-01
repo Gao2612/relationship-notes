@@ -14,15 +14,15 @@ assert.doesNotMatch(client,/sidebar\.panellist|sidebar\.workspaces|ctx\.slots/);
 assert.match(client,/消息均衡度|互动评分/);
 assert.match(client,/useSyncExternalStore/);
 assert.match(client,/AbortController/);
-assert.equal(pkg.version,'3.1.0');
+assert.match(pkg.version,/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
 for(const p of ['index.js','reply-service.js','src/analysis.js','client.js','cordis.patch.yml','icon.svg'])assert(existsSync(new URL(p,import.meta.url)),p);
 const zh=JSON.parse(read('./locale/zh.json')),en=JSON.parse(read('./locale/en.json'));
 assert.deepEqual(Object.keys(zh).sort(),Object.keys(en).sort());
 console.log('PASS packaged factory, native sidebar, source files, locales, cancellation and no embedded credential/storage UI');
 const fs=await import('node:fs/promises');
-const tests=(await fs.readdir(new URL('./src/',import.meta.url))).filter(name=>name.endsWith('.test.mjs')).map(name=>'src/'+name);
+const tests=(await fs.readdir(new URL('./src/',import.meta.url),{recursive:true})).filter(name=>name.endsWith('.test.mjs')).map(name=>'src/'+name.replaceAll('\\','/'));
 tests.push(...(await fs.readdir(new URL('.',import.meta.url))).filter(name=>name.endsWith('.test.mjs')));
-for(const p of tests){
+for(const p of tests.sort()){
  const r=spawnSync(process.execPath,['--test',fileURLToPath(new URL(p,import.meta.url))],{stdio:'inherit'});
  assert.equal(r.status,0,p+' failed');
-}console.log('PASS Relationship Notes 3.1 verification');
+}console.log('PASS Relationship Notes '+pkg.version+' verification ('+tests.length+' test files)');

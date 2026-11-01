@@ -1,6 +1,6 @@
 {
   "name": "@local/relationship-notes",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "private": true,
   "type": "module",
   "description": "A full-screen relationship workspace module inside DSH's 定制模块 container, with chat import, evidence-based analytics and editable replies.",

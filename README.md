@@ -1,6 +1,6 @@
 # Relationship Notes for DSH
 
-关系手记 3.1：本地优先的联系人档案、互动证据与沟通草稿插件。
+关系手记 3.1.1：本地优先的联系人档案、互动证据与沟通草稿插件。
 
 ## 使用
 
@@ -14,9 +14,15 @@
 
 微信/QQ 监听、独立替代 ExportWeChat 读取、自动发送和主动搭话暂缓开发，只有 [研究方案](CAPTURE-RESEARCH.md)。现有 ExportWeChat JSON/HTML 文件导入继续可用。
 
-## 构建与验证
+## 安装已构建的 ZIP
 
-使用 Node.js 24 和 pnpm：
+下载发布的安装 ZIP，解压到单独目录，确认目录内有 `package.json`、`index.js`、`client.js` 和 `cordis.patch.yml`。在 DSH 本地插件安装/加载入口选择该目录，启用关系手记及其「定制模块」容器依赖，然后重载宿主插件服务；若当前 DSH 没有重载入口，重启 DSH。安装包已包含 `client.js`，无需运行 pnpm 安装、构建或测试。
+
+升级前先导出关系手记备份。用新解压目录更新本地插件加载位置并重载宿主服务；只刷新页面可能仍使用旧宿主路由。随后在「定制模块」打开关系手记。安装 ZIP 是运行包，不包含完整构建/测试工具；开发请使用源码仓库。
+
+## 从源码构建与验证
+
+取得完整源码（包括 `build.mjs`、`verify-v3.mjs`、`pnpm-lock.yaml` 和测试文件），使用 Node.js 24 和 pnpm：
 
 ```sh
 pnpm install --frozen-lockfile
@@ -33,6 +39,8 @@ pnpm test
 导入工具使用内存队列；重启前应确认消费完成，见 [导入队列设计](IMPORT-QUEUE-DECISION.md)。备份含聊天资料，应自行妥善保存。仓库不包含用户聊天导出、联系人档案、媒体、凭据或个人备份。
 
 ## 维护
+
+- [3.1.1复审整改与功能建议](REVIEW-20261101.md)
 
 - [架构与维护边界](docs/ARCHITECTURE.md)
 - [统一路线图](IMPLEMENTATION-ROADMAP.md)

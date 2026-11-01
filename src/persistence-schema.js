@@ -1,11 +1,13 @@
 import {normalizeSelfProfile} from './self-profile.js';
+import {profileMessageId} from './profile-lifecycle.js';
 
 export const WORKSPACE_SCHEMA_VERSION=2;
 const recordObject=value=>value&&typeof value==='object'&&!Array.isArray(value);
 export function migrateWorkspaceState(state,version=1){
  if(!recordObject(state))throw new Error('本机数据格式无效。');if(![1,2].includes(version))throw Object.assign(new Error('不支持此数据版本，请使用兼容版本的关系手记。'),{code:'UNSUPPORTED_SCHEMA'});
  const raw=recordObject(state.selfProfile)?state.selfProfile:{},normalized=normalizeSelfProfile(raw);
- const selfProfile={...raw,...normalized,voice:{...(recordObject(raw.voice)?raw.voice:{}),...normalized.voice},samples:normalized.samples.map((item,i)=>({...((recordObject(raw.samples?.[i]))?raw.samples[i]:{}),...item})),plans:normalized.plans.map((item,i)=>({...((recordObject(raw.plans?.[i]))?raw.plans[i]:{}),...item}))};
+ const preserveList=(key,limit)=>(Array.isArray(raw[key])?raw[key]:[]).map(item=>{const parsed=normalizeSelfProfile({[key]:[item]})[key][0];return parsed?{...(recordObject(item)?item:{}),...parsed}:null;}).filter(Boolean).slice(0,limit);
+ const selfProfile={...raw,...normalized,voice:{...(recordObject(raw.voice)?raw.voice:{}),...normalized.voice},samples:preserveList('samples',8),plans:preserveList('plans',12)};
  // Spread the original state: forward-compatible fields, contact metadata and
  // correction history survive migration without changing confirmation states.
  return {...state,selfProfile};
@@ -19,6 +21,6 @@ export function withoutPersistenceMedia(record){
 }
 export function resolveProfileResponseFact(fact,requestMessages,currentMessages,target){
  const captured=requestMessages.get(fact.id);if(!captured||typeof fact.quote!=='string'||!fact.quote.trim()||!captured.text.includes(fact.quote))return null;
- const current=currentMessages.find(message=>message.sender===target&&message.text===captured.text&&String(message.timestamp)===String(captured.timestamp));
- if(!current)return null;return {...fact,message:current,sourceMessageIds:[captured.stableId]};
+ const matches=currentMessages.filter(message=>String(profileMessageId(message))===String(captured.stableId)&&message.sender===target&&message.text===captured.text&&String(message.timestamp)===String(captured.timestamp));
+ if(matches.length!==1)return null;return {...fact,message:matches[0],sourceMessageIds:[captured.stableId]};
 }

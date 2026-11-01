@@ -40,6 +40,16 @@ test('switching authorized contact drops prior pending proposals',async()=>{
  const state=createProfileState(),tools=await shared(state);await tools[2].execute({field:'interests',value:'摄影',sourceMessageId:'m1',quote:'我喜欢摄影',confidence:.9});
  const next=snapshot();next.contact.id='c2';await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:next});assert.equal(state.pending.length,0);await assert.rejects(tools[0].execute({contactId:'c1'}),/当前联系人/);
 });
+test('refreshing a shared snapshot drops candidates whose source was changed or removed',async()=>{
+ const state=createProfileState(),tools=await shared(state),proposal={field:'interests',value:'摄影',sourceMessageId:'m1',quote:'我喜欢摄影',confidence:.9};
+ await tools[2].execute(proposal);await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:snapshot()});assert.equal(state.pending.length,1);
+ const edited=snapshot();edited.messages[0].text='消息已编辑';await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:edited});assert.equal(state.pending.length,0);
+ await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:snapshot()});await tools[2].execute(proposal);const removed=snapshot();removed.messages=removed.messages.slice(1);await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:removed});assert.equal(state.pending.length,0);
+ for(const contactId of ['',null,0])await assert.rejects(tools[0].execute({contactId}),/无效/);
+});
+test('user confirmation never promotes an inference or behavioral pattern into factual output',async()=>{
+ const state=createProfileState(),data=snapshot();data.facts.push({...data.facts[0],id:'inference',field:'inference',value:'可能比较忙',confidence:.4},{...data.facts[0],id:'style',field:'style',value:'回复比较简短'});await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:data});const result=await createProfileTools(state)[0].execute({});assert.equal(result.facts.length,1);assert.equal(result.patterns.length,1);assert.equal(result.inferences.length,1);assert.equal(result.inferences[0].interpretationOnly,true);assert.equal(result.inferences[0].confidence,.4);
+});
 test('browser snapshot excludes unconfirmed profiles, strangers and media',()=>{
  const c={id:'c1',self:'我',target:'对方',messages:[{sender:'其他',text:'不共享'},{sender:'对方',text:'我喜欢摄影',timestamp:'2026-11-01',attachments:[{file:'private'}]}],profileSummary:[{uid:'a',field:'interests',value:'摄影',status:'active',confirmed:true},{uid:'b',field:'job',value:'猜测职业',status:'active'},{uid:'c',field:'city',value:'杭州',status:'pending',confirmed:true}]};
  const result=createProfileBridgeSnapshot(c);assert.equal(result.messages.length,1);assert(!('attachments' in result.messages[0]));assert.equal(result.facts.length,1);assert.equal(result.facts[0].id,'a');assert.equal(result.messages[0].id,profileMessageId(c.messages[1]));

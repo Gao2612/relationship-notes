@@ -1,6 +1,6 @@
 # 宿主 API 契约
 
-核对日期：2026-11-01。依据当前 `reply-service.js`、`import-service.js` 和 `profile-service.js`。所有路由以 `/api/relationship-notes` 为前缀，接受 POST JSON，成功结果含 `ok:true`，失败含 `ok:false,error:string`。未知字段按各处理器校验拒绝。
+核对日期：2026-11-01。依据当前 `reply-service.js`、`interpretation-service.js`、`import-service.js` 和 `profile-service.js`。所有路由以 `/api/relationship-notes` 为前缀，接受 POST JSON，成功结果含 `ok:true`，失败含 `ok:false,error:string`。未知字段按各处理器校验拒绝。
 
 ## 模型路由
 
@@ -11,8 +11,9 @@
 | `/timeline-analysis` | `self,target,days` | `days:[{date,summary,activityReason,affinityContext}],provider,model`。 |
 | `/profile-analysis` | `target,messages`；可选 `mode:'summary'` | `facts:[{field,value,id,quote}],model`。 |
 | `/media-analysis` | `mediaType:'image'|'video',frames` | `analysis,provider,model`。 |
+| `/interpretation` | `self,target,messages`；可选成对 `provider,model` 和 `selfProfile` | `interpretations:[{explanation,uncertainty,evidence:[{messageId,quote}],reply}]`；详细限制见文末“可能解释接口”。 |
 
-模型列表和除媒体之外的通用请求体原始字符上限为 64000。reply 的序列化背景上限为 60000 字符；显式 provider/model 都必须非空，省略则读取 DSH 默认模型。服务商凭据与模型传输留在宿主，不随响应返回。
+模型列表与 reply/timeline/profile-analysis 的通用请求体原始字符上限为 64000；interpretation 为 60000。reply 的序列化背景上限为 60000 字符；显式 provider/model 都必须非空，省略则读取 DSH 默认模型。服务商凭据与模型传输留在宿主，不随响应返回。
 
 ### 回复载荷
 

@@ -6,7 +6,7 @@
 
 ## 工具
 
-- `relationship_notes_profile_get({contactId?, limit?})`：只返回共享联系人的已确认档案。默认最多 30 条，上限 100。返回联系人 ID 可用于后续调用。
+- `relationship_notes_profile_get({contactId?, limit?})`：只返回共享联系人的已确认档案。默认最多 30 条，上限 100。输出分为 `facts`、`patterns`、`inferences`，已确认推测仍标记 `interpretationOnly:true`，不变为事实。返回联系人 ID 可用于后续调用。
 - `relationship_notes_search_history({contactId?, query, limit?})`：按原文字面关键词检索共享快照。默认最多 8 条，上限 20；不代表搜索完整聊天历史。
 - `relationship_notes_propose_fact({contactId?, field, value, sourceMessageId, quote, confidence})`：只提出待确认候选。来源必须是已共享联系人消息的稳定 ID，quote 必须是该消息连续原文；用户自己的发言不能作为对方档案依据。相同候选幂等，队列上限 20。工具不改变正式档案。
 

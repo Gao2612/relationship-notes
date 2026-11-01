@@ -17,6 +17,11 @@ test('quota fallback handles the envelope and keeps chats and unknown metadata w
  const reduced=withoutPersistenceMedia(source);assert.equal(reduced.custom,'keep');assert.equal(reduced.state.extra,'keep');assert.equal(reduced.state.contacts[0].messages[0].text,'消息正文');assert.equal(reduced.state.contacts[0].messages[0].custom,1);assert.equal(reduced.state.contacts[0].messages[0].attachments[0].fileName,'photo.png');assert.equal(reduced.state.contacts[0].messages[0].attachments[0].file,null);assert.equal(reduced.state.contacts[0].selfAvatarFile,null);assert.equal(reduced.state.contacts[0].targetAvatarData,null);assert.strictEqual(source.state.contacts[0].selfAvatarFile,file);
 });
 test('profile reply resolves the request snapshot after sorting and rejects edited or removed sources',()=>{
- const a={sender:'对方',text:'我喜欢摄影',timestamp:'2026-11-01'},b={sender:'对方',text:'我在杭州',timestamp:'2026-10-31'},request=new Map([[0,{...a,stableId:'stable-a'}],[1,{...b,stableId:'stable-b'}]]),fact={id:0,quote:'我喜欢摄影',field:'interests',value:'摄影'};
+ const a={id:'stable-a',sender:'对方',text:'我喜欢摄影',timestamp:'2026-11-01'},b={id:'stable-b',sender:'对方',text:'我在杭州',timestamp:'2026-10-31'},request=new Map([[0,{...a,stableId:'stable-a'}],[1,{...b,stableId:'stable-b'}]]),fact={id:0,quote:'我喜欢摄影',field:'interests',value:'摄影'};
  const resolved=resolveProfileResponseFact(fact,request,[b,a],'对方');assert.strictEqual(resolved.message,a);assert.deepEqual(resolved.sourceMessageIds,['stable-a']);assert.equal(resolveProfileResponseFact(fact,request,[b,{...a,text:'原文被编辑'}],'对方'),null);assert.equal(resolveProfileResponseFact({...fact,quote:'编造'},request,[a,b],'对方'),null);assert.equal(resolveProfileResponseFact(fact,request,[],'对方'),null);
+ assert.equal(resolveProfileResponseFact(fact,request,[{...a,id:'other-source'}],'对方'),null);
+ assert.equal(resolveProfileResponseFact(fact,request,[a,{...a}],'对方'),null);
+});
+test('normalizing sparse samples and plans keeps metadata attached to its own item',()=>{
+ const record=migrateWorkspaceRecord({schemaVersion:1,state:{contacts:[],goals:[],selfProfile:{samples:[{text:'',owner:'invalid'},{text:'好呀',owner:'valid'}],plans:[{text:'',tag:'invalid'},{text:'周末爬山',tag:'valid'}]}}});assert.deepEqual(record.state.selfProfile.samples.map(s=>[s.text,s.owner]),[['好呀','valid']]);assert.deepEqual(record.state.selfProfile.plans.map(p=>[p.text,p.tag]),[['周末爬山','valid']]);
 });

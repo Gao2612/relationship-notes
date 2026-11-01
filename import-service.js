@@ -59,7 +59,7 @@ function validate(input) {
     if (sender !== self && sender !== target) throw new InputError('聊天记录只能包含所选两人的发言。');
     text(message.text, LIMITS.text, true);
     if ('timestamp' in message) text(message.timestamp, LIMITS.timestamp);
-    size += message.text.length;
+    size += new TextEncoder().encode(message.text).byteLength;
     if (size > 2 * 1024 * 1024) throw new InputError('聊天记录超过 2 MiB，请分段导入。');
     messages.push({ ...message, sender });
   }
