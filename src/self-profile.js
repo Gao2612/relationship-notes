@@ -10,5 +10,3 @@ export function summarizeSelfProfile(value){
  const p=normalizeSelfProfile(value);
  return {voice:{...p.voice},interests:p.interests,plans:p.plans,boundaries:p.boundaries,samples:p.samples.map(s=>s.text),updatedAt:p.updatedAt};
 }
-
-

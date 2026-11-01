@@ -1,5 +1,6 @@
 node_modules/
 client.js
+releases/
 *.backup
 *.bak
 *.json.bak
@@ -9,3 +10,6 @@ client.js
 *.exe
 *.db
 .env*
+tools/backups/
+tools/generated/
+docs/archive/

@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {NAVIGATION,resolveNavigation,createWorkspaceStore} from './navigation.js';
+test('all six sidebar leaves resolve to contextual horizontal tabs',()=>{assert.equal(NAVIGATION.flatMap(g=>g.items).length,6);assert.equal(resolveNavigation('profile','invalid').tab,'basic');assert.equal(resolveNavigation('behavior','evidence').group.id,'observe');assert.equal(resolveNavigation('bad','bad').item.id,'profile');});
+test('switching features preserves contacts draft and goals',()=>{const s=createWorkspaceStore({contacts:[{id:'a'}],draft:'unfinished',goals:[{id:1}]});const previous=s.getSnapshot();s.navigate('replies','draft');assert.notEqual(s.getSnapshot(),previous);s.navigate('profile','sources');assert.equal(s.getSnapshot().draft,'unfinished');assert.equal(s.getSnapshot().contacts[0].id,'a');assert.equal(s.getSnapshot().goals[0].id,1);});
+test('subscriptions are removed and snapshots stable until writes',()=>{const s=createWorkspaceStore();let count=0;const off=s.subscribe(()=>count++),a=s.getSnapshot();assert.equal(a,s.getSnapshot());s.set({tone:'direct'});assert.equal(count,1);off();s.navigate('goals');assert.equal(count,1);});

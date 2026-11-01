@@ -105,4 +105,3 @@ export function parseQqText(text){
  finish();if(!messages.length)throw new ImportError('parse0');if(messages.length>MAX_MESSAGES)throw new ImportError('parse5');return messages;
 }
 export function decodeFile(bytes,name,size=bytes.byteLength){if(/\.bak$/i.test(name))throw new ImportError('qqBackup');if(!/\.(txt|json)$/i.test(name))throw new ImportError('parse10');if(size>MAX_BYTES||bytes.byteLength>MAX_BYTES)throw new ImportError('size');let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{throw new ImportError('encoding');}if(/\.txt$/i.test(name)&&/^\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?\s+[^\r\n]+[（(](?:\d{5,}|[^()（）\s]+@[^()（）\s]+)[）)]\s*$/m.test(text))return parseQqText(text);return parseChat(text,name.split('.').pop().toLowerCase());}
-

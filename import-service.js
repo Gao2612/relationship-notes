@@ -79,6 +79,9 @@ function fingerprint(value) {
 }
 
 function enqueue(state, value) {
+  // Do not silently evict unconsumed chats when the browser is unavailable.
+  // Keeping this queue volatile avoids a second host-side copy of private chat.
+  if (state.queue.length >= LIMITS.queue) throw new InputError('待导入队列已满，请打开关系手记完成现有导入后再重试。未导入的内容不会覆盖已有记录。', 409);
   const snapshot = JSON.parse(JSON.stringify({
     self: value.self,
     target: value.target,
@@ -89,14 +92,13 @@ function enqueue(state, value) {
   state.sequence += 1;
   const version = `${state.instanceId}-${fingerprint(snapshot)}-${state.sequence}`;
   state.queue.push({ ...snapshot, version });
-  while (state.queue.length > LIMITS.queue) state.queue.shift();
   return snapshot.messages.length;
 }
 
 export function createImportTool(state) {
   return {
     name: 'relationship_notes_import',
-    description: '当用户明确要求把其提供的聊天记录导入关系手记时，调用本工具导入。按原文拆分双方消息并确认双方身份；不能编造或修改内容，身份不明确时先向用户询问。工具只接收双方原文，不发送给联系人。',
+    description: '当用户明确要求把其提供的聊天记录导入关系手记时，调用本工具导入。按原文拆分双方消息并确认双方身份；不能编造或修改内容，身份不明确时先向用户询问。工具只接收双方原文，不发送给联系人。队列只存宿主内存，DSH重启会清空未消费内容；请打开关系手记完成导入。',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -121,7 +123,7 @@ export function createImportTool(state) {
     },
     output: {
       schema: { type:'object', properties:{count:{type:'number'}}, required:['count'], additionalProperties:false },
-      render: (_input, output) => [{type:'text',text:`已将 ${output.count} 条聊天记录发送到关系手记的导入队列。`}],
+      render: (_input, output) => [{type:'text',text:`已将 ${output.count} 条聊天记录发送到关系手记的临时导入队列。请打开关系手记完成本机保存；DSH 重启会清空尚未导入的内容。`}],
     },
     async execute(input) {
       return { count: enqueue(state, validate(input)) };
@@ -191,4 +193,3 @@ export function apply(ctx) {
     scoped.tools.register(createImportTool(state));
   });
 }
-

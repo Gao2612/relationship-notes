@@ -1,4 +1,5 @@
 // Observable local heuristics only. No relationship, attraction or response-time inference.
+import {isInteractionExcluded} from './interaction-metrics.js';
 const validPair=(self,target)=>typeof self==='string'&&typeof target==='string'&&self.trim()&&target.trim()&&self.trim()!==target.trim();
 const selected=(messages,self,target)=>validPair(self,target)&&Array.isArray(messages)?messages.filter(m=>m&&typeof m.text==='string'&&(m.sender===self||m.sender===target)):[];
 const question=text=>/[?？]|(?:吗|么|如何|为什么|怎么|是否|什么|哪[里个天])/.test(text);
@@ -15,7 +16,7 @@ function boundary(text){
 }
 const sharing=text=>!question(text)&&/(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text);
 const acknowledgment=text=>/^(?:(?:好(?:的|呀|啊)?|嗯+|收到|了解|明白(?:了)?|谢谢|没问题|知道了)[，,。！!\s]*)+$/.test(text.trim());
-const positiveCue=/(?:喜欢你|想你|想见你|期待(?:见你|和你)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|你真好|好可爱|好漂亮|好厉害|辛苦你了|谢谢你|关心你|担心你|抱抱|亲亲|❤️|❤|🥰|😍|😘)/i;
+const positiveCue=/(?:(?<!不)喜欢你|想你|想见你|期待(?:见你|和你)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|你真好|好可爱|好漂亮|好厉害|辛苦你了|谢谢你|关心你|担心你|抱抱|亲亲|❤️|❤|🥰|😍|😘)/i;
 const negativeCue=/(?:别再联系|不要再联系|不想(?:再)?(?:见你|和你聊|联系你)|停止联系|别打扰|不喜欢你|不舒服|很烦|生气|拒绝|别再发)/i;
 const topics=[['工作',/(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/],['日常',/(今天|最近|吃饭|睡觉|下班|天气|回家)/],['周末计划',/(周末|休息日|下周|明天|约吗|有空|见面|一起去)/],['兴趣活动',/(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]];
 function dayKey(timestamp){
@@ -29,13 +30,13 @@ function dayKey(timestamp){
  try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}catch{return date.toISOString().slice(0,10);}
 }
 /** Daily activity and explicitly worded target-side affinity cues. Counts are evidence, not mind-reading. */
-export function analyzeDailyTimeline(messages,self,target){
+export function analyzeDailyTimeline(messages,self,target,corrections=[]){
  const list=selected(messages,self,target),groups=new Map();
  for(const message of list){const date=dayKey(message.timestamp);if(!date)continue;let day=groups.get(date);if(!day){day={date,messages:[],selfMessages:0,targetMessages:0,turns:0,selfTurns:0,targetTurns:0,questions:0,shares:0,acknowledgments:0,targetQuestions:0,targetShares:0,positiveCues:0,negativeCues:0,affinityEvidence:[]};groups.set(date,day);}
   day.messages.push(message);if(message.sender===self)day.selfMessages++;else day.targetMessages++;
   if(day.lastSender!==message.sender){day.turns++;if(message.sender===self)day.selfTurns++;else day.targetTurns++;day.lastSender=message.sender;}
   if(question(message.text))day.questions++;if(sharing(message.text))day.shares++;if(acknowledgment(message.text))day.acknowledgments++;
-  if(message.sender===target){const asks=question(message.text),shares=sharing(message.text),pos=positiveCue.test(message.text),neg=negativeCue.test(message.text);if(asks)day.targetQuestions++;if(shares)day.targetShares++;if(pos)day.positiveCues++;if(neg)day.negativeCues++;if(day.affinityEvidence.length<6){if(pos||neg)day.affinityEvidence.push({kind:pos?'positive':'negative',quote:message.text,message});else if(asks)day.affinityEvidence.push({kind:'question',quote:message.text,message});else if(shares)day.affinityEvidence.push({kind:'sharing',quote:message.text,message});}}
+  if(message.sender===target){const asks=question(message.text)&&!isInteractionExcluded(message,'question',corrections),shares=sharing(message.text)&&!isInteractionExcluded(message,'sharing',corrections),pos=positiveCue.test(message.text)&&!isInteractionExcluded(message,'positive',corrections),neg=negativeCue.test(message.text)&&!isInteractionExcluded(message,'boundary',corrections);if(asks)day.targetQuestions++;if(shares)day.targetShares++;if(pos)day.positiveCues++;if(neg)day.negativeCues++;if(day.affinityEvidence.length<6){if(pos||neg)day.affinityEvidence.push({kind:pos?'positive':'negative',quote:message.text,message});else if(asks)day.affinityEvidence.push({kind:'question',quote:message.text,message});else if(shares)day.affinityEvidence.push({kind:'sharing',quote:message.text,message});}}
  }
  const days=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date));if(!days.length)return {days:[],averageMessages:0};
  const averageMessages=days.reduce((sum,day)=>sum+day.messages.length,0)/days.length,maxMessages=Math.max(...days.map(day=>day.messages.length)),maxTurns=Math.max(...days.map(day=>day.turns));let previousAffinity=null;
@@ -92,5 +93,3 @@ export function generateLocalDraft(input={}){
  }
  return {draft:clip(draft,context.limit),reason,evidence,mode:'local',boundary:Boolean(stop)};
 }
-
-

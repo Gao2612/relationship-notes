@@ -1,9 +1,11 @@
 const signature=f=>[f.field,f.quote||'',f.value].join('|');
 const hash=value=>{let result=2166136261;for(const c of value)result=Math.imul(result^c.charCodeAt(0),16777619);return (result>>>0).toString(36);};
+export function profileMessageId(message){return message?.id||'message-'+hash(JSON.stringify([message?.sender,message?.timestamp,message?.text,message?.file]));}
+export function profileKind(field){return ({interests:'interest',preferences:'interest',style:'style',boundary:'boundary',followup:'followup',recent:'followup',agreement:'followup',inference:'inference'})[field]||'fact';}
 export function profileRows(contact){return (contact.profileSummary||[]).map((f,index)=>({...f,uid:f.uid||'fact-'+hash(signature(f)+'|'+index),status:f.status||(f.obsolete?'archived':'active'),effectiveAt:f.effectiveAt||f.editedAt||f.message?.timestamp||null}));}
 export function changeProfile(contact,action,now=Date.now()){
  const rows=profileRows(contact),index=rows.findIndex(f=>f.uid===action.uid),current=rows[index],dismissed=new Set(contact.profileDismissed||[]);let next=rows;
- const newFact=(field,value,extra={})=>({uid:action.newUid||'fact-'+now+'-'+Math.random().toString(36).slice(2,9),field,value:value.trim(),quote:'',manual:true,confirmed:true,status:'active',effectiveAt:action.effectiveAt||now,createdAt:now,...extra});
+ const newFact=(field,value,extra={})=>({uid:action.newUid||'fact-'+now+'-'+Math.random().toString(36).slice(2,9),field,kind:profileKind(field),provenance:'user',confidence:field==='inference'?null:1,sourceMessageIds:[],value:value.trim(),quote:'',manual:true,confirmed:true,status:'active',effectiveAt:action.effectiveAt||now,createdAt:now,...extra});
  if(action.type==='add'&&action.value?.trim())next=[...rows,newFact(action.field,action.value)];
  else if(current){
   if(action.type==='edit'&&action.value?.trim())next=rows.map((f,i)=>i===index?{...f,value:action.value.trim(),status:f.status==='pending'?'active':f.status,manual:true,confirmed:true,editedAt:now}:f);
@@ -25,8 +27,7 @@ export function changeProfile(contact,action,now=Date.now()){
 export function mergeProfileAnalysis(contact,generated,now=Date.now()){
  const rows=profileRows(contact),dismissed=new Set(contact.profileDismissed||[]),next=[...rows];
  for(const fact of generated){if(dismissed.has(fact.field+'|'+(fact.quote||''))||next.some(f=>f.field===fact.field&&(f.value===fact.value||(f.quote&&f.quote===fact.quote))))continue;
- const needsReview=['job','city'].includes(fact.field)&&next.some(f=>f.field===fact.field);
- next.push({...fact,uid:'fact-'+hash(signature(fact)),status:needsReview?'pending':'active',effectiveAt:fact.message?.timestamp||now,createdAt:now});
+ next.push({...fact,uid:'fact-'+hash(signature(fact)),kind:fact.kind||profileKind(fact.field),provenance:'model',confidence:Number.isFinite(fact.confidence)?Math.max(0,Math.min(1,fact.confidence)):null,sourceMessageIds:fact.sourceMessageIds|| (fact.message?[profileMessageId(fact.message)]:[]),status:'pending',confirmed:false,effectiveAt:fact.message?.timestamp||now,createdAt:now});
  }
  return {...contact,profileSummary:next,profileSummaryUpdatedAt:now};
 }

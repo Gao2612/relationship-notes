@@ -10,10 +10,10 @@ export function retrieveRelatedMessages(messages,self,target,intent){
  return pair.slice(0,-12).map((message,index)=>{const text=String(message.text||'').toLowerCase(),hits=intentTerms.filter(term=>text.includes(term)).length;return {message,index,score:hits?hits*4+Math.min(4,recentTerms.filter(term=>text.includes(term)).length):0};}).filter(row=>{if(!row.score||!String(row.message.text||'').trim())return false;const id=key(row.message);if(excluded.has(id)||seen.has(id))return false;seen.add(id);return true;}).sort((a,b)=>b.score-a.score||b.index-a.index).slice(0,8).map(({message})=>({sender:message.sender,text:String(message.text).slice(0,500),timestamp:message.timestamp==null?'':String(message.timestamp).slice(0,50)}));
 }
 export function buildReplyPayload(state, contact) {
- const daily=analyzeDailyTimeline(contact.messages,contact.self,contact.target);
+ const daily=analyzeDailyTimeline(contact.messages,contact.self,contact.target,contact.interactionCorrections||[]);
  const dailyTimeline=daily.days.map(day=>{const ai=contact.timelineAnalysis?.[day.date],aiReason=ai?` AI 分析摘要：${ai.summary} 活跃原因：${ai.activityReason} 互动线索：${ai.affinityContext}`:'';return {date:day.date,messages:day.messages.length,self:day.selfMessages,target:day.targetMessages,turns:day.turns,activityScore:day.activityScore,affinityScore:day.affinityScore,affinityChange:day.affinityChange,reason:`${day.reason} ${day.affinityNote}${aiReason}`.slice(0,360),affinityEvidence:day.affinityEvidence.slice(0,3).map(item=>item.quote.slice(0,100))};});
  const selfProfile=summarizeSelfProfile(state.selfProfile||contact.selfProfile||{}),suggestions=suggestNextSteps({...contact,selfProfile});
- const payload={provider:state.provider,model:state.model,self:contact.self,target:contact.target,messages:contact.messages.filter(m=>m.sender===contact.self||m.sender===contact.target).slice(-12).map(m=>({sender:m.sender,text:m.text.slice(0,500),timestamp:typeof m.timestamp==='string'?m.timestamp.slice(0,50):''})),facts:(Array.isArray(contact.profileSummary)?contact.profileSummary.filter(f=>!f.obsolete&&(!f.status||f.status==='active')):contact.facts||[]).slice(0,12).map(f=>({field:f.field,value:f.value.slice(0,500)})),selfProfile,suggestions:suggestions.suggestions,suggestionDisclaimer:suggestions.disclaimer,relatedMessages:retrieveRelatedMessages(contact.messages,contact.self,contact.target,state.intent),dailyTimeline,scenario:state.scenario,tone:state.tone,intent:state.intent.slice(0,500),selfProfile,suggestions:suggestions.suggestions,suggestionDisclaimer:suggestions.disclaimer};
+ const payload={provider:state.provider,model:state.model,self:contact.self,target:contact.target,messages:contact.messages.filter(m=>m.sender===contact.self||m.sender===contact.target).slice(-12).map(m=>({sender:m.sender,text:m.text.slice(0,500),timestamp:typeof m.timestamp==='string'?m.timestamp.slice(0,50):''})),facts:(Array.isArray(contact.profileSummary)?contact.profileSummary.filter(f=>!f.obsolete&&(!f.status||f.status==='active')):contact.facts||[]).slice(0,12).map(f=>({field:f.field,value:f.value.slice(0,500)})),selfProfile,suggestions:suggestions.suggestions,suggestionDisclaimer:suggestions.disclaimer,relatedMessages:retrieveRelatedMessages(contact.messages,contact.self,contact.target,state.intent),dailyTimeline,scenario:state.scenario,tone:state.tone,intent:state.intent.slice(0,500)};
  for(const f of (contact.profileSummary||[]).filter(f=>['archived','superseded','deleted'].includes(f.status)).slice(-6))payload.facts.push({field:'资料更新',value:('旧资料“'+f.value+'”已'+(f.status==='superseded'?'被更新':'归档或移除')+'，仅属于历史情况，不作为当前偏好或习惯。').slice(0,500)});
  while(JSON.stringify(payload).length>60000 && payload.relatedMessages.length)payload.relatedMessages.pop();
  while(JSON.stringify(payload).length>60000 && payload.messages.length>1)payload.messages.shift();
@@ -23,7 +23,3 @@ export function buildReplyPayload(state, contact) {
  if(JSON.stringify(payload).length>60000)throw new Error('聊天时间线过长，无法安全发送给模型。');
  return payload;
 }
-
-
-
-
