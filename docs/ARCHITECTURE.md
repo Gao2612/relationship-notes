@@ -32,3 +32,7 @@
 当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
 
 发布源码与安装产物应来自同一版本；GitHub 源码不得含真实聊天、本人样例、媒体、备份、凭据及本机日志。归档仅用于保留历史来源，安装包应按 `package.json.files` 的明确清单分发，不把归档当可执行入口。
+
+冻结源码并构建/验证后，可运行 `node tools/package-release.mjs --out <新的交付目录>`。工具按package.files匹配运行文件，并附带package、README、许可证和Markdown说明，排除依赖与历史归档；生成ZIP、SHA256和逐文件清单。已有同名ZIP时拒绝覆盖，源码时间晚于client时要求重新构建。可先加 `--dry-run` 审查文件清单。打包工具依赖Windows PowerShell/.NET压缩库，不是客户端运行依赖。
+
+共享预览由纯模块 `src/share-scope.js` 处理：可选择包含首尾日期的上海时区范围和1–500条上限，日期筛选时排除未知时间，单条仍裁为2000字符；预览不包含消息正文。`createProfileBridgeSnapshot(contact,options)`采用相同范围，默认维持最近500条。日期范围仅作用于聊天消息，当前有效且已确认的档案事实另行共享；界面应明确显示这个区别。

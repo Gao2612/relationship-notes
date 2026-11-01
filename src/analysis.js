@@ -1,3 +1,4 @@
+import {isProfileFactCurrent} from './profile-lifecycle.js';
 // Observable local heuristics only. No relationship, attraction or response-time inference.
 import {isInteractionExcluded,interactionCorrectionIndex} from './interaction-metrics.js';
 const validPair=(self,target)=>typeof self==='string'&&typeof target==='string'&&self.trim()&&target.trim()&&self.trim()!==target.trim();
@@ -17,8 +18,7 @@ function dayKey(timestamp){
 }
 /** Daily activity and explicitly worded target-side affinity cues. Counts are evidence, not mind-reading. */
 export function analyzeDailyTimeline(messages,self,target,corrections=[]){
- corrections=interactionCorrectionIndex(corrections);
- const list=selected(messages,self,target),groups=new Map();
+ const list=selected(messages,self,target),groups=new Map();corrections=interactionCorrectionIndex(corrections,list);
  for(const message of list){const date=dayKey(message.timestamp);if(!date)continue;let day=groups.get(date);if(!day){day={date,messages:[],selfMessages:0,targetMessages:0,turns:0,selfTurns:0,targetTurns:0,questions:0,shares:0,acknowledgments:0,targetQuestions:0,targetShares:0,positiveCues:0,negativeCues:0,affinityEvidence:[]};groups.set(date,day);}
   day.messages.push(message);if(message.sender===self)day.selfMessages++;else day.targetMessages++;
   if(day.lastSender!==message.sender){day.turns++;if(message.sender===self)day.selfTurns++;else day.targetTurns++;day.lastSender=message.sender;}
@@ -50,7 +50,7 @@ const clip=(text,n)=>Array.from(text).slice(0,n).join('');
 export function buildReplyContext({messages=[],self,target,facts=[],profileSummary,scenario='continue',tone='gentle',intent='',limit=160}={}){
  if(!validPair(self,target))throw new Error('请选择两个不同的发言人');
  const list=selected(messages,self,target);
- return {self:clip(self,100),target:clip(target,100),messages:list.slice(-40).map(m=>({sender:m.sender,text:clip(m.text,2000),timestamp:typeof m.timestamp==='string'?clip(m.timestamp,100):'',line:m.line,endLine:m.endLine,file:typeof m.file==='string'?clip(m.file,200):'',messageIndex:m.messageIndex})),facts:(Array.isArray(profileSummary)?profileSummary.filter(f=>!f.obsolete&&f.field!=='inference'&&f.kind!=='inference'&&(!f.status||f.status==='active')):Array.isArray(facts)?facts:[]).slice(0,20).map(f=>clip(typeof f==='string'?f:typeof f?.value==='string'?f.value:'',300)).filter(Boolean),scenario:['continue','question','invite','boundary','reconnect','care','clarify','apologize'].includes(scenario)?scenario:'continue',tone:['gentle','casual','concise','warm','direct'].includes(tone)?tone:'gentle',intent:clip(typeof intent==='string'?intent:'',500),limit:boundedLimit(limit),boundary:list.some(m=>m.sender===target&&boundary(m.text))};
+ return {self:clip(self,100),target:clip(target,100),messages:list.slice(-40).map(m=>({sender:m.sender,text:clip(m.text,2000),timestamp:typeof m.timestamp==='string'?clip(m.timestamp,100):'',line:m.line,endLine:m.endLine,file:typeof m.file==='string'?clip(m.file,200):'',messageIndex:m.messageIndex})),facts:(Array.isArray(profileSummary)?profileSummary.filter(f=>isProfileFactCurrent(f)&&(f.provenance!=='model'||f.confirmed===true)&&f.field!=='inference'&&f.kind!=='inference'):Array.isArray(facts)?facts:[]).slice(0,20).map(f=>clip(typeof f==='string'?f:typeof f?.value==='string'?f.value:'',300)).filter(Boolean),scenario:['continue','question','invite','boundary','reconnect','care','clarify','apologize'].includes(scenario)?scenario:'continue',tone:['gentle','casual','concise','warm','direct'].includes(tone)?tone:'gentle',intent:clip(typeof intent==='string'?intent:'',500),limit:boundedLimit(limit),boundary:list.some(m=>m.sender===target&&boundary(m.text))};
 }
 export function generateLocalDraft(input={}){
  const context=buildReplyContext(input),list=selected(input.messages,input.self,input.target),incoming=list.filter(m=>m.sender===input.target),last=incoming.at(-1),stop=incoming.find(m=>boundary(m.text));

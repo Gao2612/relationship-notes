@@ -1,6 +1,6 @@
 export const NAVIGATION = [
   {id:'data',label:'联系人档案',items:[{id:'profile',label:'联系人档案',tabs:[['basic','基本资料'],['interests','兴趣偏好']]}]},
-  {id:'observe',label:'关系观察',items:[{id:'behavior',label:'行为记录',tabs:[['daily','每日历程'],['metrics','互动评分'],['evidence','记录列表'],['rules','评分规则']]},{id:'goals',label:'行动计划',tabs:[['current','当前目标'],['progress','进展记录']]}]},
+  {id:'observe',label:'关系观察',items:[{id:'behavior',label:'行为记录',tabs:[['daily','每日历程'],['metrics','互动评分'],['review','周/月复盘'],['evidence','记录列表'],['rules','评分规则']]},{id:'goals',label:'行动计划',tabs:[['current','当前目标'],['progress','进展记录']]}]},
   {id:'communicate',label:'沟通辅助',items:[{id:'replies',label:'回复草稿',tabs:[['session','会话']]}]},
   {id:'manage',label:'设置',hidden:true,items:[{id:'settings',label:'设置',tabs:[['general','通用设置']]},{id:'import',label:'聊天导入',tabs:[['file','导入文件'],['identity','身份确认'],['result','导入结果']],hidden:true}]},
 ];

@@ -4,12 +4,13 @@ import fs from 'node:fs';
 import * as engine from './engine.js';
 import * as navigation from './navigation.js';
 import * as selfProfile from './self-profile.js';
+import * as messageIdentity from './message-identity.js';
 import * as persistence from './persistence-schema.js';
 
 const source=fs.readFileSync(new URL('./workspace.js',import.meta.url),'utf8');
-const settingsSource=source.slice(source.indexOf('function SelfProfileEditor({s})'),source.indexOf('  function TabStrip'));
+const settingsSource='const ShareScopeView=()=>null,SelfPlanView=()=>null,selected=s=>s.contacts.find(c=>c.id===s.selectedId);'+source.slice(source.indexOf('function SelfProfileEditor({s})'),source.indexOf('  function TabStrip'));
 const persistedKeys=new Function('return '+source.match(/const persistedKeys=(\[[^;]+\]);/)[1])();
-const E={...engine,...navigation,...selfProfile,...persistence};
+const E={...engine,...navigation,...selfProfile,...persistence,...messageIdentity};
 function harness(initial={}){
  let state={...E.createWorkspaceStore().getSnapshot(),models:[],...initial},hooks=[],cursor=0,download;
  const h=(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity)});
@@ -23,6 +24,7 @@ function harness(initial={}){
  return {button,read,get state(){return state;},get download(){return download;},render,nodes};
 }
 const contact=()=>({id:'person',self:'我',target:'对方',messages:[{sender:'对方',text:'你好',timestamp:'2026-02-25 12:00:00'}]});
+test('new feedback, expiry and review preferences survive backup without restoring authorization',async()=>{const c={...contact(),topicFeedback:[{suggestionId:'topic-a',status:'discussed',at:1}],profileSummary:[{uid:'f',field:'followup',value:'已处理事项',status:'completed',lifecycleHistory:[{from:'active',to:'completed',at:1}]}]},source=harness({contacts:[c],selectedId:c.id,sharedContactId:c.id,shareScope:{since:'2026-01-01',until:'2026-12-31',limit:30},reviewPreferences:{person:{period:'month',anchor:'2026-11-01'}},selfProfile:{plans:[{text:'旅行',when:'周末',planState:'cancelled',expiresAt:'2026-12-01'}],samples:[{text:'我编辑后的回复',note:'像我'}]}});await source.button('导出完整项目').props.onClick();const record=JSON.parse(await source.download.text()),target=harness();await target.read(record);await target.button('恢复此备份').props.onClick();assert.deepEqual(target.state.contacts[0].topicFeedback,c.topicFeedback);assert.equal(target.state.contacts[0].profileSummary[0].status,'completed');assert.equal(target.state.selfProfile.plans[0].planState,'cancelled');assert.equal(target.state.selfProfile.plans[0].when,'周末');assert.equal(target.state.shareScope.limit,30);assert.equal(target.state.reviewPreferences.person.period,'month');assert.equal(target.state.sharedContactId,'');});
 test('media-free backup retains self profile and correction history without binary copies',async()=>{
  const file=new File(['private-image'],'photo.jpg',{type:'image/jpeg'}),c={...contact(),selfAvatarFile:file,targetAvatarData:'data:image/jpeg;base64,AAAA',sessionPhoto:'data:image/jpeg;base64,AAAA',mediaAssets:[{file}],interactionCorrections:[{kind:'question',key:'k',excluded:true,at:123}]};
  c.messages[0].attachments=[{kind:'image',file,fileName:'photo.jpg'}];

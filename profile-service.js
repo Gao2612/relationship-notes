@@ -1,3 +1,4 @@
+import {profileExpiryTime} from './src/profile-lifecycle.js';
 import { randomUUID } from 'node:crypto';
 
 // An explicit, short-lived copy of ONE browser-selected contact. IndexedDB
@@ -10,14 +11,14 @@ function shape(value,allowed,required=allowed){if(!object(value)||Object.keys(va
 function str(value,max,required=true){if(typeof value!=='string'||value.length>max||(required&&!value.trim()))throw new BridgeError('档案桥接文本无效。');return value;}
 function count(value,max){if(!Number.isInteger(value)||value<1||value>max)throw new BridgeError('数量参数无效。');return value;}
 export function createProfileState(now=()=>Date.now()){return {snapshot:null,clientId:null,updatedAt:0,pending:[],now};}
-function current(state,contactId){if(contactId!==undefined)str(contactId,200);if(!state.snapshot||state.now()-state.updatedAt>TTL){state.snapshot=null;state.pending=[];throw new BridgeError('请打开关系手记，并为当前联系人开启“允许 DSH 读取”。',409);}if(contactId!==undefined&&contactId!==state.snapshot.contact.id)throw new BridgeError('只能读取关系手记中明确授权的当前联系人。',403);return state.snapshot;}
+function current(state,contactId){if(contactId!==undefined)str(contactId,200);if(!state.snapshot||state.now()-state.updatedAt>TTL){state.snapshot=null;state.pending=[];throw new BridgeError('请打开关系手记，并为当前联系人开启“允许 DSH 读取”。',409);}if(contactId!==undefined&&contactId!==state.snapshot.contact.id)throw new BridgeError('只能读取关系手记中明确授权的当前联系人。',403);return {...state.snapshot,facts:state.snapshot.facts.filter(f=>f.expiresAt==null||profileExpiryTime(f.expiresAt)>=state.now())};}
 function validateSnapshot(value){
  shape(value,['contact','facts','messages']);shape(value.contact,['id','self','target']);
  const contact={id:str(value.contact.id,200),self:str(value.contact.self,100),target:str(value.contact.target,100)};
  if(contact.self===contact.target)throw new BridgeError('双方身份不能相同。');
  if(!Array.isArray(value.messages)||value.messages.length>500||!Array.isArray(value.facts)||value.facts.length>100)throw new BridgeError('共享资料超过上限。');
  const ids=new Set();const messages=value.messages.map(m=>{shape(m,['id','sender','text','timestamp']);const id=str(m.id,200);if(ids.has(id))throw new BridgeError('消息标识重复。');ids.add(id);if(m.sender!==contact.self&&m.sender!==contact.target)throw new BridgeError('共享消息包含其他发言人。');return {id,sender:str(m.sender,100),text:str(m.text,2000),timestamp:str(m.timestamp,100,false)};});
- const facts=value.facts.map(f=>{shape(f,['id','field','value','quote','sourceMessageIds','confirmed','confidence'],['id','field','value','quote','sourceMessageIds','confirmed']);if(f.confirmed!==true||!FIELDS.includes(f.field)||!Array.isArray(f.sourceMessageIds)||f.sourceMessageIds.length>20||(f.confidence!=null&&(!Number.isFinite(f.confidence)||f.confidence<0||f.confidence>1)))throw new BridgeError('只允许共享已确认的档案。');return {id:str(f.id,200),field:f.field,kind:f.field==='inference'?'inference':['style','boundary','followup'].includes(f.field)?f.field:['interests','preferences'].includes(f.field)?'interest':'fact',value:str(f.value,1000),quote:str(f.quote,1000,false),sourceMessageIds:f.sourceMessageIds.map(id=>str(id,200)),confidence:f.confidence??null,confirmed:true};});
+ const facts=value.facts.map(f=>{shape(f,['id','field','value','quote','sourceMessageIds','confirmed','confidence','expiresAt'],['id','field','value','quote','sourceMessageIds','confirmed']);if(f.expiresAt!=null&&!Number.isFinite(profileExpiryTime(f.expiresAt)))throw new BridgeError('档案到期日期无效。');if(f.confirmed!==true||!FIELDS.includes(f.field)||!Array.isArray(f.sourceMessageIds)||f.sourceMessageIds.length>20||(f.confidence!=null&&(!Number.isFinite(f.confidence)||f.confidence<0||f.confidence>1)))throw new BridgeError('只允许共享已确认的档案。');return {id:str(f.id,200),field:f.field,kind:f.field==='inference'?'inference':['style','boundary','followup'].includes(f.field)?f.field:['interests','preferences'].includes(f.field)?'interest':'fact',value:str(f.value,1000),quote:str(f.quote,1000,false),sourceMessageIds:f.sourceMessageIds.map(id=>str(id,200)),confidence:f.confidence??null,confirmed:true,...(f.expiresAt!=null?{expiresAt:f.expiresAt}:{})};});
  return {contact,facts,messages};
 }
 function sync(state,body){

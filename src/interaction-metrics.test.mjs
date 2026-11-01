@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {analyzeInteractionMetrics,correctInteraction,interactionEvidenceKey} from './interaction-metrics.js';
+import {analyzeInteractionMetrics,correctInteraction,interactionEvidenceKey,legacyInteractionEvidenceKey} from './interaction-metrics.js';
 import {analyzeDailyTimeline} from './analysis.js';
 test('correction excludes a signal without editing evidence and survives reordering',()=>{
  const message={sender:'你',text:'喜欢你',timestamp:'2026-11-01'},contact={self:'我',target:'你',messages:[message]};
@@ -26,4 +26,10 @@ test('daily and overall metrics share vocabulary, exclusions and contextual caut
   const result=analyzeInteractionMetrics({self:'我',target:'你',messages:[{sender:'你',text}]});
   assert.equal(result.indicators.find(i=>i.kind==='positive').count,0);
  }
+});
+test('persistent message IDs separate identical events; legacy corrections migrate only when unique',()=>{
+ const a={messageId:'a',sender:'你',text:'喜欢你',timestamp:'2026-11-01'},b={...a,messageId:'b'},contact={self:'我',target:'你',messages:[a,b]};
+ const changed=correctInteraction(contact,{key:interactionEvidenceKey(a),kind:'positive',excluded:true});assert.equal(analyzeInteractionMetrics(changed).indicators.find(i=>i.kind==='positive').count,1);
+ const old={key:legacyInteractionEvidenceKey(a),kind:'positive',excluded:true};assert.equal(analyzeInteractionMetrics({...contact,messages:[a],interactionCorrections:[old]}).score,null);
+ assert.equal(analyzeInteractionMetrics({...contact,interactionCorrections:[old]}).indicators.find(i=>i.kind==='positive').count,2);
 });

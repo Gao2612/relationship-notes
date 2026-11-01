@@ -7,6 +7,12 @@ import {profileMessageId} from './src/profile-lifecycle.js';
 const snapshot=()=>({contact:{id:'c1',self:'我',target:'对方'},facts:[{id:'f1',field:'interests',value:'喜欢摄影',quote:'我喜欢摄影',sourceMessageIds:['m1'],confirmed:true}],messages:[{id:'m1',sender:'对方',text:'我喜欢摄影，周末会去拍照。',timestamp:'2026-11-01'},{id:'m2',sender:'我',text:'我也喜欢拍照',timestamp:''}]});
 const call=(state,action,body)=>createProfileHandler(state,action)(new Request('http://localhost',{method:'POST',body:JSON.stringify(body)}));
 async function shared(state){assert.equal((await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:snapshot()})).status,200);return createProfileTools(state);}
+test('known expiry is enforced on host reads even before the next snapshot refresh',async()=>{
+ let clock=1000;const state=createProfileState(()=>clock),value=snapshot();value.facts[0].expiresAt=1500;
+ assert.equal((await call(state,'sync',{clientId:'tab1',enabled:true,snapshot:value})).status,200);
+ const tools=createProfileTools(state);assert.equal((await tools[0].execute({})).facts.length,1);
+ clock=1501;assert.equal((await tools[0].execute({})).facts.length,0);
+});
 
 test('profile tools require explicit live sharing and reject other contacts',async()=>{
  let clock=0;const state=createProfileState(()=>clock),tools=createProfileTools(state);

@@ -1,4 +1,5 @@
 // Pure port of the approved prototype parser/extractor; no browser or host access.
+import {ensureMessageIds,ensureContactMessageIds} from './message-identity.js';
 export class ImportError extends Error { constructor(code,details={}) { super(code); this.code=code; this.details=details; } }
 const MAX_BYTES=2*1024*1024,MAX_MESSAGES=10000;
 const sampleChat='[2026-10-21 09:00] 我: 你好，最近怎么样？\n[2026-10-21 09:01] 小禾: 我住在杭州。我是一名设计师。我喜欢摄影。我偏好清淡口味。我计划下周去爬山。\n[2026-10-21 09:02] 我: 我住在北京，我喜欢游泳。\n[2026-10-21 09:03] 小禾\n我不喜欢跑步。她住在上海。你喜欢摄影吗？\n[2026-10-21 09:04] 小禾: 今天的云很好看。';
@@ -62,7 +63,7 @@ export function newImportState(){return {epoch:0,pending:null,committed:null,err
 export function beginImport(state){return {...state,epoch:state.epoch+1,pending:null,error:null,loading:true};}
 export function clearImport(state){return {...newImportState(),epoch:state.epoch+1};}
 export function failImport(state,ticket,error){return ticket===state.epoch?{...state,pending:null,loading:false,error}:state;}
-export function acceptImport(state,ticket,messages,file,isSample=false){if(ticket!==state.epoch)return state;return {...state,loading:false,error:null,pending:{messages:messages.map((m,index)=>({...m,file,messageIndex:index+1})),isSample}};}
+export function acceptImport(state,ticket,messages,file,isSample=false){if(ticket!==state.epoch)return state;return {...state,loading:false,error:null,pending:{messages:ensureMessageIds(messages.map((m,index)=>({...m,file,messageIndex:index+1}))),isSample}};}
 export function identityReady(pending,self,target){return !!pending&&!!self&&!!target&&self!==target&&pending.messages.some(m=>m.sender===self)&&pending.messages.some(m=>m.sender===target);}
 export function commitImport(state,self,target){if(!identityReady(state.pending,self,target))throw new ImportError('identity');const messages=state.pending.messages.filter(m=>m.sender===target);return {...state,committed:{self,target,messages,facts:extractFacts(messages),isSample:state.pending.isSample},error:null};}
 export function supportedProfileSummary(fact){
@@ -72,15 +73,15 @@ export function supportedProfileSummary(fact){
 }
 export function sortChatMessages(messages){
  const time=message=>{const value=String(message.timestamp??'').trim();if(/^\d{10,13}$/.test(value)){const n=Number(value);return n<1e12?n*1000:n;}const local=/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(value);if(local)return Date.UTC(+local[1],+local[2]-1,+local[3],+(local[4]||0)-8,+(local[5]||0),+(local[6]||0));const n=Date.parse(value);return Number.isFinite(n)?n:Infinity;};
- return messages.map((message,index)=>({message,index,time:time(message)})).sort((a,b)=>a.time===b.time?a.index-b.index:a.time-b.time).map(row=>row.message);
+ return ensureMessageIds(messages).map((message,index)=>({message,index,time:time(message)})).sort((a,b)=>a.time===b.time?a.index-b.index:a.time-b.time).map(row=>row.message);
 }
 export function mergeContactImport(contacts,incoming){
  const existing=contacts.find(item=>!item.isSample&&!incoming.isSample&&item.self===incoming.self&&item.target===incoming.target);
- if(!existing)return {contacts:[...contacts,incoming],contact:incoming,added:incoming.messages.length};
- const key=m=>JSON.stringify([m.file||m.source||'',m.sender,m.timestamp||'',m.text||'']);
+ if(!existing){const contact=ensureContactMessageIds(incoming);return {contacts:[...contacts,contact],contact,added:contact.messages.length};}
+ const key=m=>JSON.stringify([m.file||m.source||'',m.sender,m.timestamp||'',m.text||'',m.id??null]);
  const counts=new Map();for(const m of existing.messages)counts.set(key(m),(counts.get(key(m))||0)+1);
  const seen=new Map(),extra=incoming.messages.filter(m=>{const k=key(m),n=(seen.get(k)||0)+1;seen.set(k,n);return n>(counts.get(k)||0);});
- const messages=sortChatMessages([...existing.messages,...extra]);
+ const messages=sortChatMessages([...ensureMessageIds(existing.messages),...extra]);
  const contact={...existing,messages,pairCount:messages.filter(m=>m.sender===existing.self||m.sender===existing.target).length,facts:extractFacts(messages.filter(m=>m.sender===existing.target)),mediaAssets:[...(existing.mediaAssets||[]),...(incoming.mediaAssets||[])],selfAvatarFile:existing.selfAvatarFile||incoming.selfAvatarFile,targetAvatarFile:existing.targetAvatarFile||incoming.targetAvatarFile};
  if(extra.length){
   // Imported wall times are China local time; epoch and zoned timestamps need

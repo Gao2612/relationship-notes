@@ -1,5 +1,6 @@
 import {normalizeSelfProfile} from './self-profile.js';
 import {profileMessageId} from './profile-lifecycle.js';
+import {ensureContactMessageIds} from './message-identity.js';
 
 export const WORKSPACE_SCHEMA_VERSION=2;
 const recordObject=value=>value&&typeof value==='object'&&!Array.isArray(value);
@@ -10,7 +11,7 @@ export function migrateWorkspaceState(state,version=1){
  const selfProfile={...raw,...normalized,voice:{...(recordObject(raw.voice)?raw.voice:{}),...normalized.voice},samples:preserveList('samples',8),plans:preserveList('plans',12)};
  // Spread the original state: forward-compatible fields, contact metadata and
  // correction history survive migration without changing confirmation states.
- return {...state,selfProfile};
+ return {...state,selfProfile,...(Array.isArray(state.contacts)?{contacts:state.contacts.map(ensureContactMessageIds)}:{})};
 }
 export function migrateWorkspaceRecord(record){if(!recordObject(record))throw new Error('本机数据格式无效。');const version=record.schemaVersion??1;return {...record,schemaVersion:WORKSPACE_SCHEMA_VERSION,state:migrateWorkspaceState(record.state,version)};}
 export function migrateBackupRecord(record){if(!recordObject(record)||record.format!=='relationship-notes-backup'||record.version!==1)throw new Error('请选择关系手记导出的完整项目备份。');return {...record,schemaVersion:WORKSPACE_SCHEMA_VERSION,state:migrateWorkspaceState(record.state,record.schemaVersion??1)};}
