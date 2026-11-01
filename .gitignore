@@ -1,0 +1,11 @@
+node_modules/
+client.js
+*.backup
+*.bak
+*.json.bak
+*.log
+*.zip
+*.asar
+*.exe
+*.db
+.env*
