@@ -10,7 +10,7 @@ DeepSeek Harness 自定义插件：本地微信聊天记录分析、每日好感
 每日分（$d$ 为一天，$[\cdot]$ 为 0/1 指示函数）：
 
 $$
-S_d=\operatorname{clip}_{[0,100]}\Bigl(38+W_d-C_d+I_d+L_d-B_d-T_d-H_d\Bigr)
+S_d=\mathrm{clip}_{[0,100]}\Bigl(38+W_d-C_d+I_d+L_d-B_d-T_d-H_d\Bigr)
 $$
 
 $$
@@ -18,7 +18,7 @@ W_d=\min\Bigl(45,\ \min\bigl(24\,[n^{T}_d\ge 2]+12,\ 12P_d\bigr)+8Q_d+6R_d\Bigr)
 $$
 
 $$
-C_d=\min\Bigl(60,\ 24b_d+\operatorname{round}(32\varepsilon_d)+5s_d+\max\bigl(18[m^{T}_d=0],\ 24[n^{T}_d=0]\bigr)\Bigr)
+C_d=\min\Bigl(60,\ 24b_d+\mathrm{round}(32\varepsilon_d)+5s_d+\max\bigl(18[m^{T}_d=0],\ 24[n^{T}_d=0]\bigr)\Bigr)
 $$
 
 $$
@@ -54,7 +54,7 @@ $$
 每月分（$w_d=\max(1,n^{T}_d)$）：
 
 $$
-M_k=\begin{cases}\operatorname{round}\bigl(32+(\bar S_k-32)\min(1,\tfrac{N_k}{20})\bigr), & \bar S_k>32\wedge N_k<20\\ \operatorname{round}(\bar S_k), & \text{其他}\end{cases}
+M_k=\begin{cases}\mathrm{round}\bigl(32+(\bar S_k-32)\min(1,\tfrac{N_k}{20})\bigr), & \bar S_k>32\wedge N_k<20\\ \mathrm{round}(\bar S_k), & \text{其他}\end{cases}
 $$
 
 符号：$P_d,Q_d,R_d$ 对方正向措辞/提问/自我分享条数；$b_d,c_d,a_d$ 边界拒绝/反讽赌气/事后解释条数；
