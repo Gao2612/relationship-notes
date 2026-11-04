@@ -1,15 +1,1 @@
 node_modules/
-client.js
-releases/
-*.backup
-*.bak
-*.json.bak
-*.log
-*.zip
-*.asar
-*.exe
-*.db
-.env*
-tools/backups/
-tools/generated/
-docs/archive/

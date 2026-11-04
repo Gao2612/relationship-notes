@@ -1,61 +1,79 @@
-# Relationship Notes for DSH
+# 关系手记（Relationship Notes）
 
-关系手记 3.2.0：本地优先的联系人档案、互动证据与沟通草稿插件。
+DeepSeek Harness 自定义插件：本地微信聊天记录分析、每日好感线索打分、对方档案整理与回复草稿。
+所有数据只存在浏览器 IndexedDB，不上传任何服务器。
 
-## 3.2 新增
+## 评分公式
 
-- 画像、评分、话题与复盘依据可打开原消息及前后文。
-- 联系人资料和本人计划支持有效期、完成、取消、过期与重新打开；结束的计划退出当前建议和模型上下文。
-- 编辑后的草稿可明确保存为本人表达样例，并撤销本次保存。
-- 话题可标记“已经聊过 / 不合适”，隐藏并可恢复。
-- 行为记录新增周/月复盘，汇总真实话题、未见后续回应的问题及当前跟进项。
-- 设置可预览并限定DSH共享日期和条数，应用后需重新授权。
-- 新消息使用持久ID，旧引用兼容；新增独立视图和自动交付清单。
+每日分（$d$ 为一天，$[\cdot]$ 为 0/1 指示函数）：
 
-详见 [功能与入口说明](FEATURES-3.2.md)。
+$$
+S_d=\operatorname{clip}_{[0,100]}\Bigl(38+W_d-C_d+I_d+L_d-B_d-T_d-H_d\Bigr)
+$$
 
-## 使用
+$$
+W_d=\min\Bigl(45,\ \min\bigl(24\,[n^{T}_d\ge 2]+12,\ 12P_d\bigr)+8Q_d+6R_d\Bigr)
+$$
 
-- 在 DSH「定制模块」打开关系手记，导入聊天文件并确认双方身份。
-- 在联系人档案中核对模型待确认条目，再接受、编辑、归档或删除。沟通风格、边界、待跟进和推测线索分别呈现。
-- 在设置中维护“我”的语气、口癖、兴趣、计划、边界和认可样例。回复生成参考这些信息以及真诚表达、尊重边界、不用试探测试关系等原则。
-- 互动评分可以展开原文，标记误识别并恢复；指数是表达线索汇总，不是好感概率。
-- 回复栏可选择真诚/轻松/简短风格，并主动生成带引用和不确定性的多种可能解释及回复思路。
-- 需要 DSH 主对话读取资料时，显式开启“允许 DSH 读取当前联系人”。可读取已确认档案、搜索最近最多 500 条共享消息，并提出待确认候选。共享范围是当前本机 DSH 宿主中的工具对话，参见 [档案工具说明](PROFILE-TOOLS.md)。
-- 项目备份可以选择包含或不包含媒体；旧版备份仍可恢复。
+$$
+C_d=\min\Bigl(60,\ 24b_d+\operatorname{round}(32\varepsilon_d)+5s_d+\max\bigl(18[m^{T}_d=0],\ 24[n^{T}_d=0]\bigr)\Bigr)
+$$
 
-微信/QQ 监听、独立替代 ExportWeChat 读取、自动发送和主动搭话暂缓开发，只有 [研究方案](CAPTURE-RESEARCH.md)。现有 ExportWeChat JSON/HTML 文件导入继续可用。
+$$
+\varepsilon_d=\begin{cases}\min\bigl(1,\tfrac{f_d+g_d}{n^{T}_d}\bigr), & n^{T}_d>0\\ 0, & n^{T}_d=0\end{cases}
+\qquad
+I_d=20\cdot\frac{n^{\mathrm{init},T}_d}{n^{\mathrm{init}}_d}-10
+$$
 
-## 安装已构建的 ZIP
+$$
+L_d=\begin{cases}+6, & \tilde\ell_d\le 10\\ +3, & \tilde\ell_d\le 30\\ 0, & \tilde\ell_d\le 120\ \text{或无样本}\\ -7, & \tilde\ell_d\le 360\\ -12, & \tilde\ell_d>360\end{cases}
+\qquad
+B_d=\begin{cases}8, & \rho_d<0.2\\ 4, & \rho_d<0.35\\ 0, & \text{其他}\end{cases}
+$$
 
-下载发布的安装 ZIP，解压到单独目录，确认目录内有 `package.json`、`index.js`、`client.js` 和 `cordis.patch.yml`。在 DSH 本地插件安装/加载入口选择该目录，启用关系手记及其「定制模块」容器依赖，然后重载宿主插件服务；若当前 DSH 没有重载入口，重启 DSH。安装包已包含 `client.js`，无需运行 pnpm 安装、构建或测试。
+$$
+T_d=\begin{cases}\min\bigl(60,30\min(2,c_d)+10\min(3,a_d)\bigr), & c_d\ge2\ \text{或}\ (c_d\ge1\wedge a_d\ge1)\\ \min(12,12c_d), & \text{其他}\end{cases}
+$$
 
-升级前先导出关系手记备份。用新解压目录更新本地插件加载位置并重载宿主服务；只刷新页面可能仍使用旧宿主路由。随后在「定制模块」打开关系手记。安装 ZIP 是运行包，不包含完整构建/测试工具；开发请使用源码仓库。
+$$
+H_d=8\min\bigl(2,(n^{S}_d-1)^{+}\bigr)\cdot[n^{S}_d\ge2\wedge n^{T}_d=1]
+$$
 
-## 从源码构建与验证
+两条覆盖规则：
 
-取得完整源码（包括 `build.mjs`、`verify-v3.mjs`、`pnpm-lock.yaml` 和测试文件），使用 Node.js 24 和 pnpm：
+$$
+S_d\leftarrow\min(S_d,48)\quad\text{当 }c_d\ge2\ \text{或}\ (c_d\ge1\wedge a_d\ge1)
+$$
 
-```sh
-pnpm install --frozen-lockfile
-pnpm run build
-pnpm test
+$$
+S_d\leftarrow 32\quad\text{当 }N_d>0\wedge(n^{T}_d=0\vee N_d<4)\wedge b_d=c_d=P_d=f_d=g_d=0
+$$
+
+每月分（$w_d=\max(1,n^{T}_d)$）：
+
+$$
+M_k=\begin{cases}\operatorname{round}\bigl(32+(\bar S_k-32)\min(1,\tfrac{N_k}{20})\bigr), & \bar S_k>32\wedge N_k<20\\ \operatorname{round}(\bar S_k), & \text{其他}\end{cases}
+$$
+
+符号：$P_d,Q_d,R_d$ 对方正向措辞/提问/自我分享条数；$b_d,c_d,a_d$ 边界拒绝/反讽赌气/事后解释条数；
+$f_d,g_d$ 敷衍与低信息量回合数；$n^{T}_d,n^{S}_d$ 双方发言回合数；$m^{S}_d,m^{T}_d$ 消息条数（$N_d=m^{S}+m^{T}$）；
+$n^{\mathrm{init}}$ 对话段数（间隔 ≥2 小时切段）；$\tilde\ell_d$ 回复时延中位数（分钟）；$\rho_d$ 条数均衡比；$s_d$ 超 2 小时才回次数。
+
+## 安装
+
+1. 把 `relationship-plugin` 目录放到工作区。
+2. 在 `%USERPROFILE%\.dsh\profiles\desktop\package.json` 的 `dependencies` 里加
+   `"@local/relationship-notes": "link:<绝对路径>"`，并把插件名加进 `bundle` 列表。
+3. 完全退出 DSH 再打开（仅刷新不会加载新 bundle）。
+
+## 目录
+
+- `src/` 源码（`workspace.js` UI、`analysis.js` 每日/总体分析、`interaction-signals.js` 评分内核）
+- `client.js` 预构建前端产物（改 `src/` 后需 `node build.mjs` 重新生成）
+- `locale/` 中英文案
+
+## 测试
+
+```bash
+node --test bundle-smoke.test.mjs src/analysis.test.mjs src/analysis.daily.test.mjs src/interaction-metrics.test.mjs
 ```
-
-构建使用显式 ESM 模块与 esbuild，不依赖仓库之外的原型文件。`client.js` 是生成产物，源码仓库不提交；安装包附带生成产物。容器契约是 `inject: ['locale', 'subdsh']`，注册 ID `relationship-notes`。
-
-## 数据与模型
-
-聊天、档案、草稿和本人画像保存在浏览器本机 IndexedDB。用户主动调用模型时，选定上下文和已确认资料会交给 DSH 配置的模型服务。开启档案共享时，当前联系人的有界快照会暂存在宿主内存，关闭/切换后撤销，停止同步后 60 秒过期；宿主不落盘保存此快照。
-
-导入工具使用内存队列；重启前应确认消费完成，见 [导入队列设计](IMPORT-QUEUE-DECISION.md)。备份含聊天资料，应自行妥善保存。仓库不包含用户聊天导出、联系人档案、媒体、凭据或个人备份。
-
-## 维护
-
-- [3.1.1复审整改与功能建议](REVIEW-20261101.md)
-
-- [架构与维护边界](docs/ARCHITECTURE.md)
-- [统一路线图](IMPLEMENTATION-ROADMAP.md)
-- [第三方项目评估](THIRD-PARTY-EVALUATION.md)
-
-主代码采用 MIT License；PDF.js 适用其 Apache 2.0 许可证，见 `PDFJS-LICENSE.md`。回复原则仅参考通用沟通方法，不附带 Tong Skill 原始素材或人物口吻。

@@ -1,4 +1,4 @@
-import {interactionDetectors as detectors,interactionScore} from './interaction-signals.js';
+import {interactionDetectors as detectors,interactionScore,engagementSignals} from './interaction-signals.js';
 // Evidence keys survive message sorting and incremental import; no body is logged.
 export function interactionEvidenceKey(message){
  if(typeof message.messageId==='string'&&message.messageId)return 'interaction-id:'+message.messageId;
@@ -26,7 +26,8 @@ export function analyzeInteractionMetrics(contact={}){
  const legacyCounts=new Map();for(const message of messages){const key=legacyInteractionEvidenceKey(message);legacyCounts.set(key,(legacyCounts.get(key)||0)+1);}const ambiguousCorrectionCount=(contact.interactionCorrections||[]).filter(c=>(legacyCounts.get(c.key)||0)>1).length;
  const counts=Object.fromEntries(indicators.map(i=>[i.kind,i.count])),signals=Object.values(counts).reduce((a,b)=>a+b,0);
  let turns=0,prior;for(const m of messages){if(m.sender!==prior)turns++;prior=m.sender;}
- return {messages:messages.length,turns,indicators,ambiguousCorrectionCount,score:interactionScore(counts),confidence:Math.min(.8,signals/20),disclaimer:'互动线索指数仅汇总已识别表达，不是好感概率；置信度仅表示线索数量。'};
+ const engagement=engagementSignals(messages,contact.self),selfMessages=messages.filter(m=>m.sender===contact.self).length;
+ return {messages:messages.length,turns,indicators,ambiguousCorrectionCount,...engagement,score:interactionScore({...counts,...engagement,messages:messages.length,selfMessages,targetMessages:messages.length-selfMessages}),confidence:Math.min(.8,signals/20),disclaimer:'互动线索指数仅汇总已识别表达，不是好感概率；置信度仅表示线索数量。'};
 }
 export function correctInteraction(contact,action,now=Date.now()){
  if(!Object.hasOwn(detectors,action.kind)||typeof action.key!=='string')throw Error('互动纠正无效。');

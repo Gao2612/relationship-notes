@@ -19,7 +19,7 @@ test('self profile is bounded, normalized and keeps voice and approved samples',
 
 test('next-step suggestions cite a real recent question and confirmed facts only',()=>{
  const contact={self:'我',target:'小林',messages:[{sender:'小林',text:'你周末喜欢去看展吗？'}],profileSummary:[{uid:'f1',field:'interests',value:'喜欢摄影',quote:'我很喜欢摄影',status:'active'},{uid:'f2',field:'job',value:'新工作',status:'pending'}]};
- const result=suggestNextSteps(contact);assert(result.suggestions.some(s=>s.type==='reply'&&s.basis[0].quote.includes('周末')));assert(result.suggestions.some(s=>s.text.includes('喜欢摄影')));assert(!result.suggestions.some(s=>s.text.includes('新工作')));assert(result.disclaimer.includes('不代表'));
+ const result=suggestNextSteps(contact);assert(result.suggestions.some(s=>s.type==='reply'&&s.basis[0].quote.includes('周末')));assert(result.suggestions.some(s=>s.text.includes('照片')&&s.basis.some(b=>b.factId==='f1'&&b.quote==='我很喜欢摄影')));assert(!result.suggestions.some(s=>s.text.includes('新工作')));assert(result.disclaimer.includes('不代表'));
 });
 
 test('reply payload includes the self profile and bounded evidence-based suggestions',()=>{

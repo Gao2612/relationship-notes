@@ -1,4 +1,5 @@
 import {isProfileFactCurrent} from './profile-lifecycle.js';
+import {isAutoAnalysisResultCurrent} from './auto-analysis.js';
 import {analyzeDailyTimeline} from './analysis.js';
 import {summarizeSelfProfile} from './self-profile.js';
 import {suggestNextSteps} from './suggestions.js';
@@ -16,6 +17,7 @@ export function buildReplyPayload(state, contact) {
  const selfProfile=summarizeSelfProfile(state.selfProfile||contact.selfProfile||{}),suggestions=suggestNextSteps({...contact,selfProfile});
  const payload={provider:state.provider,model:state.model,self:contact.self,target:contact.target,messages:contact.messages.filter(m=>m.sender===contact.self||m.sender===contact.target).slice(-12).map(m=>({sender:m.sender,text:m.text.slice(0,500),timestamp:typeof m.timestamp==='string'?m.timestamp.slice(0,50):''})),facts:(Array.isArray(contact.profileSummary)?contact.profileSummary.filter(f=>isProfileFactCurrent(f)&&(f.provenance!=='model'||f.confirmed===true)&&f.field!=='inference'&&f.kind!=='inference'):contact.facts||[]).slice(0,12).map(f=>({field:f.field,value:f.value.slice(0,500)})),selfProfile,suggestions:suggestions.suggestions,suggestionDisclaimer:suggestions.disclaimer,relatedMessages:retrieveRelatedMessages(contact.messages,contact.self,contact.target,state.intent),dailyTimeline,scenario:state.scenario,tone:state.tone,intent:state.intent.slice(0,500)};
  for(const f of (contact.profileSummary||[]).filter(f=>['archived','superseded'].includes(f.status)).slice(-6))payload.facts.push({field:'资料更新',value:('旧资料“'+f.value+'”已'+(f.status==='superseded'?'被更新':'归档或移除')+'，仅属于历史情况，不作为当前偏好或习惯。').slice(0,500)});
+ if(isAutoAnalysisResultCurrent(contact,state))payload.historyMemory=String(contact.autoAnalysis.memory||'').slice(0,4000);
  while(JSON.stringify(payload).length>60000 && payload.relatedMessages.length)payload.relatedMessages.pop();
  while(JSON.stringify(payload).length>60000 && payload.messages.length>1)payload.messages.shift();
  while(JSON.stringify(payload).length>60000 && payload.facts.length)payload.facts.pop();
