@@ -32676,11 +32676,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
   // src/interaction-signals.js
   var RHETORICAL = /(?:谢谢你|谢了|就这|讲啥道理|讲道理|难道|难不成|你以为|谁不知道|还用说|凭什么|有什么好|何必|岂不是|可不是|至于吗|行了吧|算了|呵呵|随便你)/;
-  var ASK_WORD = /(?:吗|么|如何|为什么|怎么|咋|是否|什么|啥|哪(?:儿|里|个|些|天)?(?!怕)|几[点时个天]|多少|要不要|能不能|可不可以|会不会|是不是|对不对|好不好|有没有|在不在|行不行)/;
+  var ASK_STRONG = /(?:干嘛|干啥|干什么|做什么|去哪儿|去哪里|在哪儿|在哪里|几点|多少钱|多少个?人|为什么|为啥|要不要|能不能|可不可以|会不会|是不是|对不对|好不好|有没有|行不行|在不在|有空吗|可以吗|咋了|怎么了|咋回事|怎么办|怎么样)/;
+  function stripTail(text) {
+    let value = String(text);
+    for (let i = 0; i < 3; i += 1) {
+      const next = value.replace(/[\s。！!…~～，,]+$/, "").replace(/(?:\[[^\[\]]{1,12}\]|【[^【】]{1,12}】)$/, "");
+      if (next === value) break;
+      value = next;
+    }
+    return value;
+  }
   var question = (text) => {
     text = directText(text);
+    if (!text) return false;
     if (RHETORICAL.test(text)) return false;
-    return ASK_WORD.test(text);
+    const body = stripTail(text);
+    if (/[?？]/.test(text)) return true;
+    if (/(?:吗|嘛)$/.test(body)) return true;
+    if (/(?:不|没)(?:怎么样|如何)$/.test(body)) return false;
+    return ASK_STRONG.test(body);
   };
   function boundary(text) {
     text = text.replace(/[“「『"][^”」』"]*[”」』"]/g, "");
