@@ -1,0 +1,4 @@
+- insert:
+    - id: local-relationship-notes
+      name: '@local/relationship-notes'
+      config: {}
