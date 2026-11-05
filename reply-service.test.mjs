@@ -65,17 +65,17 @@ test('structured success and text chunks ignore reasoning content',async()=>{
 
 test('daily timeline analysis requests a detailed, specific summary from the transcript',async()=>{
  let systemPrompt='',userPayload='';
- const expectedSummary='上午围绕周末安排聊天：林小雨先问你什么时候毕业，你回答后她接着问去哪里玩。傍晚你们聊到烙饼和加香菜，你分享把剩下的料包涂在烙饼上吃，她又提到给弟弟辣哭了。';
+ const expectedSummary='上午围绕周末安排聊天：林小雨先问你什么时候有空，你回答后她接着问去哪里玩。傍晚你们聊到晚饭，你分享了一道家常菜的做法，她又提到家里人。';
  const result={days:[{date:'2026-10-30',summary:expectedSummary+' 具体为何集中聊天，原文不足以判断。',activityReason:'这一天有两段具体话题连续来回：先安排周末，后来聊晚饭和家人近况，具体原因无法判断。',affinityContext:'未见明确情感表达，亲密度证据不足。'}]};
  const llm={listProviders:()=>[{id:'p'}],listModels:async()=>[{id:'m'}],prepareCall:async()=>({config:{},stream:async function*({messages}){systemPrompt=messages[0].content[0].text;userPayload=messages[1].content[0].text;yield{type:'text-delta',text:JSON.stringify(result)};yield{type:'finish',reason:'stop'};}})};
  const handler=createTimelineAnalysisHandler(llm,{defaultSelection:()=>({provider:'p',model:'m'})});
- const response=await handler(new Request('http://localhost/api/relationship-notes/timeline-analysis',{method:'POST',body:JSON.stringify({self:'我',target:'林小雨',days:[{date:'2026-10-30',messageCount:2,selfMessages:1,targetMessages:1,turns:2,activityScore:80,affinityScore:58,affinityChange:3,transcript:[{sender:'林小雨',text:'周末什么时候毕业？'},{sender:'我',text:'她又提到烙饼和弟弟吃饭。'}]}]})}));
+ const response=await handler(new Request('http://localhost/api/relationship-notes/timeline-analysis',{method:'POST',body:JSON.stringify({self:'我',target:'林小雨',days:[{date:'2026-10-30',messageCount:2,selfMessages:1,targetMessages:1,turns:2,activityScore:80,affinityScore:58,affinityChange:3,transcript:[{sender:'林小雨',text:'周末什么时候有空？'},{sender:'我',text:'她又提到晚饭安排。'}]}]})}));
  assert.equal(response.status,200);
  assert.match(systemPrompt,/具体话题/);
  assert.match(systemPrompt,/对话先后/);
  assert.match(systemPrompt,/3–5 句/);
  assert.match(systemPrompt,/不要写“原文不足以判断”/);
- assert.match(userPayload,/烙饼/);
+ assert.match(userPayload,/晚饭/);
  const analyzed=(await response.json()).days[0];
  assert.equal(analyzed.summary,expectedSummary);
  assert.match(analyzed.activityReason,/先安排周末，后来聊晚饭和家人近况/);
