@@ -32675,9 +32675,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/interaction-signals.js
+  var RHETORICAL = /(?:谢谢你|谢了|就这|讲啥道理|讲道理|难道|难不成|你以为|谁不知道|还用说|凭什么|有什么好|何必|岂不是|可不是|至于吗|行了吧|算了|呵呵|随便你)/;
+  var ASK_WORD = /(?:吗|么|如何|为什么|怎么|咋|是否|什么|啥|哪(?:儿|里|个|些|天)?(?!怕)|几[点时个天]|多少|要不要|能不能|可不可以|会不会|是不是|对不对|好不好|有没有|在不在|行不行)/;
   var question = (text) => {
     text = directText(text);
-    return /[?？]|(?:吗|么|如何|为什么|怎么|是否|什么|哪[里个天])/.test(text);
+    if (RHETORICAL.test(text)) return false;
+    return ASK_WORD.test(text);
   };
   function boundary(text) {
     text = text.replace(/[“「『"][^”」』"]*[”」』"]/g, "");

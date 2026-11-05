@@ -100,6 +100,8 @@ test('每日历程首屏只留主趋势图与关键数字，日历和其余图�
  assert.ok(fold>0,'缺少「展开更多分析」折叠');
  assert.ok(panel.indexOf('keyFigures')>0&&panel.indexOf('keyFigures')<fold,'关键数字留在首屏');
  assert.ok(panel.indexOf('scoreGraphic')>0&&panel.indexOf('scoreGraphic')<fold,'主趋势图留在首屏');
- for(const hidden of ['barGraphic','pieGraphic','fullTable','calendar'])assert.ok(panel.indexOf(hidden)>fold,hidden+' 应折叠');
+ assert.ok(panel.indexOf('barGraphic')>0&&panel.indexOf('barGraphic')<fold,'消息量图与趋势图并排留在首屏');
+ assert.match(source,/className:'rn-annual-top'/,'首屏两图应双列并排');
+ for(const hidden of ['pieGraphic','fullTable','calendar'])assert.ok(panel.indexOf(hidden)>fold,hidden+' 应折叠');
  assert.match(source,/setMoreOpen\(true\);setSelectedDate\(date\)/,'点图表时段应自动展开折叠区');
 });
