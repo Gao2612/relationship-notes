@@ -1,0 +1,22 @@
+✔ topic feedback survives reload, suppresses repeated topics and can be reset without hiding boundaries (8.9136ms)
+✔ explicit approved replies deduplicate and cap samples while preserving other personal data (4.9971ms)
+✔ completed or expired personal plans stop influencing model context and can reopen (63.0431ms)
+✔ Shanghai weekly/monthly review handles boundaries, reply evidence and active followups (8.593ms)
+✔ same-text occurrences receive distinct persistent ids and sorting retains them (5.283ms)
+✔ full-file reimport is idempotent while added duplicate occurrences and native ids are preserved (3.7052ms)
+✔ legacy source references migrate uniquely and provide bounded context after restore (2.2438ms)
+✔ ambiguous legacy quotes, ids and index hints never choose an arbitrary duplicate (0.8197ms)
+✔ stable references reject edited, removed or contradictory source text (2.0218ms)
+✔ date-only expiry ends at the Shanghai day boundary and invalid calendar dates are rejected (70.5834ms)
+✔ plan completion, cancellation and reopening preserve history and exclude finished suggestions (2.2405ms)
+✔ explicit expiration and date management preserve the fact and can reopen it (3.1434ms)
+✔ pending and deleted candidates cannot bypass confirmation using plan state transitions (0.8836ms)
+✔ editing an unrelated fact never persists derived expiry or storedStatus (0.4903ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 504.8311

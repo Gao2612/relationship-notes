@@ -1,0 +1,9 @@
+{
+  "_generated": "Generated from src/workspace.js textPairs; experimental: only nav and privacy are localized. Edit the source.",
+  "meta": {
+    "title": "Relationship Notes",
+    "description": "Contact profiles, daily interaction analysis, and communication assistance."
+  },
+  "nav": "Relationship Notes",
+  "privacy": "Contact profiles, daily interaction analysis, and communication assistance."
+}

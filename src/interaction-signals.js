@@ -84,7 +84,8 @@ export function engagementSignals(messages,self){
  const sorted=[...latencies].sort((a,b)=>a-b),medianMinutes=sorted.length?Math.round(sorted[Math.floor((sorted.length-1)/2)]):null;
  return {selfStarts,targetStarts,medianMinutes,slowReplies:latencies.filter(minutes=>minutes>=SESSION_GAP_MINUTES).length,perfunctoryReplies,lowContentReplies,targetTurns,conflictReplies,appeasementReplies,selfTurns,replySamples:latencies.length};
 }
-export function interactionScore(counts={}){
+/** 与 interactionScore 同一套算式，但逐项返回，供「打分依据」页展示。 */
+export function interactionScoreBreakdown(counts={}){
  const num=value=>Number.isFinite(value)?value:0;
  const positive=num(counts.positive),boundary=num(counts.boundary),question=num(counts.question),sharing=num(counts.sharing),perfunctoryCount=num(counts.perfunctoryReplies),lowContentCount=num(counts.lowContentReplies),slowReplies=num(counts.slowReplies),selfStarts=num(counts.selfStarts),targetStarts=num(counts.targetStarts),selfMessages=num(counts.selfMessages),targetMessages=num(counts.targetMessages),medianMinutes=Number.isFinite(counts.medianMinutes)?counts.medianMinutes:null;
  const hasMessages=counts.messages===undefined?(selfMessages+targetMessages)>0:num(counts.messages)>0;
@@ -114,6 +115,35 @@ export function interactionScore(counts={}){
  // 低频日（对方零回合，或当天来回不足 4 条）按中性 32 计：没聊天不等于关系冷，只有明确负向或摩擦才继续往下扣。
  const totalMessages=hasMessages?(counts.messages===undefined?selfMessages+targetMessages:num(counts.messages)):0;
  const quiet=hasMessages&&(targetTurns===0||totalMessages<4)&&!boundary&&!conflictCount&&!positive&&!perfunctoryCount&&!lowContentCount;
- const score=quiet?32:computed;
- return strong?Math.min(score,48):score;
+ const picked=quiet?32:computed;
+ const score=strong?Math.min(picked,48):picked;
+ const rawWarm=Math.min(targetTurns>=2?24:12,12*positive)+8*question+6*sharing,rawCold=24*boundary+Math.round(32*emptyRate)+5*slowReplies+Math.max(oneSided,silentDay),rawTension=strong?30*Math.min(2,conflictCount)+10*Math.min(3,appeasementCount):12*conflictCount;
+ const interval=medianMinutes===null?'无可用回复间隔':medianMinutes+' 分钟';
+ const rawTotal=38+warm-cold+initiative+latency-imbalancePenalty-tension-thinDay;
+ const items=[
+  {key:'base',label:'基础分',condition:'当天有记录即从 38 起算',delta:38,hit:true,detail:'38'},
+  {key:'positive',label:'正向措辞',condition:'对方每个正向措辞 +12；对方 ≥2 轮最多认 2 句（+24），只回 1 轮最多认 1 句（+12）',delta:Math.min(targetTurns>=2?24:12,12*positive),hit:positive>0,kind:'positive',detail:'对方正向措辞 '+positive+' 条 · 对方回合 '+targetTurns},
+  {key:'question',label:'对方提问',condition:'对方每提 1 个问题 +8',delta:8*question,hit:question>0,kind:'question',detail:'对方提问 '+question+' 条'},
+  {key:'sharing',label:'对方自我分享',condition:'对方每分享 1 条第一人称近况 +6',delta:6*sharing,hit:sharing>0,kind:'sharing',detail:'对方自我分享 '+sharing+' 条'},
+  {key:'warmCap',label:'正向合计上限 +45',condition:'措辞＋提问＋分享合计超过 45 时只算 45',delta:warm-rawWarm,hit:rawWarm>45,detail:'正向合计原为 +'+rawWarm},
+  {key:'boundary',label:'负向或拒绝措辞',condition:'每句明确拒绝或边界 −24',delta:-24*boundary,hit:boundary>0,kind:'negative',detail:'负向措辞 '+boundary+' 条'},
+  {key:'empty',label:'敷衍或低信息量回合',condition:'−32 ×（敷衍回合＋低信息量回合）÷ 对方发言回合',delta:-Math.round(32*emptyRate),hit:Math.round(32*emptyRate)>0,detail:'敷衍 '+perfunctoryCount+' 轮＋低信息量 '+lowContentCount+' 轮，对方 '+targetTurns+' 轮，比例 '+Math.round(emptyRate*100)+'%'},
+  {key:'slow',label:'超过 2 小时才回',condition:'对方每次 ≥2 小时才回 −5',delta:-5*slowReplies,hit:slowReplies>0,detail:'慢回复 '+slowReplies+' 次'},
+  {key:'silent',label:'对方整天零回合',condition:'−24（与「单方独白 −18」取较大值，不叠加）',delta:-Math.max(oneSided,silentDay),hit:Math.max(oneSided,silentDay)>0,detail:targetTurns===0?'对方 0 轮，我方 '+selfMessages+' 条；该日同时符合低频日条件，最终按 32 记':'对方仍有发言，本项不触发'},
+  {key:'thin',label:'只回 1 轮而我方连发',condition:'对方只回 1 轮、我方 ≥2 轮：按多出的轮次 −8~−16',delta:-thinDay,hit:thinDay>0,detail:'我方 '+selfTurns+' 轮 / 对方 '+targetTurns+' 轮'},
+  {key:'initiative',label:'主动开口偏向',condition:'按 ≥2 小时切段，对方主动占比高于一半加分，越低扣分（−10~+10）',delta:initiative,hit:initiative!==0,detail:'对方主动 '+targetStarts+' 次 / 我方 '+selfStarts+' 次'},
+  {key:'latency',label:'回复间隔调整',condition:'中位 ≤10 分钟 +6、≤30 分钟 +3、≤2 小时 0、≤6 小时 −7、>6 小时 −12',delta:latency,hit:latency!==0,detail:'对方回复中位间隔 '+interval},
+  {key:'imbalance',label:'单方条数失衡',condition:'双方条数差 5 倍以上 −8，2.86 倍以上 −4',delta:-imbalancePenalty,hit:imbalancePenalty>0,detail:'条数比 '+selfMessages+':'+targetMessages},
+  {key:'tension',label:'摩擦或冷战',condition:'单句反讽 −12；2 处以上或紧跟事后解释判真吵：每处 −30（最多 60）、补一句 −10',delta:-tension,hit:tension>0,detail:'反讽 '+conflictCount+' 处、事后解释 '+appeasementCount+' 条'+(strong?'（判定为真吵起来）':'（未达摩擦判定）')},
+  {key:'tensionCap',label:'摩擦扣分上限 −60',condition:'摩擦项最多 −60',delta:tension-rawTension,hit:rawTension>60,detail:'摩擦原为 −'+rawTension},
+  {key:'coldCap',label:'扣分合计上限 −60',condition:'扣分合计最多 −60',delta:cold-rawCold,hit:rawCold>60,detail:'本日扣分原为 −'+rawCold},
+  {key:'clamp',label:'结果限制 0–100',condition:'合计低于 0 记 0、高于 100 记 100',delta:computed-rawTotal,hit:computed!==rawTotal,detail:'按信号合计 '+rawTotal+' 分'},
+  {key:'quiet',label:'低频日中性能化',condition:'对方整天零回合，或当天来回不足 4 条、且没有正负向与敷衍证据 → 直接记 32',delta:picked-computed,hit:quiet,detail:'按信号本应为 '+computed+' 分，低频日改记 32'},
+  {key:'strongCap',label:'摩擦日总分封顶 48',condition:'判定为真吵起来时总分不超过 48',delta:score-picked,hit:strong&&picked>48,detail:strong?'当日判定为真吵起来':'当日未判定摩擦'},
+ ];
+ return {score,computed,picked,quiet,strong,items,counts:{positive,boundary,question,sharing,perfunctoryCount,lowContentCount,slowReplies,selfStarts,targetStarts,selfMessages,targetMessages,medianMinutes,targetTurns,selfTurns,conflictCount,appeasementCount,totalMessages}};
+}
+export function interactionScore(counts={}){
+ const result=interactionScoreBreakdown(counts);
+ return result===null?null:result.score;
 }

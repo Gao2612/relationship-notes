@@ -1,0 +1,365 @@
+PASS packaged factory, native sidebar, source files, locales, cancellation and no embedded credential/storage UI
+✔ built client factory executes and mounts a renderable DSH module (496.0508ms)
+✔ published host entry registers executable routes and tools together (7.5156ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1286.2474
+✔ prefers registered host default selection (179.2368ms)
+✔ host selection is retained when its catalog is temporarily unavailable (3.5178ms)
+✔ missing host selection does not silently choose an unrelated provider (11.5991ms)
+✔ omitted model uses host default for reply (5.6329ms)
+✔ rejects partially specified selection (3.602ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1056.8367
+✔ QQ source view does not inherit all-source history start beyond its length (170.912ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 683.844
+✔ native tool queues raw messages for authenticated connection polling, with stable unique versions (83.4979ms)
+✔ rejects ambiguous participants, unknown senders, malformed entries and large inputs (5.3332ms)
+✔ full queue rejects new imports without evicting unconsumed records and instances are independent (24.7931ms)
+✔ read endpoint accepts only an empty POST request (2.8956ms)
+✔ native registration has an output schema and requires messages from both people (1.0759ms)
+✔ normalizes sender labels while retaining original message text (1.2106ms)
+✔ 2 MiB total input limit counts UTF-8 bytes for Chinese transcripts (14.2766ms)
+✔ acknowledges only consumed versions so imported chats do not reappear on refresh (12.3884ms)
+✔ acknowledgement rejects malformed input and treats already-consumed versions idempotently (20.4023ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 740.398
+✔ returns alternative interpretations only after an explicit request, with verified quotes (103.2462ms)
+✔ rejects fabricated evidence and deterministic affinity claims (8.4011ms)
+✔ rejects unknown fields, too many messages and cross-person messages before calling the model (16.9325ms)
+✔ requires a completed model response and valid structured output (13.9734ms)
+✔ bounds a model provider that ignores cancellation (20.2015ms)
+✔ accepts complete text block output and rejects invalid self profiles or same trimmed identity (4.7862ms)
+✔ final indexed blocks replace partial deltas without leaking reasoning or losing later blocks (14.5399ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 682.2187
+✔ new local wall-time messages invalidate only their dates and keep all profile facts (15.8072ms)
+✔ epoch seconds, milliseconds and zoned timestamps invalidate China calendar day (52.6033ms)
+✔ repeated import keeps cached summaries and does not request profile refresh (0.4917ms)
+✔ different new dates invalidate their summaries together, unknown dates do not clear unrelated cache (0.6969ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 503.9844
+✔ profile analysis accepts omitted extraction mode (154.1111ms)
+✔ profile analysis accepts summary (17.918ms)
+✔ profile rejects unknown keys and invalid modes before model call (26.4942ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 734.3066
+✔ profile tools require explicit live sharing and reject other contacts (110.3822ms)
+✔ sharing rejects unconfirmed facts and is exclusive across windows (6.7262ms)
+✔ search is bounded to shared contact and proposal requires an exact target-side quote (11.3557ms)
+✔ switching authorized contact drops prior pending proposals (2.9465ms)
+✔ refreshing a shared snapshot drops candidates whose source was changed or removed (8.1328ms)
+✔ user confirmation never promotes an inference or behavioral pattern into factual output (1.5765ms)
+✔ browser snapshot excludes unconfirmed profiles, strangers and media (1.3886ms)
+✔ host registers three authenticated connection routes and three tools (2.5532ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 839.5099
+✔ self voice and suggestions reach the model with reference principles and remain editable (118.265ms)
+✔ catalog uses installed provider metadata (30.4187ms)
+✔ real prepared stream becomes editable draft (10.1363ms)
+✔ rejects malformed, oversized and unknown fields before calling provider (12.348ms)
+✔ empty and failed streams do not produce fallback drafts (23.8196ms)
+✔ timeout and cancellation settle even when provider ignores signal (72.6062ms)
+✔ output cap fails safely (1.6609ms)
+✔ registers only scoped authenticated app routes (4.2047ms)
+✔ media analysis saves selected local frames to DSH attachments and uses the DSH image model (7.1797ms)
+✔ media analysis rejects non-vision defaults and malformed frames before preparing a call (3.4513ms)
+✔ native structured finish failures and thrown provider errors stay private (13.228ms)
+✔ total context cap applies even within individual item caps (5.2361ms)
+✔ canceling an in-flight request aborts the provider signal (54.8044ms)
+✔ structured success and text chunks ignore reasoning content (1.9227ms)
+✔ daily timeline analysis requests a detailed, specific summary from the transcript (7.6943ms)
+✔ one unavailable catalog does not hide working providers and display names (4.2898ms)
+✔ strict identity rejects empty, equal, whitespace aliases and foreign senders (16.5656ms)
+✔ explicit target refusal produces deterministic local acknowledgement without model call (1.3258ms)
+✔ a direct refusal followed by a separate question stays local (0.9675ms)
+✔ host accepts bounded related history and includes it in model background (1.707ms)
+✔ host rejects unselected speakers and more than eight related messages (3.7594ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 907.2869
+✔ groups messages by exported local date and counts both speakers and turns (35.5601ms)
+✔ does not infer affinity from message volume and skips unparseable dates (2.2946ms)
+✔ converts explicitly zoned timestamps into China calendar dates (28.6899ms)
+✔ groups numeric Unix second and millisecond timestamps by China date (2.1838ms)
+✔ separates target-side engagement cues from chat activity volume (1.2075ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 456.0168
+✔ analysis counts observable selected messages and consecutive sender turns (7.3535ms)
+✔ whitespace variants of the same speaker are not a valid pair (0.8383ms)
+✔ explicit refusals beat questions and are distinguished from negated questions (0.9727ms)
+✔ local drafts use incoming hobby or work evidence without invented memories (2.0924ms)
+✔ boundary persists across later messages and incoming is not inferred from self (0.6373ms)
+✔ host context bounds data and excludes unrelated senders (21.8838ms)
+✔ questions and negated preferences do not become literal sharing (1.0855ms)
+✔ draft evidence labels neutral source as context instead of claiming sharing (0.5921ms)
+✔ message balance exposes 90 to 10 bursts without confusing alternating turns (1.9549ms)
+✔ reported and quoted refusals do not become the sender boundary (1.18ms)
+✔ acknowledgment counts are literal and preserve source without emotional claims (1.0586ms)
+✔ question and boundary scenarios are preserved and produce distinct actions (0.8336ms)
+✔ gentle direct and concise tones change actual wording (0.724ms)
+✔ intent uses bounded topic vocabulary without copying arbitrary instructions (3.7533ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 756.7344
+✔ imports both speakers and preserves evidence without duplicating a polled record (13.7297ms)
+✔ malformed and oversized records are rejected without blocking other records (2.1994ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 492.9653
+✔ media-free backup retains self profile and correction history without binary copies (128.1721ms)
+✔ complete project export and restore preserves binary avatars, media, summaries and drafts (66.5515ms)
+✔ invalid schema and duplicated contact IDs leave the current project untouched (45.1022ms)
+✔ restoring an older backup resets omitted persisted fields and clears transient undo contexts (16.9053ms)
+✔ restoring and re-exporting retains future state metadata without restoring a shared-contact authorization (18.8097ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 814.8829
+PASS TXT colons, timestamps, multiline headers and source ranges
+PASS identities explicit, distinct, present
+PASS target-only whitelist with quote sender time file message and line trace
+PASS unknown negated third-person sensitive and questions omitted
+PASS strict JSON and string braces preserve object line locations
+PASS limits formats encoding and empty input rejected
+PASS failure keeps prior committed; stale read and clear cannot resurrect
+PASS rule manual override inheritance dedup and safety precedence
+ENGINE: 8 assertion groups passed.
+✔ C:\Users\16356\OneDrive\文档\deepseek-harness\default-workspace\relationship-plugin\src\engine.test.mjs (374.4233ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 404.0182
+✔ correction excludes a signal without editing evidence and survives reordering (9.109ms)
+✔ explicit dislike is not counted as positive wording (4.1353ms)
+✔ daily and overall metrics share vocabulary, exclusions and contextual caution (3.9933ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 529.6875
+✔ changed messages in the same contact invalidate an in-flight interpretation even if transport ignores abort (108.6847ms)
+✔ switching contacts and changing model settings hide prior completed results (1.729ms)
+✔ interpretation request is bounded, deduplicated and restricted to both participants (1.2035ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 589.0896
+✔ all six sidebar leaves resolve to contextual horizontal tabs (4.3296ms)
+✔ switching features preserves contacts draft and goals (0.8753ms)
+✔ subscriptions are removed and snapshots stable until writes (1.0887ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 378.9177
+✔ v1 migration preserves unknown state, contact and profile metadata while normalizing voice (4.1149ms)
+✔ old backups and current records migrate; future versions are rejected rather than overwritten (1.6264ms)
+✔ quota fallback handles the envelope and keeps chats and unknown metadata without media copies (1.2003ms)
+✔ profile reply resolves the request snapshot after sorting and rejects edited or removed sources (1.2078ms)
+✔ normalizing sparse samples and plans keeps metadata attached to its own item (0.8885ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 488.4371
+✔ profile extraction ignores a response after switching contacts or replacing the same-contact messages (90.8545ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 652.1533
+✔ pending proposals cannot claim manual confirmation and edits preserve previous content (5.1066ms)
+✔ correction keeps stable identity; new situation retains old dated history (1.026ms)
+✔ archived and deleted entries stay out of active facts, deletion is undoable (0.8289ms)
+✔ analysis cannot silently reactivate archived or corrected fields (0.645ms)
+✔ deleted analysis cannot reappear and editing pending explicitly adopts it (0.553ms)
+✔ restoring an old version supersedes every active descendant but leaves unrelated facts (1.1227ms)
+✔ restore keepBoth explicitly allows active predecessor and successor (0.9238ms)
+✔ multiple independent habits and interests stay active alongside manual facts (2.3886ms)
+✔ single-value cities and jobs require confirmation even against nonmanual facts (10.7219ms)
+✔ archive and deletion prevent the same multivalue fact from resurfacing (2.3274ms)
+✔ accept replacing current supersedes same-field actives and links newest effective record (4.6113ms)
+✔ accept defaults to coexistence without superseding existing active records (0.3706ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 707.6055
+✔ new import preserves confirmed and obsolete manual profile edits and dismissed facts (13.2997ms)
+✔ reimporting identical records leaves synthesized profile intact (2.045ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 461.6087
+✔ deleted profile values and confirmed inferences are not sent as current facts (8.9475ms)
+✔ payload keeps the latest messages and daily timeline within the host serialized-length cap (33.6387ms)
+✔ preview and sent data share the same bounded result including chat timestamps and a dated summary (5.5728ms)
+✔ reply excludes system notices and respects edited or empty profile (1.9212ms)
+✔ pending and archived facts are not current profile, old states are communicated (1.5447ms)
+✔ retrieves related earlier Chinese and English messages, excluding recent and unrelated speakers (2.9807ms)
+✔ empty or generic intent avoids noisy history retrieval; duplicates and result count are bounded (6.5389ms)
+✔ serialized cap discards related history before latest messages or timeline detail (387.976ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 794.7341
+✔ waiting for the other person does not also suggest immediate new topics (2.3927ms)
+✔ unconfirmed model facts are not presented as confirmed topic evidence (1.3412ms)
+✔ explicit pause overrides topic and followup suggestions (0.4734ms)
+✔ self profile is bounded, normalized and keeps voice and approved samples (2.0077ms)
+✔ next-step suggestions cite a real recent question and confirmed facts only (2.6978ms)
+✔ reply payload includes the self profile and bounded evidence-based suggestions (6.0246ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 222.0548
+✔ registers Relationship Notes in the Sub DSH module registry without host sidebar slots (7.3618ms)
+✔ current DSH container contract is extended only with supported module registration (0.8279ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 266.2658
+✔ parses the full ExportWeChat html.json array and retains message media references (9.8917ms)
+✔ parses the standalone JSON schema without inventing media paths (0.6024ms)
+✔ rejects unsafe media paths but preserves every valid record (1.906ms)
+✔ selects the richest full export sidecar instead of summing duplicate exports (1.8631ms)
+✔ rejects malformed and unbounded imports (1.3677ms)
+✔ links local media by ExportWeChat path or unique basename without reading it (2.9248ms)
+✔ does not guess between duplicate attachment basenames (1.0966ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 349.2931
+✔ chat history renders the whole transcript instead of only the latest twelve messages (2.9587ms)
+✔ conversation header omits the count and paired sender names (0.4039ms)
+✔ conversation layout responds to the plugin container width and keeps the image pane beside chat (3.1666ms)
+✔ formats local exported timestamps and converts Unix or zoned timestamps to China time (76.6158ms)
+✔ groups chat day separators by China date for local, zoned and Unix timestamps (5.6651ms)
+✔ renders analysis and raw-history timestamps through the China-time formatter (4.0704ms)
+✔ daily interaction view labels affinity as an evidence-based cue and keeps summaries regenerable (0.8751ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 426.0781
+PASS Relationship Notes 3.1.1 verification (26 test files)

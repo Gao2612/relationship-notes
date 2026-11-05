@@ -1,0 +1,24 @@
+✔ profile tools require explicit live sharing and reject other contacts (126.8449ms)
+✔ sharing rejects unconfirmed facts and is exclusive across windows (22.0582ms)
+✔ search is bounded to shared contact and proposal requires an exact target-side quote (23.3707ms)
+✔ switching authorized contact drops prior pending proposals (5.4729ms)
+✔ refreshing a shared snapshot drops candidates whose source was changed or removed (7.5076ms)
+✔ user confirmation never promotes an inference or behavioral pattern into factual output (18.5263ms)
+✔ browser snapshot excludes unconfirmed profiles, strangers and media (5.0545ms)
+✔ host registers three authenticated connection routes and three tools (2.9134ms)
+✔ same-text occurrences receive distinct persistent ids and sorting retains them (20.7002ms)
+✔ full-file reimport is idempotent while added duplicate occurrences and native ids are preserved (14.4925ms)
+✔ legacy source references migrate uniquely and provide bounded context after restore (35.8835ms)
+✔ ambiguous legacy quotes, ids and index hints never choose an arbitrary duplicate (4.5142ms)
+✔ stable references reject edited, removed or contradictory source text (1.333ms)
+✔ explicit inclusive date scope uses Shanghai and excludes unknown timestamps (87.7551ms)
+✔ default and selected preview exactly match bounded snapshot truncation (19.5435ms)
+✔ invalid date and count cannot silently broaden a shared scope (2.1339ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 734.2933

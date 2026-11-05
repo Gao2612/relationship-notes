@@ -6,17 +6,17 @@ import * as navigation from './navigation.js';
 import * as selfProfile from './self-profile.js';
 import * as messageIdentity from './message-identity.js';
 import * as persistence from './persistence-schema.js';
+import {PERSISTED_KEYS as persistedKeys} from './workspace-persistence.js';
 
 const source=fs.readFileSync(new URL('./workspace.js',import.meta.url),'utf8');
 const settingsSource='const ShareScopeView=()=>null,SelfPlanView=()=>null,selected=s=>s.contacts.find(c=>c.id===s.selectedId);'+source.slice(source.indexOf('function SelfProfileEditor({s})'),source.indexOf('  function TabStrip'));
-const persistedKeys=new Function('return '+source.match(/const persistedKeys=(\[[^;]+\]);/)[1])();
 const E={...engine,...navigation,...selfProfile,...persistence,...messageIdentity};
 function harness(initial={}){
  let state={...E.createWorkspaceStore().getSnapshot(),models:[],...initial},hooks=[],cursor=0,download;
  const h=(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity)});
  const React={useRef:current=>({current}),useState(initial){const index=cursor++;if(!(index in hooks))hooks[index]=initial;return [hooks[index],value=>{hooks[index]=typeof value==='function'?value(hooks[index]):value;}];}};
  const set=patch=>{state={...state,...patch};};
- const Settings=new Function('React','h','box','select','button','muted','store','set','persistedKeys','persistableState','E','assertStorageSpace','cancel','formatChatDayKey','models','URL','document','setTimeout',settingsSource+';return Settings;')(React,h,(title,...children)=>h('section',{},title,...children),(label,value,options,onChange)=>h('select',{label,value,onChange}), (label,onClick,props)=>h('button',{...props,onClick},label),text=>h('p',{},text),{getSnapshot:()=>state},set,persistedKeys,s=>Object.fromEntries(persistedKeys.map(k=>[k,s[k]])),E,async()=>{},()=>{},value=>String(value).slice(0,10),()=>{},{createObjectURL(blob){download=blob;return 'blob:test';},revokeObjectURL(){}},{createElement(){return {click(){}};}},()=>{});
+ const Settings=new Function('React','h','box','select','button','muted','store','set','persistedKeys','persistableState','downloadObjectUrl','E','assertStorageSpace','cancel','formatChatDayKey','models','URL','document','setTimeout',settingsSource+';return Settings;')(React,h,(title,...children)=>h('section',{},title,...children),(label,value,options,onChange)=>h('select',{label,value,onChange}), (label,onClick,props)=>h('button',{...props,onClick},label),text=>h('p',{},text),{getSnapshot:()=>state},set,persistedKeys,s=>Object.fromEntries(persistedKeys.map(k=>[k,s[k]])),blob=>{download=blob;},E,async()=>{},()=>{},value=>String(value).slice(0,10),()=>{},{createObjectURL(blob){download=blob;return 'blob:test';},revokeObjectURL(){}},{createElement(){return {click(){}};}},()=>{});
  function render(){cursor=0;return Settings({s:state});}
  function nodes(node,out=[]){if(node&&typeof node==='object'){out.push(node);for(const child of node.children||[])nodes(child,out);}return out;}
  const button=label=>nodes(render()).find(n=>n.type==='button'&&n.children.includes(label));

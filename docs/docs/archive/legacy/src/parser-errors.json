@@ -1,0 +1,14 @@
+{
+  "error.parse0": "文件为空。请选择含消息的 UTF-8 文件。",
+  "error.parse1": "内容含空字符，可能不是 UTF-8 文本；请重新导出 UTF-8 TXT / JSON。",
+  "error.parse2": "发送者须为 1–100 字符的单行名称。",
+  "error.parse3": "存在空消息，请补全正文或移除空条目。",
+  "error.parse4": "timestamp 必须是字符串或省略。",
+  "error.parse5": "消息超过 10,000 条，请拆分文件。",
+  "error.parse6": "JSON 语法无效，请检查引号、逗号和括号。",
+  "error.parse7": "JSON 必须是仅含 messages 数组的对象。",
+  "error.parse8": "JSON 顶层不支持重复 messages 或其他字段。",
+  "error.parse9": "每条 JSON 消息仅支持 sender、text、timestamp 字段。",
+  "error.parse10": "不支持此格式。请选择 .txt 或 .json 文件。",
+  "error.parse11": "没有可解析消息。请按支持格式导出，而非空数组。"
+}

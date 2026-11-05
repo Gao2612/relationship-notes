@@ -19,6 +19,8 @@ export * from './views/topic-suggestions.js';
 export * from './views/period-review.js';
 export * from './views/share-scope.js';
 export * from './views/self-plans.js';
+export * from './views/scoring-basis.js';
+export {interactionScore,interactionScoreBreakdown,engagementSignals} from './interaction-signals.js';
 export * from './topic-feedback.js';
 export * from './reply-feedback.js';
 export * from './period-review.js';

@@ -1,0 +1,30 @@
+✔ groups messages by exported local date and counts both speakers and turns (43.4279ms)
+✔ does not infer affinity from message volume and skips unparseable dates (0.8221ms)
+✔ converts explicitly zoned timestamps into China calendar dates (33.8469ms)
+✔ groups numeric Unix second and millisecond timestamps by China date (1.6181ms)
+✔ separates target-side engagement cues from chat activity volume (0.839ms)
+✔ analysis counts observable selected messages and consecutive sender turns (27.3349ms)
+✔ whitespace variants of the same speaker are not a valid pair (4.9272ms)
+✔ explicit refusals beat questions and are distinguished from negated questions (7.3327ms)
+✔ local drafts use incoming hobby or work evidence without invented memories (11.2128ms)
+✔ boundary persists across later messages and incoming is not inferred from self (1.0631ms)
+✔ host context bounds data and excludes unrelated senders (13.2253ms)
+✔ questions and negated preferences do not become literal sharing (0.9155ms)
+✔ draft evidence labels neutral source as context instead of claiming sharing (0.9384ms)
+✔ message balance exposes 90 to 10 bursts without confusing alternating turns (4.304ms)
+✔ reported and quoted refusals do not become the sender boundary (1.5745ms)
+✔ acknowledgment counts are literal and preserve source without emotional claims (1.1895ms)
+✔ question and boundary scenarios are preserved and produce distinct actions (1.5142ms)
+✔ gentle direct and concise tones change actual wording (0.9944ms)
+✔ intent uses bounded topic vocabulary without copying arbitrary instructions (10.911ms)
+✔ correction excludes a signal without editing evidence and survives reordering (11.0632ms)
+✔ explicit dislike is not counted as positive wording (1.4423ms)
+✔ daily and overall metrics share vocabulary, exclusions and contextual caution (4.1789ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 886.1546

@@ -1,0 +1,21 @@
+✔ topic feedback survives reload, suppresses repeated topics and can be reset without hiding boundaries (7.5235ms)
+✔ explicit approved replies deduplicate and cap samples while preserving other personal data (4.7911ms)
+✔ completed or expired personal plans stop influencing model context and can reopen (36.6142ms)
+✔ Shanghai weekly/monthly review handles boundaries, reply evidence and active followups (4.6383ms)
+✔ waiting for the other person does not also suggest immediate new topics (2.9226ms)
+✔ unconfirmed model facts are not presented as confirmed topic evidence (2.4783ms)
+✔ explicit pause overrides topic and followup suggestions (0.6265ms)
+✔ self profile is bounded, normalized and keeps voice and approved samples (1.1279ms)
+✔ next-step suggestions cite a real recent question and confirmed facts only (3.5949ms)
+✔ reply payload includes the self profile and bounded evidence-based suggestions (3.1716ms)
+✔ a negative quotation cannot seed a positive game topic from a mixed summary (5.5482ms)
+✔ a locally positive farm preference produces a concrete question with its own supporting clause (1.3852ms)
+✔ a latest negative preference is acknowledged rather than turned into a new game prompt (0.5224ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 247.9564

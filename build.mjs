@@ -5,7 +5,7 @@ import {textPairs} from './src/workspace.js';
 const root=fileURLToPath(new URL('.',import.meta.url));
 const dictionaries=Object.fromEntries(['zh','en'].map((language,index)=>{
  const dict=Object.fromEntries(Object.entries(textPairs).map(([key,pair])=>{if(!pair[index])throw Error('Missing locale '+key);return [key,pair[index]];}));
- writeFileSync(new URL('./locale/'+language+'.json',import.meta.url),JSON.stringify({_generated:'Generated from src/workspace.js textPairs; edit the source.',meta:{title:dict.nav,description:dict.privacy},...dict},null,2)+'\n');
+ writeFileSync(new URL('./locale/'+language+'.json',import.meta.url),JSON.stringify({_generated:'Generated from src/workspace.js textPairs; experimental: only nav and privacy are localized. Edit the source.',meta:{title:dict.nav,description:dict.privacy},...dict},null,2)+'\n');
  return [language,dict];
 }));
 const worker=(await build({absWorkingDir:root,entryPoints:['node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs'],bundle:true,format:'iife',globalName:'PDFWorker',platform:'browser',target:'chrome120',minify:true,write:false})).outputFiles[0].text;

@@ -18,10 +18,15 @@ test('registers Relationship Notes in the Sub DSH module registry without host s
   assert.equal(registered[0].label,'关系手记');
   assert.equal(typeof registered[0].render,'function');
   const render=node=>typeof node?.type==='function'?render(node.type(node.props)):node&&typeof node==='object'?{...node,children:node.children?.map(render)||[]}:node;
-  const page=render(registered[0].render()),tablists=[];
-  const visit=node=>{if(!node||typeof node!=='object')return;if(node.props?.role==='tablist')tablists.push(node.props.className);for(const child of node.children||[])visit(child);};
+  const page=render(registered[0].render()),tablists=[],tabs=[];let panel=null;
+  const visit=node=>{if(!node||typeof node!=='object')return;if(node.props?.role==='tablist')tablists.push(node.props.className);if(node.props?.role==='tab')tabs.push(node.props);if(node.props?.id==='rn-panel')panel=node.props;for(const child of node.children||[])visit(child);};
   visit(page);
   assert.deepEqual(tablists,['rn-tabs rn-group-tabs','rn-tabs rn-context-tabs']);
+  assert.equal(tabs.length,6);
+  assert.equal(tabs.filter(tab=>tab.id.startsWith('rn-tab-rn-group-tabs-')).length,4);
+  for(const tab of tabs){assert.equal(tab['aria-controls'],'rn-panel');assert.equal(typeof tab['aria-selected'],'boolean');assert.equal(tab['aria-pressed'],undefined);assert.equal(typeof tab.tabIndex,'number');}
+  assert.equal(panel.tabIndex,-1);
+  assert.equal(panel.role,'tabpanel');
 });
 
 test('current DSH container contract is extended only with supported module registration',()=>{

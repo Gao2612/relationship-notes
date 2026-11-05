@@ -1,0 +1,20 @@
+/* Operate mode: DSH occupies the outer navigation; the contact tree stays local. */
+:root{--control:var(--paper);--accent-ink:var(--paper);color-scheme:light dark}
+body{font-family:system-ui,"Microsoft YaHei UI",sans-serif;scrollbar-color:var(--line) var(--paper)}
+button,input,select,textarea,.topbar,.surface,.annotation-panel{background:var(--control);color:var(--ink);border-color:var(--line)}
+button{min-height:36px}button:hover{background:var(--mint)}button.primary{color:var(--accent-ink);background:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+input,textarea{caret-color:var(--accent)}::selection{background:var(--mint);color:var(--ink)}
+.app{grid-template-columns:190px minmax(0,1fr)}.sidebar{padding:20px 14px}.brand{font-size:17px;margin-bottom:24px}.sidebar .foot{margin-top:32px}
+.content{max-width:1400px;margin-inline:auto;padding:24px clamp(16px,3vw,40px)}.topbar{padding:12px clamp(16px,3vw,40px);flex-wrap:wrap}
+h1{font-size:24px}.heading{margin-block:20px}.surface{box-shadow:none;border:1px solid var(--line);border-radius:9px;padding:20px}
+.surface p,#actionDetails p{max-width:75ch}.tabs{flex-wrap:wrap;gap:4px}.tabs button{min-height:40px;white-space:nowrap}.tabs button[aria-selected=true]{background:var(--mint);border-color:var(--accent);color:var(--accent)}
+.demo,.tag,.avatar,.note,.reply,.behavior,.lane,.editorial,.heart{background:var(--soft);color:var(--ink);border-color:var(--line)}
+.metric strong{color:var(--accent)}.bar{background:var(--soft)}.bar i{background:var(--accent)}.error{color:var(--red)}
+.board{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));overflow:visible}.lane{min-width:0}.behavior select{width:100%}
+.setting{gap:14px;flex-wrap:wrap}.setting select{max-width:100%}.annotation-panel{width:min(400px,100vw);max-height:100dvh;overflow:auto}
+#status{background:var(--ink);color:var(--paper);max-width:calc(100vw - 32px);overflow-wrap:anywhere}.selection{border-color:var(--accent);background:transparent}.pin{background:var(--accent);color:var(--accent-ink)}
+@media(max-width:1100px){.split{grid-template-columns:minmax(0,1fr)}.app{grid-template-columns:165px minmax(0,1fr)}.surface{padding:18px}}
+@media(max-width:760px){.app{display:block}.sidebar{padding:12px 16px;border-right:0;border-bottom:1px solid var(--line)}.sidebar .brand{margin-bottom:8px}.sidebar .foot{display:none}.sidebar details{margin:8px 0}.sidebar>.brand+small{display:none}.content{padding:18px 14px}.topbar{padding:12px 14px}.surface{padding:16px}.heading{margin-block:18px}.tabs button{padding:8px 10px}.split{gap:16px}.setting{align-items:start}.setting select{width:100%}}
+@media(pointer:coarse){button,select,summary{min-height:44px}summary{padding-block:8px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
