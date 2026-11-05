@@ -12,7 +12,7 @@
 - 设置可预览并限定DSH共享日期和条数，应用后需重新授权。
 - 新消息使用持久ID，旧引用兼容；新增独立视图和自动交付清单。
 
-详见 [功能与入口说明](docs/FEATURES-3.2.md)。
+详见 [功能与入口说明](docs/FEATURES-3.2.md)。界面截图含真实联系人与聊天内容，仓库不公开截图。
 
 ## 功能清单
 
@@ -33,19 +33,11 @@
 
 联系人档案：
 
-![联系人档案](docs/screenshots/profile.png)
-
 记录列表：
-
-![记录列表](docs/screenshots/records.png)
 
 评分规则：
 
-![评分规则](docs/screenshots/scoring-rules.png)
-
 会话（沟通辅助）：
-
-![会话](docs/screenshots/session.png)
 
 截图来自本机示例数据，已隐去真实联系人信息。
 
