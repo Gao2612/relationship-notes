@@ -36,7 +36,7 @@
 ### 计算公式
 
 $$
-S=\operatorname{clamp}\!\Big(\operatorname{round}\big(38+W-C+I+L-P-T-T_{\mathrm{thin}}\big),\,0,\,100\Big),
+S=\mathrm{clamp}\!\Big(\mathrm{round}\big(38+W-C+I+L-P-T-T_{\mathrm{thin}}\big),\,0,\,100\Big),
 \qquad
 S\leftarrow\min(S,\,48)\quad(\text{当日判定为「真吵起来」})
 $$
@@ -44,9 +44,9 @@ $$
 $$
 \begin{aligned}
 W&=\min\!\Big(45,\ \min\big(T_t\ge 2\ ?\ 24:12,\ 12\,n_{\mathrm{pos}}\big)+8\,n_q+6\,n_{\mathrm{sh}}\Big) &&\text{正向}\\
-C&=\min\!\Big(60,\ 24\,n_{\mathrm{bnd}}+\operatorname{round}(32E)+5\,n_{\mathrm{slow}}+\max\big(18\,[N_t=0\wedge N_s>0],\ 24\,[T_t=0]\big)\Big) &&\text{负向}\\
+C&=\min\!\Big(60,\ 24\,n_{\mathrm{bnd}}+\mathrm{round}(32E)+5\,n_{\mathrm{slow}}+\max\big(18\,[N_t=0\wedge N_s>0],\ 24\,[T_t=0]\big)\Big) &&\text{负向}\\
 E&=\min\!\Big(1,\ \frac{n_{\mathrm{perf}}+n_{\mathrm{low}}}{T_t}\Big) &&\text{敷衍率}\\
-I&=\operatorname{round}\!\Big(\big(\tfrac{S_t}{S_t+S_s}-\tfrac12\big)\times 20\Big)\in[-10,10] &&\text{主动开口偏向}\\
+I&=\mathrm{round}\!\Big(\big(\tfrac{S_t}{S_t+S_s}-\tfrac12\big)\times 20\Big)\in[-10,10] &&\text{主动开口偏向}\\
 L&=6\,[m\le 10]+3\,[10<m\le 30]-7\,[120<m\le 360]-12\,[m>360] &&\text{中位回复间隔 }m\text{（分钟）}\\
 P&=8\,[\rho<0.2]+4\,[0.2\le\rho<0.35],\quad \rho=\frac{\min(N_s,N_t)}{\max(N_s,N_t)} &&\text{条数失衡}\\
 T&=\min\!\Big(12,\ 12\,n_c\Big)+[\,\mathrm{strong}\,]\cdot\Big(\min\big(60,30\min(2,n_c)+10\min(3,n_a)\big)-\min(12,12n_c)\Big) &&\text{摩擦}\\
