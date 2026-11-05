@@ -35,21 +35,27 @@
 
 ### 计算公式
 
-```
-score = clamp( round(38 + W − C + I + L − P − T − Thin), 0, 100 )
-若当日判定为「真吵起来」： score = min(score, 48)
+$$
+S=\operatorname{clamp}\!\Big(\operatorname{round}\big(38+W-C+I+L-P-T-T_{\mathrm{thin}}\big),\,0,\,100\Big),
+\qquad
+S\leftarrow\min(S,\,48)\quad(\text{当日判定为「真吵起来」})
+$$
 
-W  = min( 45, min(T≥2 ? 24 : 12, 12·pos) + 8·q + 6·share )          正向
-C  = min( 60, 24·bnd + round(32·E) + 5·slow + max(oneSided, silent) ) 负向
-E  = min( 1, (perfunctory + lowContent) / targetTurns )               敷衍率
-I  = round( ( targetStarts / starts − 0.5 ) × 20 )                    主动开口偏向，−10…+10
-L  = median ≤10 分钟 ? +6 : ≤30 ? +3 : ≤120 ? 0 : ≤360 ? −7 : −12     回复间隔
-P  = imbalance < 0.2 ? 8 : imbalance < 0.35 ? 4 : 0                   条数失衡
-T  = strong ? min(60, 30·min(2, c) + 10·min(3, a)) : min(12, 12·c)     摩擦
-Thin = (selfTurns ≥ 2 且 targetTurns = 1) ? min(16, 8·min(2, selfTurns−1)) : 0
-strong = (c ≥ 2) 或 (c ≥ 1 且 a ≥ 1)                                  真吵起来
-imbalance = 双方条数较少者 / 较多者（任一方为 0 时取 1）
-```
+$$
+\begin{aligned}
+W&=\min\!\Big(45,\ \min\big(T_t\ge 2\ ?\ 24:12,\ 12\,n_{\mathrm{pos}}\big)+8\,n_q+6\,n_{\mathrm{sh}}\Big) &&\text{正向}\\
+C&=\min\!\Big(60,\ 24\,n_{\mathrm{bnd}}+\operatorname{round}(32E)+5\,n_{\mathrm{slow}}+\max\big(18\,[N_t=0\wedge N_s>0],\ 24\,[T_t=0]\big)\Big) &&\text{负向}\\
+E&=\min\!\Big(1,\ \frac{n_{\mathrm{perf}}+n_{\mathrm{low}}}{T_t}\Big) &&\text{敷衍率}\\
+I&=\operatorname{round}\!\Big(\big(\tfrac{S_t}{S_t+S_s}-\tfrac12\big)\times 20\Big)\in[-10,10] &&\text{主动开口偏向}\\
+L&=6\,[m\le 10]+3\,[10<m\le 30]-7\,[120<m\le 360]-12\,[m>360] &&\text{中位回复间隔 }m\text{（分钟）}\\
+P&=8\,[\rho<0.2]+4\,[0.2\le\rho<0.35],\quad \rho=\frac{\min(N_s,N_t)}{\max(N_s,N_t)} &&\text{条数失衡}\\
+T&=\min\!\Big(12,\ 12\,n_c\Big)+[\,\mathrm{strong}\,]\cdot\Big(\min\big(60,30\min(2,n_c)+10\min(3,n_a)\big)-\min(12,12n_c)\Big) &&\text{摩擦}\\
+T_{\mathrm{thin}}&=\min\!\Big(16,\ 8\min(2,N_s'-1)\Big)\cdot[\,N_s'\ge 2\wedge T_t=1\,] &&\text{独白式冷场}\\
+\mathrm{strong}&:\ (n_c\ge 2)\ \vee\ (n_c\ge 1\wedge n_a\ge 1) &&\text{真吵起来}
+\end{aligned}
+$$
+
+其中 $[\,\cdot\,]$ 表示示性函数（条件成立取 1，否则取 0）。
 
 变量：`pos` 正向措辞句数、`q` 对方提问次数、`share` 对方自我分享次数、`bnd` 负向/拒绝措辞句数、`perfunctory` 敷衍回合、`lowContent` 低信息量回合、`slow` 超过 2 小时才回的条数、`targetStarts/selfStarts` 对方/我方先开口次数、`c` 反讽赌气句数、`a` 事后解释条数、`targetTurns/selfTurns` 双方发言回合数；`oneSided`＝对方零条而我方有消息取 18、`silent`＝对方零回合取 24（两者取大不叠加）。
 
@@ -66,11 +72,11 @@ imbalance = 双方条数较少者 / 较多者（任一方为 0 时取 1）
 - 提问判定：句末问号、句末「吗」，或明确征询句式（干嘛/在哪儿/几点/多少/为什么/要不要/能不能/会不会/是不是/对不对/好不好/有没有/行不行/在不在/怎么样）。只是出现「啥/咋/几天/什么」的陈述句不算提问。
 - 低频日：对方整天零回合，或当天来回不足 4 条且没有正负向与敷衍证据，直接记中性 **32 分**。
 - 汇总：月/年按当天「对方发言回合数」加权（对方没开口的日子只记 1 份权重）；当月对方回合合计不足 20 轮时，高于 32 的部分按「回合数 ÷ 20」向 32 折算，小样本撑不起高分。
-
-```
-avg  = Σ(score_d × w_d) / Σ w_d          w_d = 对方当天发言回合数，为 0 时记 1
-若 Σ w_d(当月) < 20： avg' = 32 + (avg − 32) × Σ w_d / 20
-```
+$$
+\bar S=\frac{\sum_d S_d\,w_d}{\sum_d w_d},\qquad
+w_d=\max\big(1,\ T_t^{(d)}\big),\qquad
+\bar S'=\begin{cases}\bar S, & \sum_d w_d\ge 20\\[2pt] 32+(\bar S-32)\cdot\dfrac{\sum_d w_d}{20}, & \sum_d w_d<20\end{cases}
+$$
 - 口径差异：好感线索分与「互动均衡分」不是同一标尺——后者只比较双方发言条数，不可直接相比。
 
 ## 使用
