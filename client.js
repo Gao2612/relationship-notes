@@ -32623,12 +32623,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function replyContext(previous, text, previousQuestion) {
     const body = String(text).trim();
     const acknowledgment2 = /^(?:可以|行|好|好的|嗯+|对|是|是呀|是了|okk?|收到|没问题)[!！。\s]*$/i.test(body);
-    const affirmative = acknowledgment2 && (previousQuestion || /试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
-    const answer = previousQuestion && !/^(?:哈+|呵+|不知道|随便)[!！。\s]*$/.test(body);
+    const yesNo = /吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
+    const affirmative = acknowledgment2 && (yesNo || /试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
     const prior = terms(previous), current = terms(body);
-    const continuation = [...current].some((term) => prior.has(term));
-    const detail = /看着.{0,4}香|美味|加上.{0,4}香|一直在拍|人多|的$|会比.{0,8}(?:辣|贵|便宜|好)/.test(body);
-    return { answer, affirmative, continuation: continuation || detail && Boolean(previous) };
+    const topics2 = [
+      /吃|饭|面条|辣椒|食物|火锅|香|辣|美味|好吃/,
+      /拍|照片|摄影|相机|录像|视频/,
+      /人多|排队|拥挤|客流|游客|人少/,
+      /歌曲|音乐|歌手|唱|专辑/
+    ];
+    const continuation = [...current].some((term) => prior.has(term)) || topics2.some((topic) => topic.test(previous) && topic.test(body));
+    let answer = false;
+    if (previousQuestion) {
+      if (/几点|什么时候|啥时候|何时/.test(previous)) answer = /[0-9零一二三四五六七八九十两半]+\s*(?:点|时|分|天|号|月)|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
+      else if (/在哪|哪里|哪儿|去哪|什么地方/.test(previous)) answer = /家里|公司|学校|饭店|餐厅|商场|车站|地铁|[\u4e00-\u9fff]{2,}(?:路|街|市|县|区|店)/.test(body);
+      else if (/多少|几个|几人|几位/.test(previous)) answer = /[0-9零一二三四五六七八九十百千万两]+/.test(body);
+      else if (yesNo) answer = acknowledgment2 || /^(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|我不|我会|我去|我可以)/.test(body) || continuation;
+      else answer = continuation || /^(?:因为|由于|主要是|原因是)/.test(body);
+    }
+    return { answer, affirmative, continuation };
   }
 
   // src/profile-lifecycle.js
@@ -32769,10 +32782,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       return /(?:请)?(?:不要|别)(?:再)?(?:联系我|给我发|发消息|发信息|打扰我|找我)|我不想(?:再)?(?:见面|见你|聊天|联系|继续)|请别再发|停止联系|不再联系我/.test(part);
     });
   }
-  var sharing = (text) => {
-    text = directText(text);
-    return !question(text) && (/(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text) || /(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text));
-  };
+  function sharing(text) {
+    const direct = directText(text);
+    if (question(direct)) return false;
+    return direct.split(/[。！？!?，,\n]/).some((text2) => {
+      text2 = text2.trim();
+      if (/^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(text2)) return false;
+      return /(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text2) || /(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text2);
+    });
+  }
   var acknowledgment = (text) => /^(?:(?:好(?:的|呀|啊)?|嗯+|收到|了解|明白(?:了)?|谢谢|没问题|知道了)[，,。！!\s]*)+$/.test(text.trim());
   var positivePattern = /(?:(?<!不)喜欢你|想你|想见你|期待(?:见你|和你)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|你真好|好可爱|好漂亮|好厉害|辛苦你了|谢谢你|关心你|担心你|抱抱|亲亲|❤️|❤|🥰|😍|😘)/i;
   function directText(text) {
@@ -32904,7 +32922,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (isTarget) previousWasSelf = false;
       else {
         selfTurns++;
-        lastSelfAt = at;
+        lastSelfAt = turn.at;
         previousWasSelf = true;
       }
       previousAt = turn.at ?? previousAt;

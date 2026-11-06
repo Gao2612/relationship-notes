@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {question,sharing,engagementSignals} from './interaction-signals.js';
 import {analyzeInteractionMetrics,correctInteraction} from './interaction-metrics.js';
 import {analyzeDailyTimeline} from './analysis.js';
-import {sceneGroups} from './interaction-context.js';
+import {sceneGroups,replyContext} from './interaction-context.js';
 
 const message=(sender,text,time)=>({sender,text,timestamp:'2026-11-01 '+time,type:1});
 
@@ -76,4 +76,39 @@ test('回答和承接的上下文依据支持纠正恢复',()=>{
   const restored=correctInteraction(corrected,{...action,excluded:false},1);
   assert.equal(analyzeInteractionMetrics(restored).indicators.find(item=>item.kind===kind).count,1);
  }
+});
+
+test('回复时延从我方合并回合最后一条开始，跨阈值也一致',()=>{
+ const messages=[message('我','明天出门','09:00'),message('我','带好资料','09:03'),message('对方','收到资料了','09:04')];
+ assert.equal(engagementSignals(messages,'我').medianMinutes,1);
+ const later=[...messages.slice(0,2),message('对方','收到资料了','11:02')];
+ const result=engagementSignals(later,'我');
+ assert.equal(result.medianMinutes,119);
+ assert.equal(result.slowReplies,0);
+});
+
+test('时间、地点、数量与是非问题分别核对答案',()=>{
+ for(const [previous,reply] of [['几点出门？','八点'],['在哪里见面？','学校门口'],['多少钱？','二十元'],['要不要一起吃饭？','可以！']]){
+  assert.equal(replyContext(previous,reply,true).answer,true,previous);
+ }
+ for(const previous of ['你几点出门？','在哪里见面？','多少钱？','要不要一起吃饭？']){
+  assert.equal(replyContext(previous,'新手机挺好看',true).answer,false,previous);
+ }
+ const invalid=replyContext('你几点出门？','可以',true);
+ assert.equal(invalid.answer,false);
+ assert.equal(invalid.affirmative,false);
+});
+
+test('承接需要相同主题，独立短语和的字结尾不能直接命中',()=>{
+ for(const body of ['人多','一直在拍','美味','李老师的']){
+  assert.equal(replyContext('工资审批完成了',body,false).continuation,false,body);
+ }
+ for(const [previous,body] of [['车站排队很久了','人多'],['相机拍摄效果不错','一直在拍'],['晚饭加了辣椒','看着都很香']]){
+  assert.equal(replyContext(previous,body,false).continuation,true,body);
+ }
+});
+
+test('工作请求排除分享，自己的打算与同条独立分享保留',()=>{
+ for(const text of ['我想你早点把合同签了','我希望你把资料发给我','我让你去问同事'])assert.equal(sharing(text),false,text);
+ for(const text of ['我想去看电影','我想和你去爬山','我希望你把资料发来，我今天买了本书'])assert.equal(sharing(text),true,text);
 });

@@ -50,10 +50,23 @@ function terms(text){
 export function replyContext(previous,text,previousQuestion){
  const body=String(text).trim();
  const acknowledgment=/^(?:可以|行|好|好的|嗯+|对|是|是呀|是了|okk?|收到|没问题)[!！。\s]*$/i.test(body);
- const affirmative=acknowledgment&&(previousQuestion||/试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
- const answer=previousQuestion&&!/^(?:哈+|呵+|不知道|随便)[!！。\s]*$/.test(body);
+ const yesNo=/吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
+ const affirmative=acknowledgment&&(yesNo||/试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
  const prior=terms(previous),current=terms(body);
- const continuation=[...current].some(term=>prior.has(term));
- const detail=/看着.{0,4}香|美味|加上.{0,4}香|一直在拍|人多|的$|会比.{0,8}(?:辣|贵|便宜|好)/.test(body);
- return {answer,affirmative,continuation:continuation||detail&&Boolean(previous)};
+ const topics=[
+  /吃|饭|面条|辣椒|食物|火锅|香|辣|美味|好吃/,
+  /拍|照片|摄影|相机|录像|视频/,
+  /人多|排队|拥挤|客流|游客|人少/,
+  /歌曲|音乐|歌手|唱|专辑/
+ ];
+ const continuation=[...current].some(term=>prior.has(term))||topics.some(topic=>topic.test(previous)&&topic.test(body));
+ let answer=false;
+ if(previousQuestion){
+  if(/几点|什么时候|啥时候|何时/.test(previous))answer=/[0-9零一二三四五六七八九十两半]+\s*(?:点|时|分|天|号|月)|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
+  else if(/在哪|哪里|哪儿|去哪|什么地方/.test(previous))answer=/家里|公司|学校|饭店|餐厅|商场|车站|地铁|[\u4e00-\u9fff]{2,}(?:路|街|市|县|区|店)/.test(body);
+  else if(/多少|几个|几人|几位/.test(previous))answer=/[0-9零一二三四五六七八九十百千万两]+/.test(body);
+  else if(yesNo)answer=acknowledgment||/^(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|我不|我会|我去|我可以)/.test(body)||continuation;
+  else answer=continuation||/^(?:因为|由于|主要是|原因是)/.test(body);
+ }
+ return {answer,affirmative,continuation};
 }
