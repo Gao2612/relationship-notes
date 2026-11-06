@@ -37,7 +37,7 @@ export function createScoringBasisView(React,E){
   const foundIndex=days.findIndex(day=>day.date===date);
   const index=foundIndex>=0?foundIndex:days.length-1;
   const day=days[index];
-  const breakdown=E.interactionScoreBreakdown({positive:day.positiveCues,boundary:day.negativeCues,question:day.targetQuestions,sharing:day.targetShares,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,slowReplies:day.slowReplies,perfunctoryReplies:day.perfunctoryReplies,lowContentReplies:day.lowContentReplies,targetTurns:day.targetTurns,selfTurns:day.selfTurns,conflictReplies:day.conflictReplies,appeasementReplies:day.appeasementReplies,messages:(day.messages||[]).length,selfMessages:day.selfMessages,targetMessages:day.targetMessages});
+  const breakdown=E.interactionScoreBreakdown({positive:day.positiveCues,boundary:day.negativeCues,question:day.targetQuestions,sharing:day.targetShares,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,slowReplies:day.slowReplies,perfunctoryReplies:day.perfunctoryReplies,lowContentReplies:day.lowContentReplies,targetTurns:day.targetTurns,selfTurns:day.selfTurns,strongConflict:day.strongConflict,conflictReplies:day.conflictReplies,appeasementReplies:day.appeasementReplies,messages:(day.messages||[]).length,selfMessages:day.selfMessages,targetMessages:day.targetMessages});
   const go=step=>{const next=days[index+step];if(next&&onDateChange)onDateChange(next.date);};
   const evidenceCell=item=>{
    if(!item.hit)return h('span',{className:'rn-muted'},'—');

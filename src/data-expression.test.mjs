@@ -47,10 +47,10 @@ test('评分规则改成逐项卡片，原始数值与措辞逐字保留且可�
  assert.deepEqual(RULE_SECTIONS.map(section=>section.title),['好感线索分','互动均衡分','主动开口','回复间隔','敷衍程度','单方独白','摩擦/冷战','交流轮次','直接提问','第一人称分享','明确边界']);
  assert.equal(RULE_SECTIONS[1].value,'round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))');
  const parsed=parseAffinityRule();
- assert.equal(parsed.terms.length,12,'公式拆成 12 个加减项');
- assert.equal(parsed.notes.length,4,'封顶/折算/低频/加权 4 条口径');
+ assert.equal(parsed.terms.length,13,'公式包括时延去重共 13 个加减项');
+ assert.equal(parsed.notes.length,5,'封顶/折算/低频/加权/纠正 5 条口径');
  assert.equal(joinAffinityRule(parsed),AFFINITY_RULE_TEXT,'拆项拼回必须与原规则逐字一致');
- assert.equal(splitRuleClauses(AFFINITY_RULE_TEXT).length,5);
+ assert.equal(splitRuleClauses(AFFINITY_RULE_TEXT).length,6);
  for(const term of parsed.terms)assert.ok(term.text.length<=60,'公式单项过长：'+term.text);
  assert.deepEqual(splitRuleTerms('38 + 1 × A − 2 × B').map(term=>term.sign+':'+term.text),[':38','+:1 × A','−:2 × B']);
  for(const note of parsed.notes){
