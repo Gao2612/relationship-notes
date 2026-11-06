@@ -35238,10 +35238,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (pendingBatch.length) batches.push(pendingBatch);
           let completed = 0;
           const failedDates = [], stopIfAborted = () => {
-            if (controllerForRun.signal.aborted) throw Object.assign(new Error("已停止"), { name: "AbortError" });
+            const current = store.getSnapshot().contacts.find((item) => item.id === contactId);
+            if (controllerForRun.signal.aborted || ticket !== timelineRequest || !current || current.messages !== contact.messages || current.self !== contact.self || current.target !== contact.target || current.interactionCorrections !== contact.interactionCorrections) {
+              controllerForRun.abort();
+              throw Object.assign(new Error("聊天或评分修正已变化，请重新分析。"), { name: "AbortError" });
+            }
           };
           const saveBatch = async (batch) => {
+            stopIfAborted();
             const response = await hostPost("timeline-analysis", { self: contact.self, target: contact.target, days: batch }, { signal: controllerForRun.signal }), data = await response.json();
+            stopIfAborted();
             if (!response.ok || data.ok === false || !Array.isArray(data.days)) throw new Error(data.error || "未收到有效的日期分析");
             const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
             if (!updatedContact) throw new Error("联系人已不存在。");
@@ -35823,7 +35829,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           rememberAnchor();
           setHistoryStart((start) => Math.min(Math.max(0, latestMessages.length - historyChunkSize), start + historyChunkSize));
         };
-        const daily = React2.useMemo(() => contact ? E.analyzeDailyTimeline(contactMessages, contact.self, contact.target) : { days: [] }, [contactMessages, contact?.self, contact?.target, chatSource]);
+        const daily = React2.useMemo(() => contact ? E.analyzeDailyTimeline(contactMessages, contact.self, contact.target, contact.interactionCorrections || []) : { days: [] }, [contactMessages, contact?.self, contact?.target, contact?.interactionCorrections]);
         React2.useLayoutEffect(() => {
           const pane = historyRef.current;
           if (!pane) return;
