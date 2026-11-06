@@ -1,3 +1,4 @@
+import {shanghaiTimestamp} from './shared/dates.js';
 const WORK=/权限|人事|交接|招聘|离职|报销|审批|工资|考勤|项目|客户|合同|工作|上班|加班/;
 const DAILY=/吃|饭|香|辣|美味|旅行|旅游|出去玩|电影|音乐|运动|学校|休息|睡|天气|下雨|短袖|照片|拍|朋友圈/;
 
@@ -25,12 +26,10 @@ export function sceneGroups(messages){
   segment=[];
  };
  for(const message of messages.filter(scoringMessage)){
-  const value=message.timestamp;
-  const numeric=typeof value==='number'||/^\d{10,13}$/.test(String(value));
-  const time=numeric?Number(value)*(Number(value)<1e12?1000:1):Date.parse(String(value).replace(' ','T'));
-  if(!Number.isFinite(time)||previous===null||time<previous||time-previous>=7200000)flush();
+  const time=shanghaiTimestamp(message.timestamp);
+  if(time===null||previous===null||time<previous||time-previous>=7200000)flush();
   segment.push(message);
-  previous=Number.isFinite(time)?time:null;
+  previous=time;
  }
  flush();
  return groups;
@@ -53,6 +52,10 @@ export function replyContext(previous,text,previousQuestion){
  const yesNo=/吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
  const affirmative=acknowledgment&&(yesNo||/试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
  const prior=terms(previous),current=terms(body);
+ const events=[/出门|出发|离开|到达|见面|集合/,/买|购买|下单|购物/,/吃|喝|用餐/,/睡|起床|休息/,/开会|会议/,/完成|做好|交付|审批|处理/,/下雨|下雪|天气/];
+ const requested=events.filter(event=>event.test(previous));
+ const stated=events.filter(event=>event.test(body));
+ const relatedEvent=!requested.length||!stated.length||requested.some(event=>event.test(body));
  const topics=[
   /吃|饭|面条|辣椒|食物|火锅|香|辣|美味|好吃/,
   /拍|照片|摄影|相机|录像|视频/,
@@ -68,5 +71,10 @@ export function replyContext(previous,text,previousQuestion){
   else if(yesNo)answer=acknowledgment||/^(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|我不|我会|我去|我可以)/.test(body)||continuation;
   else answer=continuation||/^(?:因为|由于|主要是|原因是)/.test(body);
  }
- return {answer,affirmative,continuation};
+ return {answer:answer&&relatedEvent,affirmative,continuation};
+}
+
+
+export function directedRequest(text){
+ return /^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(text.trim());
 }

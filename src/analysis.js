@@ -1,22 +1,14 @@
+import {shanghaiDateKey} from './shared/dates.js';
 import {scoringMessage} from './interaction-context.js';
 import {isProfileFactCurrent} from './profile-lifecycle.js';
 // Observable local heuristics only. No relationship, attraction or response-time inference.
 import {isInteractionExcluded,interactionCorrectionIndex} from './interaction-metrics.js';
 const validPair=(self,target)=>typeof self==='string'&&typeof target==='string'&&self.trim()&&target.trim()&&self.trim()!==target.trim();
 const selected=(messages,self,target)=>validPair(self,target)&&Array.isArray(messages)?messages.filter(m=>m&&typeof m.text==='string'&&scoringMessage(m)&&(m.sender===self||m.sender===target)):[];
-import {question,sharing,boundary,acknowledgment,positive,negative,interactionScore,engagementSignals} from './interaction-signals.js';
+import {question,sharing,boundary,acknowledgment,positive,negative,interactionScore,engagementSignals,engagementDays} from './interaction-signals.js';
 const positiveCue={test:positive},negativeCue={test:negative};
 const topics=[['工作',/(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/],['日常',/(今天|最近|吃饭|睡觉|下班|天气|回家)/],['周末计划',/(周末|休息日|下周|明天|约吗|有空|见面|一起去)/],['兴趣活动',/(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]];
-function dayKey(timestamp){
- if(typeof timestamp==='number'&&Number.isFinite(timestamp)){const date=new Date(timestamp<1e12?timestamp*1000:timestamp);if(!Number.isFinite(date.getTime()))return null;try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}catch{return date.toISOString().slice(0,10);}}
- if(typeof timestamp!=='string'||!timestamp.trim())return null;
- const value=timestamp.trim(),iso=/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:$|[ T])/i.exec(value),hasZone=/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
- if(iso&&!hasZone)return `${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`;
- const n=/^\d{10,13}$/.test(value)?Number(value):NaN;
- const date=Number.isFinite(n)?new Date(n<1e12?n*1000:n):new Date(value);
- if(!Number.isFinite(date.getTime()))return null;
- try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}catch{return date.toISOString().slice(0,10);}
-}
+const dayKey=shanghaiDateKey;
 /** Daily activity and explicitly worded target-side affinity cues. Counts are evidence, not mind-reading. */
 export function analyzeDailyTimeline(messages,self,target,corrections=[]){
  const list=selected(messages,self,target),groups=new Map();corrections=interactionCorrectionIndex(corrections,list);
@@ -27,10 +19,9 @@ export function analyzeDailyTimeline(messages,self,target,corrections=[]){
   if(message.sender===target){const asks=question(message.text)&&!isInteractionExcluded(message,'question',corrections),shares=sharing(message.text)&&!isInteractionExcluded(message,'sharing',corrections),pos=positiveCue.test(message.text)&&!isInteractionExcluded(message,'positive',corrections),neg=negativeCue.test(message.text)&&!isInteractionExcluded(message,'boundary',corrections);if(asks)day.targetQuestions++;if(shares)day.targetShares++;if(pos)day.positiveCues++;if(neg)day.negativeCues++;if(day.affinityEvidence.length<6){if(pos||neg)day.affinityEvidence.push({kind:pos?'positive':'negative',quote:message.text,message});else if(asks)day.affinityEvidence.push({kind:'question',quote:message.text,message});else if(shares)day.affinityEvidence.push({kind:'sharing',quote:message.text,message});}}
  }
  const days=[...groups.values()].sort((a,b)=>a.date.localeCompare(b.date));if(!days.length)return {days:[],averageMessages:0};
- const engagements=new Map();
+ const engagements=engagementDays(engagementSignals(list,self,(message,kind)=>isInteractionExcluded(message,kind,corrections)));
  for(const day of days){
-  const engagement=engagementSignals(day.messages,self,(message,kind)=>isInteractionExcluded(message,kind,corrections));
-  engagements.set(day.date,engagement);
+  const engagement=engagements.get(day.date);
   day.selfTurns=engagement.selfTurns;
   day.targetTurns=engagement.targetTurns;
   day.turns=day.selfTurns+day.targetTurns;

@@ -1,3 +1,4 @@
+import {shanghaiTimestamp,shanghaiDateKey} from './shared/dates.js';
 // Pure port of the approved prototype parser/extractor; no browser or host access.
 import {ensureMessageIds,ensureContactMessageIds} from './message-identity.js';
 export class ImportError extends Error { constructor(code,details={}) { super(code); this.code=code; this.details=details; } }
@@ -72,7 +73,7 @@ export function supportedProfileSummary(fact){
  return fact.field!=='interests'||/喜欢|喜爱|爱好|爱玩|爱看|爱吃|不爱|不喜欢|偏好|感兴趣/.test(fact.quote);
 }
 export function sortChatMessages(messages){
- const time=message=>{const value=String(message.timestamp??'').trim();if(/^\d{10,13}$/.test(value)){const n=Number(value);return n<1e12?n*1000:n;}const local=/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(value);if(local)return Date.UTC(+local[1],+local[2]-1,+local[3],+(local[4]||0)-8,+(local[5]||0),+(local[6]||0));const n=Date.parse(value);return Number.isFinite(n)?n:Infinity;};
+ const time=message=>shanghaiTimestamp(message.timestamp)??Infinity;
  return ensureMessageIds(messages).map((message,index)=>({message,index,time:time(message)})).sort((a,b)=>a.time===b.time?a.index-b.index:a.time-b.time).map(row=>row.message);
 }
 export function mergeContactImport(contacts,incoming){
@@ -86,7 +87,7 @@ export function mergeContactImport(contacts,incoming){
  if(extra.length){
   // Imported wall times are China local time; epoch and zoned timestamps need
   // the same timezone conversion before selecting summaries to invalidate.
-  const dateKey=message=>{const value=String(message.timestamp??'').trim(),local=/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?)?$/.exec(value);if(local)return local[1]+'-'+local[2].padStart(2,'0')+'-'+local[3].padStart(2,'0');const numeric=/^\d{10,13}$/.test(value)?Number(value):null,date=new Date(numeric===null?value:numeric<1e12?numeric*1000:numeric);if(!Number.isFinite(date.getTime()))return null;return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);};
+  const dateKey=message=>shanghaiDateKey(message.timestamp);
   const affectedDates=new Set(extra.map(dateKey).filter(Boolean));
   if(existing.timelineAnalysis)contact.timelineAnalysis=Object.fromEntries(Object.entries(existing.timelineAnalysis).filter(([date])=>!affectedDates.has(date)));
   delete contact.timelineAnalysisUpdatedAt;

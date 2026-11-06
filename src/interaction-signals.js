@@ -1,4 +1,5 @@
-import {scoringMessage,sceneGroups,replyContext} from './interaction-context.js';
+import {shanghaiTimestamp,shanghaiDateKey} from './shared/dates.js';
+import {scoringMessage,sceneGroups,replyContext,directedRequest} from './interaction-context.js';
 // One conservative signal vocabulary for daily and overall views.
 // 「?」不等于提问：反问、道谢、赌气都带问号，先排除这些句式再判。
 const RHETORICAL=/(?:谢谢你|谢了|就这|讲啥道理|讲道理|难道|难不成|你以为|谁不知道|还用说|凭什么|有什么好|何必|岂不是|可不是|至于吗|行了吧|算了|呵呵|随便你)/;
@@ -45,7 +46,7 @@ export function sharing(text){
  return direct.split(/[。！？!?，,\n]/).some(text=>{
   text=text.trim();
   // 请求对方执行动作与本人计划分开识别，保留同条消息中的独立分享。
-  if(/^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(text))return false;
+  if(directedRequest(text))return false;
   return (/(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text)||/(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text));
  });
 }
@@ -54,7 +55,7 @@ export const acknowledgment=text=>/^(?:(?:好(?:的|呀|啊)?|嗯+|收到|了解
 const positivePattern=/(?:(?<!不)喜欢你|想你|想见你|期待(?:见你|和你)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|你真好|好可爱|好漂亮|好厉害|辛苦你了|谢谢你|关心你|担心你|抱抱|亲亲|❤️|❤|🥰|😍|😘)/i;
 
 function directText(text){const value=String(text).replace(/[“「『‘"][^”」』’"]*[”」』’"]/g,'');return (value.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g)||[]).filter(part=>!/(?:她|他|朋友|同事|对方|有人).*(?:说|表示|告诉)|(?:台词|原话|引用)/.test(part)).join('');}
-export function positive(text){const value=directText(text);if(conflict(value))return false;for(const match of value.matchAll(new RegExp(positivePattern.source,'ig'))){if(!/(?:不|没|并非|不是|不太|不想|不再).{0,3}$/.test(value.slice(0,match.index)))return true;}return false;}
+export function positive(text){const value=directText(text).split(/[。！？!?，,\n]/).filter(part=>!directedRequest(part)).join('。');if(conflict(value))return false;for(const match of value.matchAll(new RegExp(positivePattern.source,'ig'))){if(!/(?:不|没|并非|不是|不太|不想|不再).{0,3}$/.test(value.slice(0,match.index)))return true;}return false;}
 export function negative(text){const value=directText(text);return boundary(value)||/(?:不喜欢你|不想(?:再)?(?:见你|和你聊|联系你)|(?:和你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气))/.test(value);}
 export const interactionDetectors={question,sharing,positive,boundary:negative};
 // 收尾式/敷衍措辞：明确只想结束对话，或只有应和、没有信息量。
@@ -91,14 +92,7 @@ export function appeasement(text){
  return !conflict(body)&&APPEASE_PATTERN.test(body);
 }
 const BURST_GAP_MINUTES=3;
-function toMillis(timestamp){
- if(typeof timestamp==='number'&&Number.isFinite(timestamp))return timestamp<1e12?timestamp*1000:timestamp;
- if(typeof timestamp!=='string')return null;
- const value=timestamp.trim();if(!value)return null;
- if(/^\d{10,13}$/.test(value)){const n=Number(value);return n<1e12?n*1000:n;}
- const parsed=Date.parse(value.includes('T')?value:value.replace(' ','T'));
- return Number.isFinite(parsed)?parsed:null;
-}
+const toMillis=shanghaiTimestamp;
 /** Who opened each conversation block, how fast the other side answered, and how empty those answers were. */
 export function engagementSignals(messages,self,isExcluded){
  const list=Array.isArray(messages)?messages.filter(scoringMessage):[];
@@ -107,7 +101,7 @@ export function engagementSignals(messages,self,isExcluded){
  const turns=[];
  for(const message of list){
   const at=toMillis(message.timestamp),last=turns.at(-1);
-  if(last&&last.sender===message.sender&&at!==null&&last.at!==null&&at>=last.at&&at-last.at<=BURST_GAP_MINUTES*60000){
+  if(last&&last.sender===message.sender&&at!==null&&last.at!==null&&at>=last.at&&at-last.at<=BURST_GAP_MINUTES*60000&&shanghaiDateKey(message.timestamp)===shanghaiDateKey(last.messages[0].timestamp)){
    last.messages.push(message);last.at=at;
   }else turns.push({sender:message.sender,at,firstAt:at,messages:[message]});
  }
@@ -117,8 +111,22 @@ export function engagementSignals(messages,self,isExcluded){
  const scenes={work:0,daily:0,mixed:0,unknown:0};
  const startsByScene={work:0,daily:0,mixed:0,unknown:0};
  let answeredTurns=0,continuedTurns=0;
- const latencies=[],turnEvidence=[];
+ const latencies=[],turnEvidence=[],events=[];
  for(const turn of turns){
+  const before={selfStarts,targetStarts,perfunctoryReplies,lowContentReplies,targetTurns,selfTurns,conflictReplies,appeasementReplies,answeredTurns,continuedTurns};
+  const latencyStart=latencies.length;
+  let turnStrong=false;
+  const excluded=kind=>{
+   const detectors={conflict,appeasement,perfunctory,lowContent};
+   let relevant=turn.messages;
+   if(detectors[kind])relevant=turn.messages.filter(message=>detectors[kind](message.text));
+   if(kind==='answer'||kind==='continuation')relevant=turn.messages.filter(message=>{
+    const context=replyContext(previousText,message.text,question(previousText));
+    return kind==='answer'?context.answer||context.affirmative:context.continuation;
+   });
+   if(!relevant.length)relevant=turn.messages;
+   return relevant.every(message=>isExcluded?.(message,kind));
+  };
   const at=turn.firstAt,isTarget=turn.sender!==self;
   const newSession=previousSender===null||at===null||previousAt===null||at-previousAt>=SESSION_GAP_MINUTES*60000;
   if(newSession){
@@ -134,7 +142,7 @@ export function engagementSignals(messages,self,isExcluded){
    scenes[scene]++;
    if(newSession)startsByScene[scene]++;
    const rawContext=replyContext(!newSession&&previousWasSelf?previousText:'',joined,!newSession&&previousWasSelf&&question(previousText));
-   const excludeAnswer=isExcluded?.(message,'answer'),excludeContinuation=isExcluded?.(message,'continuation');
+   const excludeAnswer=excluded('answer'),excludeContinuation=excluded('continuation');
    const context={answer:rawContext.answer&&!excludeAnswer,affirmative:rawContext.affirmative&&!excludeAnswer,continuation:rawContext.continuation&&!excludeContinuation};
    if(context.answer||context.affirmative)answeredTurns++;
    if(context.continuation)continuedTurns++;
@@ -147,26 +155,28 @@ export function engagementSignals(messages,self,isExcluded){
    const detectedLowContent=!hasSpecificNegative&&!detectedPerfunctory&&emptyStreak>=3&&!context.answer&&!context.continuation&&lowContent(joined);
    const detected={answer:rawContext.answer||rawContext.affirmative,continuation:rawContext.continuation,conflict:detectedConflict,appeasement:detectedAppeasement,perfunctory:detectedPerfunctory,lowContent:detectedLowContent};
    const kinds=Object.keys(detected).filter(kind=>detected[kind]);
-   const applied=kinds.filter(kind=>!isExcluded?.(message,kind));
-   turnEvidence.push({message,quote:joined,kinds,applied,scene,context});
+   const applied=kinds.filter(kind=>!excluded(kind));
+   turnEvidence.push({message,messages:turn.messages,quote:joined,kinds,applied,scene,context});
    if(applied.includes('perfunctory'))perfunctoryReplies++;
    if(applied.includes('lowContent'))lowContentReplies++;
    if(applied.includes('conflict')){conflictReplies++;sessionConflicts++;}
    if(applied.includes('appeasement')){
     appeasementReplies++;
-    if(sessionConflicts>0)strongConflict=true;
+    if(sessionConflicts>0){strongConflict=true;turnStrong=true;}
    }
-   if(sessionConflicts>=2)strongConflict=true;
+   if(sessionConflicts>=2){strongConflict=true;turnStrong=true;}
   }
   if(isTarget)previousWasSelf=false;
   else{selfTurns++;lastSelfAt=turn.at;previousWasSelf=true;}
+  const after={selfStarts,targetStarts,perfunctoryReplies,lowContentReplies,targetTurns,selfTurns,conflictReplies,appeasementReplies,answeredTurns,continuedTurns};
+  events.push({date:shanghaiDateKey(turn.messages[0].timestamp),counts:Object.fromEntries(Object.keys(before).map(key=>[key,after[key]-before[key]])),latencies:latencies.slice(latencyStart),strongConflict:turnStrong,scene:assignments.get(turn.messages[0])||'unknown'});
   previousAt=turn.at??previousAt;
   previousSender=turn.sender;
   previousText=turn.messages.map(message=>String(message.text??'')).join(' ');
  }
  const sorted=[...latencies].sort((a,b)=>a-b);
  const medianMinutes=sorted.length?Math.round(sorted[Math.floor((sorted.length-1)/2)]):null;
- return {selfStarts,targetStarts,medianMinutes,slowReplies:latencies.filter(minutes=>minutes>=SESSION_GAP_MINUTES).length,perfunctoryReplies,lowContentReplies,targetTurns,conflictReplies,appeasementReplies,selfTurns,replySamples:latencies.length,strongConflict,turnEvidence,scenes,startsByScene,answeredTurns,continuedTurns};
+ return {selfStarts,targetStarts,medianMinutes,slowReplies:latencies.filter(minutes=>minutes>=SESSION_GAP_MINUTES).length,perfunctoryReplies,lowContentReplies,targetTurns,conflictReplies,appeasementReplies,selfTurns,replySamples:latencies.length,strongConflict,turnEvidence,scenes,startsByScene,answeredTurns,continuedTurns,events};
 }
 /** 与 interactionScore 同一套算式，但逐项返回，供「打分依据」页展示。 */
 export function interactionScoreBreakdown(counts={}){
@@ -233,4 +243,25 @@ export function interactionScoreBreakdown(counts={}){
 export function interactionScore(counts={}){
  const result=interactionScoreBreakdown(counts);
  return result===null?null:result.score;
+}
+
+
+export function engagementDays(result){
+ const days=new Map();
+ for(const event of result.events){
+  if(!event.date)continue;
+  if(!days.has(event.date))days.set(event.date,{latencies:[],strongConflict:false,scenes:{work:0,daily:0,mixed:0,unknown:0}});
+  const day=days.get(event.date);
+  for(const [key,value] of Object.entries(event.counts))day[key]=(day[key]||0)+value;
+  day.latencies.push(...event.latencies);
+  day.strongConflict ||= event.strongConflict;
+  day.scenes[event.scene]+=event.counts.targetTurns;
+ }
+ for(const day of days.values()){
+  const sorted=day.latencies.slice().sort((a,b)=>a-b);
+  day.medianMinutes=sorted.length?Math.round(sorted[Math.floor((sorted.length-1)/2)]):null;
+  day.slowReplies=sorted.filter(minutes=>minutes>=SESSION_GAP_MINUTES).length;
+  day.replySamples=sorted.length;
+ }
+ return days;
 }

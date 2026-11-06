@@ -32158,6 +32158,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     decodeFile: () => decodeFile,
     defaultSettings: () => defaultSettings,
     demoScores: () => demoScores,
+    directedRequest: () => directedRequest,
     discoverRule: () => discoverRule,
     effective: () => effective,
     engagementSignals: () => engagementSignals,
@@ -32226,6 +32227,51 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     validateSettings: () => validateSettings,
     withoutPersistenceMedia: () => withoutPersistenceMedia
   });
+
+  // src/shared/dates.js
+  function shanghaiTimestamp(value) {
+    if (typeof value === "string") value = value.trim();
+    if (value === null || value === void 0 || value === "") return null;
+    if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : null;
+    if (typeof value === "number" || typeof value === "string" && /^\d{10,13}$/.test(value)) {
+      const number = Number(value), millis2 = number < 1e12 ? number * 1e3 : number;
+      return Number.isFinite(millis2) && Number.isFinite(new Date(millis2).getTime()) ? millis2 : null;
+    }
+    if (typeof value !== "string") return null;
+    const local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/.exec(value.trim());
+    if (local) {
+      const [, year, month, day, hour = "0", minute = "0", second = "0", fraction = "0"] = local;
+      const millis2 = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second, +fraction.slice(0, 3).padEnd(3, "0"));
+      const date = new Date(millis2);
+      if (date.getUTCFullYear() !== +year || date.getUTCMonth() !== +month - 1 || date.getUTCDate() !== +day || +hour > 23 || +minute > 59 || +second > 59) return null;
+      return millis2 - 288e5;
+    }
+    if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim())) return null;
+    const millis = Date.parse(value.trim());
+    return Number.isFinite(millis) ? millis : null;
+  }
+  function shanghaiDateKey(value) {
+    if (value === null || value === void 0 || value === "") return null;
+    const millis = shanghaiTimestamp(value);
+    if (millis === null) return null;
+    const date = new Date(millis);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  }
+  function reviewPeriodRange(period = "week", anchor = shanghaiDateKey(Date.now())) {
+    if (!["week", "month"].includes(period) || !/^\d{4}-\d{2}-\d{2}$/.test(anchor || "") || shanghaiDateKey(anchor) !== anchor) throw Error("请选择有效的周/月日期。");
+    const date = /* @__PURE__ */ new Date(anchor + "T00:00:00Z");
+    let start, end;
+    if (period === "week") {
+      start = new Date(date);
+      start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
+      end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 6);
+    } else {
+      start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+      end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+    }
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
 
   // src/message-identity.js
   var identityHash = (value) => {
@@ -32490,17 +32536,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return fact.field !== "interests" || /喜欢|喜爱|爱好|爱玩|爱看|爱吃|不爱|不喜欢|偏好|感兴趣/.test(fact.quote);
   }
   function sortChatMessages(messages) {
-    const time = (message) => {
-      const value = String(message.timestamp ?? "").trim();
-      if (/^\d{10,13}$/.test(value)) {
-        const n2 = Number(value);
-        return n2 < 1e12 ? n2 * 1e3 : n2;
-      }
-      const local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(value);
-      if (local) return Date.UTC(+local[1], +local[2] - 1, +local[3], +(local[4] || 0) - 8, +(local[5] || 0), +(local[6] || 0));
-      const n = Date.parse(value);
-      return Number.isFinite(n) ? n : Infinity;
-    };
+    const time = (message) => shanghaiTimestamp(message.timestamp) ?? Infinity;
     return ensureMessageIds(messages).map((message, index) => ({ message, index, time: time(message) })).sort((a, b) => a.time === b.time ? a.index - b.index : a.time - b.time).map((row) => row.message);
   }
   function mergeContactImport(contacts, incoming) {
@@ -32520,13 +32556,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const messages = sortChatMessages([...ensureMessageIds(existing.messages), ...extra]);
     const contact = { ...existing, messages, pairCount: messages.filter((m) => m.sender === existing.self || m.sender === existing.target).length, facts: extractFacts(messages.filter((m) => m.sender === existing.target)), mediaAssets: [...existing.mediaAssets || [], ...incoming.mediaAssets || []], selfAvatarFile: existing.selfAvatarFile || incoming.selfAvatarFile, targetAvatarFile: existing.targetAvatarFile || incoming.targetAvatarFile };
     if (extra.length) {
-      const dateKey = (message) => {
-        const value = String(message.timestamp ?? "").trim(), local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?)?$/.exec(value);
-        if (local) return local[1] + "-" + local[2].padStart(2, "0") + "-" + local[3].padStart(2, "0");
-        const numeric = /^\d{10,13}$/.test(value) ? Number(value) : null, date = new Date(numeric === null ? value : numeric < 1e12 ? numeric * 1e3 : numeric);
-        if (!Number.isFinite(date.getTime())) return null;
-        return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-      };
+      const dateKey = (message) => shanghaiDateKey(message.timestamp);
       const affectedDates = new Set(extra.map(dateKey).filter(Boolean));
       if (existing.timelineAnalysis) contact.timelineAnalysis = Object.fromEntries(Object.entries(existing.timelineAnalysis).filter(([date]) => !affectedDates.has(date)));
       delete contact.timelineAnalysisUpdatedAt;
@@ -32600,12 +32630,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       segment = [];
     };
     for (const message of messages.filter(scoringMessage)) {
-      const value = message.timestamp;
-      const numeric = typeof value === "number" || /^\d{10,13}$/.test(String(value));
-      const time = numeric ? Number(value) * (Number(value) < 1e12 ? 1e3 : 1) : Date.parse(String(value).replace(" ", "T"));
-      if (!Number.isFinite(time) || previous === null || time < previous || time - previous >= 72e5) flush();
+      const time = shanghaiTimestamp(message.timestamp);
+      if (time === null || previous === null || time < previous || time - previous >= 72e5) flush();
       segment.push(message);
-      previous = Number.isFinite(time) ? time : null;
+      previous = time;
     }
     flush();
     return groups;
@@ -32626,6 +32654,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const yesNo = /吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
     const affirmative = acknowledgment2 && (yesNo || /试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
     const prior = terms(previous), current = terms(body);
+    const events = [/出门|出发|离开|到达|见面|集合/, /买|购买|下单|购物/, /吃|喝|用餐/, /睡|起床|休息/, /开会|会议/, /完成|做好|交付|审批|处理/, /下雨|下雪|天气/];
+    const requested = events.filter((event) => event.test(previous));
+    const stated = events.filter((event) => event.test(body));
+    const relatedEvent = !requested.length || !stated.length || requested.some((event) => event.test(body));
     const topics2 = [
       /吃|饭|面条|辣椒|食物|火锅|香|辣|美味|好吃/,
       /拍|照片|摄影|相机|录像|视频/,
@@ -32641,7 +32673,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       else if (yesNo) answer = acknowledgment2 || /^(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|我不|我会|我去|我可以)/.test(body) || continuation;
       else answer = continuation || /^(?:因为|由于|主要是|原因是)/.test(body);
     }
-    return { answer, affirmative, continuation };
+    return { answer: answer && relatedEvent, affirmative, continuation };
+  }
+  function directedRequest(text) {
+    return /^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(text.trim());
   }
 
   // src/profile-lifecycle.js
@@ -32787,7 +32822,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (question(direct)) return false;
     return direct.split(/[。！？!?，,\n]/).some((text2) => {
       text2 = text2.trim();
-      if (/^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(text2)) return false;
+      if (directedRequest(text2)) return false;
       return /(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text2) || /(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text2);
     });
   }
@@ -32798,7 +32833,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return (value.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || []).filter((part) => !/(?:她|他|朋友|同事|对方|有人).*(?:说|表示|告诉)|(?:台词|原话|引用)/.test(part)).join("");
   }
   function positive(text) {
-    const value = directText(text);
+    const value = directText(text).split(/[。！？!?，,\n]/).filter((part) => !directedRequest(part)).join("。");
     if (conflict(value)) return false;
     for (const match of value.matchAll(new RegExp(positivePattern.source, "ig"))) {
       if (!/(?:不|没|并非|不是|不太|不想|不再).{0,3}$/.test(value.slice(0, match.index))) return true;
@@ -32843,18 +32878,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return !conflict(body) && APPEASE_PATTERN.test(body);
   }
   var BURST_GAP_MINUTES = 3;
-  function toMillis(timestamp) {
-    if (typeof timestamp === "number" && Number.isFinite(timestamp)) return timestamp < 1e12 ? timestamp * 1e3 : timestamp;
-    if (typeof timestamp !== "string") return null;
-    const value = timestamp.trim();
-    if (!value) return null;
-    if (/^\d{10,13}$/.test(value)) {
-      const n = Number(value);
-      return n < 1e12 ? n * 1e3 : n;
-    }
-    const parsed = Date.parse(value.includes("T") ? value : value.replace(" ", "T"));
-    return Number.isFinite(parsed) ? parsed : null;
-  }
+  var toMillis = shanghaiTimestamp;
   function engagementSignals(messages, self2, isExcluded) {
     const list = Array.isArray(messages) ? messages.filter(scoringMessage) : [];
     const assignments = /* @__PURE__ */ new WeakMap();
@@ -32862,7 +32886,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const turns = [];
     for (const message of list) {
       const at = toMillis(message.timestamp), last = turns.at(-1);
-      if (last && last.sender === message.sender && at !== null && last.at !== null && at >= last.at && at - last.at <= BURST_GAP_MINUTES * 6e4) {
+      if (last && last.sender === message.sender && at !== null && last.at !== null && at >= last.at && at - last.at <= BURST_GAP_MINUTES * 6e4 && shanghaiDateKey(message.timestamp) === shanghaiDateKey(last.messages[0].timestamp)) {
         last.messages.push(message);
         last.at = at;
       } else turns.push({ sender: message.sender, at, firstAt: at, messages: [message] });
@@ -32873,8 +32897,22 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const scenes = { work: 0, daily: 0, mixed: 0, unknown: 0 };
     const startsByScene = { work: 0, daily: 0, mixed: 0, unknown: 0 };
     let answeredTurns = 0, continuedTurns = 0;
-    const latencies = [], turnEvidence = [];
+    const latencies = [], turnEvidence = [], events = [];
     for (const turn of turns) {
+      const before = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns };
+      const latencyStart = latencies.length;
+      let turnStrong = false;
+      const excluded = (kind) => {
+        const detectors = { conflict, appeasement, perfunctory, lowContent };
+        let relevant = turn.messages;
+        if (detectors[kind]) relevant = turn.messages.filter((message) => detectors[kind](message.text));
+        if (kind === "answer" || kind === "continuation") relevant = turn.messages.filter((message) => {
+          const context = replyContext(previousText, message.text, question(previousText));
+          return kind === "answer" ? context.answer || context.affirmative : context.continuation;
+        });
+        if (!relevant.length) relevant = turn.messages;
+        return relevant.every((message) => isExcluded?.(message, kind));
+      };
       const at = turn.firstAt, isTarget = turn.sender !== self2;
       const newSession = previousSender === null || at === null || previousAt === null || at - previousAt >= SESSION_GAP_MINUTES * 6e4;
       if (newSession) {
@@ -32892,7 +32930,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         scenes[scene]++;
         if (newSession) startsByScene[scene]++;
         const rawContext = replyContext(!newSession && previousWasSelf ? previousText : "", joined, !newSession && previousWasSelf && question(previousText));
-        const excludeAnswer = isExcluded?.(message, "answer"), excludeContinuation = isExcluded?.(message, "continuation");
+        const excludeAnswer = excluded("answer"), excludeContinuation = excluded("continuation");
         const context = { answer: rawContext.answer && !excludeAnswer, affirmative: rawContext.affirmative && !excludeAnswer, continuation: rawContext.continuation && !excludeContinuation };
         if (context.answer || context.affirmative) answeredTurns++;
         if (context.continuation) continuedTurns++;
@@ -32905,8 +32943,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const detectedLowContent = !hasSpecificNegative && !detectedPerfunctory && emptyStreak >= 3 && !context.answer && !context.continuation && lowContent(joined);
         const detected = { answer: rawContext.answer || rawContext.affirmative, continuation: rawContext.continuation, conflict: detectedConflict, appeasement: detectedAppeasement, perfunctory: detectedPerfunctory, lowContent: detectedLowContent };
         const kinds = Object.keys(detected).filter((kind) => detected[kind]);
-        const applied = kinds.filter((kind) => !isExcluded?.(message, kind));
-        turnEvidence.push({ message, quote: joined, kinds, applied, scene, context });
+        const applied = kinds.filter((kind) => !excluded(kind));
+        turnEvidence.push({ message, messages: turn.messages, quote: joined, kinds, applied, scene, context });
         if (applied.includes("perfunctory")) perfunctoryReplies++;
         if (applied.includes("lowContent")) lowContentReplies++;
         if (applied.includes("conflict")) {
@@ -32915,9 +32953,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }
         if (applied.includes("appeasement")) {
           appeasementReplies++;
-          if (sessionConflicts > 0) strongConflict = true;
+          if (sessionConflicts > 0) {
+            strongConflict = true;
+            turnStrong = true;
+          }
         }
-        if (sessionConflicts >= 2) strongConflict = true;
+        if (sessionConflicts >= 2) {
+          strongConflict = true;
+          turnStrong = true;
+        }
       }
       if (isTarget) previousWasSelf = false;
       else {
@@ -32925,13 +32969,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         lastSelfAt = turn.at;
         previousWasSelf = true;
       }
+      const after = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns };
+      events.push({ date: shanghaiDateKey(turn.messages[0].timestamp), counts: Object.fromEntries(Object.keys(before).map((key) => [key, after[key] - before[key]])), latencies: latencies.slice(latencyStart), strongConflict: turnStrong, scene: assignments.get(turn.messages[0]) || "unknown" });
       previousAt = turn.at ?? previousAt;
       previousSender = turn.sender;
       previousText = turn.messages.map((message) => String(message.text ?? "")).join(" ");
     }
     const sorted = [...latencies].sort((a, b) => a - b);
     const medianMinutes = sorted.length ? Math.round(sorted[Math.floor((sorted.length - 1) / 2)]) : null;
-    return { selfStarts, targetStarts, medianMinutes, slowReplies: latencies.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length, perfunctoryReplies, lowContentReplies, targetTurns, conflictReplies, appeasementReplies, selfTurns, replySamples: latencies.length, strongConflict, turnEvidence, scenes, startsByScene, answeredTurns, continuedTurns };
+    return { selfStarts, targetStarts, medianMinutes, slowReplies: latencies.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length, perfunctoryReplies, lowContentReplies, targetTurns, conflictReplies, appeasementReplies, selfTurns, replySamples: latencies.length, strongConflict, turnEvidence, scenes, startsByScene, answeredTurns, continuedTurns, events };
   }
   function interactionScoreBreakdown(counts = {}) {
     const num = (value) => Number.isFinite(value) ? value : 0;
@@ -32991,6 +33037,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const result = interactionScoreBreakdown(counts);
     return result === null ? null : result.score;
   }
+  function engagementDays(result) {
+    const days = /* @__PURE__ */ new Map();
+    for (const event of result.events) {
+      if (!event.date) continue;
+      if (!days.has(event.date)) days.set(event.date, { latencies: [], strongConflict: false, scenes: { work: 0, daily: 0, mixed: 0, unknown: 0 } });
+      const day = days.get(event.date);
+      for (const [key, value] of Object.entries(event.counts)) day[key] = (day[key] || 0) + value;
+      day.latencies.push(...event.latencies);
+      day.strongConflict ||= event.strongConflict;
+      day.scenes[event.scene] += event.counts.targetTurns;
+    }
+    for (const day of days.values()) {
+      const sorted = day.latencies.slice().sort((a, b) => a - b);
+      day.medianMinutes = sorted.length ? Math.round(sorted[Math.floor((sorted.length - 1) / 2)]) : null;
+      day.slowReplies = sorted.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length;
+      day.replySamples = sorted.length;
+    }
+    return days;
+  }
 
   // src/interaction-metrics.js
   function interactionEvidenceKey(message) {
@@ -33012,14 +33077,20 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     const index = /* @__PURE__ */ new Map();
     for (const correction of corrections) {
-      const candidates = legacy.get(correction.key), key = candidates?.length === 1 ? interactionEvidenceKey(candidates[0]) : correction.key;
-      index.set(key + "|" + correction.kind, correction);
+      const sources = correction.sources?.length ? correction.sources : [{ key: correction.key }];
+      for (const source of sources) {
+        const candidates = legacy.get(source.key);
+        const key = candidates?.length === 1 ? interactionEvidenceKey(candidates[0]) : source.key;
+        index.set(key + "|" + correction.kind, { ...correction, expectedText: source.text });
+      }
     }
     return index;
   }
   function isInteractionExcluded(message, kind, corrections = []) {
     const key = interactionEvidenceKey(message);
-    return (corrections instanceof Map ? corrections.get(key + "|" + kind) : corrections.findLast((c) => c.key === key && c.kind === kind))?.excluded === true;
+    const index = corrections instanceof Map ? corrections : interactionCorrectionIndex(corrections, [message]);
+    const correction = index.get(key + "|" + kind);
+    return correction?.excluded === true && (correction.expectedText === void 0 || correction.expectedText === message.text);
   }
   function analyzeInteractionMetrics(contact = {}) {
     const messages = (contact.messages || []).filter((m) => m && typeof m.text === "string" && scoringMessage(m) && (m.sender === contact.self || m.sender === contact.target));
@@ -33035,7 +33106,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const kind of ["perfunctory", "lowContent", "conflict", "appeasement", "answer", "continuation"]) {
       const evidence = engagement.turnEvidence.filter((row) => row.kinds.includes(kind)).map((row) => {
         const key = interactionEvidenceKey(row.message), correction = corrections.get(key + "|" + kind);
-        return { ...row, key, kind, excluded: correction?.excluded === true, correction };
+        return { ...row, key, kind, excluded: !row.applied.includes(kind), correction };
       });
       indicators.push({ kind, label: labels[kind], count: evidence.filter((row) => !row.excluded).length, evidence });
     }
@@ -33056,9 +33127,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function correctInteraction(contact, action, now = Date.now()) {
     if (!Object.hasOwn(labels, action.kind) || typeof action.key !== "string") throw Error("互动纠正无效。");
-    const found = analyzeInteractionMetrics(contact).indicators.find((i) => i.kind === action.kind)?.evidence.some((e) => e.key === action.key);
+    const found = analyzeInteractionMetrics(contact).indicators.find((i) => i.kind === action.kind)?.evidence.find((e) => e.key === action.key);
     if (!found) throw Error("原文已不存在，无法纠正。");
-    return { ...contact, interactionCorrections: [...contact.interactionCorrections || [], { key: action.key, kind: action.kind, excluded: action.excluded === true, note: String(action.note || "").slice(0, 300), at: now }] };
+    return { ...contact, interactionCorrections: [...contact.interactionCorrections || [], { key: action.key, kind: action.kind, excluded: action.excluded === true, note: String(action.note || "").slice(0, 300), at: now, ...found.messages ? { sources: found.messages.map((message) => ({ key: interactionEvidenceKey(message), text: message.text })) } : {} }] };
   }
 
   // src/analysis.js
@@ -33067,28 +33138,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var positiveCue = { test: positive };
   var negativeCue = { test: negative };
   var topics = [["工作", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/], ["日常", /(今天|最近|吃饭|睡觉|下班|天气|回家)/], ["周末计划", /(周末|休息日|下周|明天|约吗|有空|见面|一起去)/], ["兴趣活动", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]];
-  function dayKey(timestamp) {
-    if (typeof timestamp === "number" && Number.isFinite(timestamp)) {
-      const date2 = new Date(timestamp < 1e12 ? timestamp * 1e3 : timestamp);
-      if (!Number.isFinite(date2.getTime())) return null;
-      try {
-        return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date2);
-      } catch {
-        return date2.toISOString().slice(0, 10);
-      }
-    }
-    if (typeof timestamp !== "string" || !timestamp.trim()) return null;
-    const value = timestamp.trim(), iso = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:$|[ T])/i.exec(value), hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
-    if (iso && !hasZone) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
-    const n = /^\d{10,13}$/.test(value) ? Number(value) : NaN;
-    const date = Number.isFinite(n) ? new Date(n < 1e12 ? n * 1e3 : n) : new Date(value);
-    if (!Number.isFinite(date.getTime())) return null;
-    try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-    } catch {
-      return date.toISOString().slice(0, 10);
-    }
-  }
+  var dayKey = shanghaiDateKey;
   function analyzeDailyTimeline(messages, self2, target, corrections = []) {
     const list = selected(messages, self2, target), groups = /* @__PURE__ */ new Map();
     corrections = interactionCorrectionIndex(corrections, list);
@@ -33127,10 +33177,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     const days = [...groups.values()].sort((a, b) => a.date.localeCompare(b.date));
     if (!days.length) return { days: [], averageMessages: 0 };
-    const engagements = /* @__PURE__ */ new Map();
+    const engagements = engagementDays(engagementSignals(list, self2, (message, kind) => isInteractionExcluded(message, kind, corrections)));
     for (const day of days) {
-      const engagement = engagementSignals(day.messages, self2, (message, kind) => isInteractionExcluded(message, kind, corrections));
-      engagements.set(day.date, engagement);
+      const engagement = engagements.get(day.date);
       day.selfTurns = engagement.selfTurns;
       day.targetTurns = engagement.targetTurns;
       day.turns = day.selfTurns + day.targetTurns;
@@ -33883,37 +33932,6 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       return { ...attachment, file: file || null };
     }) }));
     return { messages: records, linked, missing };
-  }
-
-  // src/shared/dates.js
-  function shanghaiDateKey(value) {
-    if (value === null || value === void 0 || value === "") return null;
-    if (typeof value === "string") {
-      const local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:$|[ T])/.exec(value.trim());
-      if (local && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim())) {
-        const [, y, m, d] = local, day = new Date(Date.UTC(+y, +m - 1, +d));
-        if (day.getUTCFullYear() !== +y || day.getUTCMonth() !== +m - 1 || day.getUTCDate() !== +d) return null;
-        return day.toISOString().slice(0, 10);
-      }
-    }
-    const numeric = typeof value === "number" || typeof value === "string" && /^\d{10,13}$/.test(value), number = Number(value), date = numeric ? new Date(number < 1e12 ? number * 1e3 : number) : new Date(value);
-    if (!Number.isFinite(date.getTime())) return null;
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-  }
-  function reviewPeriodRange(period = "week", anchor = shanghaiDateKey(Date.now())) {
-    if (!["week", "month"].includes(period) || !/^\d{4}-\d{2}-\d{2}$/.test(anchor || "") || shanghaiDateKey(anchor) !== anchor) throw Error("请选择有效的周/月日期。");
-    const date = /* @__PURE__ */ new Date(anchor + "T00:00:00Z");
-    let start, end;
-    if (period === "week") {
-      start = new Date(date);
-      start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
-      end = new Date(start);
-      end.setUTCDate(end.getUTCDate() + 6);
-    } else {
-      start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-      end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
-    }
-    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
   }
 
   // src/share-scope.js
