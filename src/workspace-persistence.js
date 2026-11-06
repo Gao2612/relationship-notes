@@ -5,7 +5,7 @@
 export const PERSISTED_KEYS=['contacts','selectedId','drafts','goals','mediaAnalysis','scenario','tone','intent','draft','draftReason','draftSource','draftEvidence','exchangeSent','exchangeReply','draftVersions','previousDraft','displayFontSize','displayDensity','photoFit','importHistory','selfProfile','shareScope','reviewPreferences'];
 export const persistableState=s=>({...s.persistenceExtensions,...Object.fromEntries(PERSISTED_KEYS.map(key=>[key,s[key]]))});
 export function createWorkspacePersistence({E,store}){
- let persistenceReady=false,persistenceDb=null,persistenceTimer=null,persistenceWrite=Promise.resolve(),lastPersistRefs=null,resolvePersistenceReady;
+ let persistenceReady=false,persistenceDb=null,persistenceTimer=null,persistenceWrite=Promise.resolve(),lastPersistRefs=null,pendingPersistRefs=null,saveGeneration=0,stopped=false,clearing=false,resolvePersistenceReady;
  const persistenceReadyPromise=new Promise(resolve=>{resolvePersistenceReady=resolve;});
  const persistedKeys=PERSISTED_KEYS;
  const persistRefs=s=>persistedKeys.map(key=>s[key]);
@@ -16,16 +16,61 @@ export function createWorkspacePersistence({E,store}){
  function persistenceSize(value){const seen=new WeakSet();let blobs=0;const visit=item=>{if(!item||typeof item!=='object'||seen.has(item))return;seen.add(item);if(typeof Blob!=='undefined'&&item instanceof Blob){blobs+=item.size;return;}for(const child of Object.values(item))visit(child);};visit(value);const encoded=JSON.stringify(value,(_key,item)=>typeof Blob!=='undefined'&&item instanceof Blob?{fileName:item.name||'',size:item.size,type:item.type||''}:item);return blobs+new TextEncoder().encode(encoded).byteLength+1024*1024;}
  function withoutMediaBlobs(value){return E.withoutPersistenceMedia(value);}
  async function assertStorageSpace(value){const estimate=typeof navigator!=='undefined'&&navigator.storage?.estimate?await navigator.storage.estimate():null;if(!estimate||!Number.isFinite(estimate.quota)||!Number.isFinite(estimate.usage))return;const available=Math.max(0,estimate.quota-estimate.usage);if(persistenceSize(value)>available)throw Object.assign(new Error('本机可用存储空间不足。'),{name:'QuotaExceededError'});}
- async function persistSnapshot(state){if(store.getSnapshot().persistenceReadOnly)throw new Error("本机数据版本较新，已禁止覆盖；请使用兼容版本或手动恢复备份。");if(!persistenceDb)persistenceDb=await openPersistenceDb();const value={schemaVersion:E.WORKSPACE_SCHEMA_VERSION,savedAt:Date.now(),state:persistableState(state)};try{await assertStorageSpace(value);await writePersistence(persistenceDb,value);store.set({persistenceStatus:''});}catch(error){if(error?.name!=='QuotaExceededError'&&error?.name!=='NS_ERROR_DOM_QUOTA_REACHED')throw error;const reduced=withoutMediaBlobs(value);await assertStorageSpace(reduced);await writePersistence(persistenceDb,reduced);store.set({persistenceStatus:'空间不足：聊天资料已保存，媒体副本未保存。'});}}
- function schedulePersistence(){if(!persistenceReady)return;const state=store.getSnapshot(),refs=persistRefs(state);if(lastPersistRefs&&refs.every((value,index)=>value===lastPersistRefs[index]))return;lastPersistRefs=refs;clearTimeout(persistenceTimer);persistenceTimer=setTimeout(()=>{const snapshot=store.getSnapshot();persistenceWrite=persistenceWrite.catch(()=>{}).then(()=>persistSnapshot(snapshot)).catch(error=>{store.set({persistenceStatus:'本机保存失败：'+(error.message||'请检查可用空间。')});});},350);}
+ async function persistSnapshot(state){if(store.getSnapshot().persistenceReadOnly)throw new Error("本机数据版本较新，已禁止覆盖；请使用兼容版本或手动恢复备份。");if(!persistenceDb)persistenceDb=await openPersistenceDb();const value={schemaVersion:E.WORKSPACE_SCHEMA_VERSION,savedAt:Date.now(),state:persistableState(state)};try{await assertStorageSpace(value);await writePersistence(persistenceDb,value);lastPersistRefs=persistRefs(state);store.set({persistenceStatus:''});}catch(error){if(error?.name!=='QuotaExceededError'&&error?.name!=='NS_ERROR_DOM_QUOTA_REACHED')throw error;const reduced=withoutMediaBlobs(value);await assertStorageSpace(reduced);await writePersistence(persistenceDb,reduced);lastPersistRefs=persistRefs(state);store.set({persistenceStatus:'空间不足：聊天资料已保存，媒体副本未保存。'});}}
+ function schedulePersistence(){
+  if(!persistenceReady||stopped||clearing)return;
+  const refs=persistRefs(store.getSnapshot());
+  const tracked=pendingPersistRefs||lastPersistRefs;
+  if(tracked&&refs.every((value,index)=>value===tracked[index]))return;
+  pendingPersistRefs=refs;
+  const generation=++saveGeneration;
+  clearTimeout(persistenceTimer);
+  const attempt=number=>{
+   persistenceTimer=setTimeout(()=>{
+    if(stopped||generation!==saveGeneration)return;
+    persistenceWrite=persistenceWrite.catch(()=>{}).then(async()=>{
+     if(stopped||generation!==saveGeneration)return;
+     const snapshot=store.getSnapshot();
+     try{
+      await persistSnapshot(snapshot);
+      if(generation===saveGeneration)pendingPersistRefs=null;
+     }catch(error){
+      store.set({persistenceStatus:'本机保存失败：'+(error.message||'请检查可用空间。')});
+      // 暂时性错误最多重试两次，配额不足等待用户处理。
+      if(!stopped&&generation===saveGeneration&&number<2&&!store.getSnapshot().persistenceReadOnly&&!['QuotaExceededError','NS_ERROR_DOM_QUOTA_REACHED'].includes(error.name))attempt(number+1);
+     }
+    });
+   },number===0?350:number*1000);
+  };
+  attempt(0);
+ }
+
  // Chains one snapshot save onto the existing write queue (same behaviour as before extraction).
- function flush(){persistenceWrite=persistenceWrite.catch(()=>{}).then(()=>persistSnapshot(store.getSnapshot()));return persistenceWrite;}
+ function flush(){clearTimeout(persistenceTimer);saveGeneration++;pendingPersistRefs=null;persistenceWrite=persistenceWrite.catch(()=>{}).then(()=>persistSnapshot(store.getSnapshot()));return persistenceWrite;}
  // Drops everything this module owns: the pending timer, the queued write, the
  // stored record and the last-saved references. The caller resets the store.
- async function clear(){clearTimeout(persistenceTimer);persistenceTimer=null;await persistenceWrite.catch(()=>{});if(!persistenceDb)persistenceDb=await openPersistenceDb();await deletePersistence(persistenceDb);try{persistenceDb.close();}catch{}persistenceDb=null;lastPersistRefs=null;}
+ async function clear(){
+  clearing=true;
+  saveGeneration++;
+  pendingPersistRefs=null;
+  clearTimeout(persistenceTimer);
+  persistenceTimer=null;
+  try{
+   await persistenceWrite.catch(()=>{});
+   if(!persistenceDb)persistenceDb=await openPersistenceDb();
+   await deletePersistence(persistenceDb);
+   persistenceDb.close();
+   persistenceDb=null;
+   lastPersistRefs=null;
+  }finally{
+   clearing=false;
+  }
+ }
+
  // Starts the restore-then-subscribe lifecycle; returns the effect cleanup.
  function start(){
-let active=true,unsubscribe=()=>{};(async()=>{let status='本机还没有保存的聊天数据；导入后会自动保存。';try{if(!persistenceDb)persistenceDb=await openPersistenceDb();const record=await readPersistence(persistenceDb);if(!active)return;if(record?.state){const migrated=E.migrateWorkspaceRecord(record),restored=Object.fromEntries(persistedKeys.filter(key=>Object.hasOwn(migrated.state,key)).map(key=>[key,migrated.state[key]]));store.set({...restored,persistenceExtensions:E.persistenceExtensions(migrated.state,persistedKeys),sharedContactId:'',contacts:(migrated.state.contacts||[]).map(contact=>({...contact,messages:E.sortChatMessages(contact.messages||[])}))});status=`已从本机恢复 ${record.state.contacts?.length||0} 位联系人和聊天记录。`;} }catch(error){if(!active)return;if(error?.code==='UNSUPPORTED_SCHEMA')store.set({persistenceReadOnly:true});status='本机数据库暂不可用：'+(error.message||'数据仍可在当前窗口使用。');}if(!active)return;persistenceReady=true;lastPersistRefs=persistRefs(store.getSnapshot());unsubscribe=store.subscribe(schedulePersistence);store.set({persistenceReady:true,persistenceStatus:status});resolvePersistenceReady();})();return()=>{active=false;unsubscribe();clearTimeout(persistenceTimer);if(persistenceReady){const snapshot=store.getSnapshot();persistenceWrite=persistenceWrite.catch(()=>{}).then(()=>persistSnapshot(snapshot)).catch(()=>{}).finally(()=>persistenceDb?.close());}else persistenceDb?.close();};
+ stopped=false;
+let active=true,unsubscribe=()=>{};(async()=>{let status='本机还没有保存的聊天数据；导入后会自动保存。';try{if(!persistenceDb)persistenceDb=await openPersistenceDb();const record=await readPersistence(persistenceDb);if(!active)return;if(record?.state){const migrated=E.migrateWorkspaceRecord(record),restored=Object.fromEntries(persistedKeys.filter(key=>Object.hasOwn(migrated.state,key)).map(key=>[key,migrated.state[key]]));store.set({...restored,persistenceExtensions:E.persistenceExtensions(migrated.state,persistedKeys),sharedContactId:'',contacts:(migrated.state.contacts||[]).map(contact=>({...contact,messages:E.sortChatMessages(contact.messages||[])}))});status=`已从本机恢复 ${record.state.contacts?.length||0} 位联系人和聊天记录。`;} }catch(error){if(!active)return;if(error?.code==='UNSUPPORTED_SCHEMA')store.set({persistenceReadOnly:true});status='本机数据库暂不可用：'+(error.message||'数据仍可在当前窗口使用。');}if(!active)return;persistenceReady=true;lastPersistRefs=persistRefs(store.getSnapshot());unsubscribe=store.subscribe(schedulePersistence);store.set({persistenceReady:true,persistenceStatus:status});resolvePersistenceReady();})();return()=>{stopped=true;saveGeneration++;pendingPersistRefs=null;active=false;unsubscribe();clearTimeout(persistenceTimer);if(persistenceReady){const snapshot=store.getSnapshot();persistenceWrite=persistenceWrite.catch(()=>{}).then(()=>persistSnapshot(snapshot)).catch(()=>{}).finally(()=>persistenceDb?.close());}else persistenceDb?.close();};
  }
  return {readyPromise:persistenceReadyPromise,ready:()=>persistenceReady,flush,clear,persist:persistSnapshot,schedule:schedulePersistence,start};
 }

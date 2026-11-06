@@ -40,7 +40,7 @@ var RelationshipNotesPlugin = (() => {
     default: () => client_entry_default
   });
 
-  // node_modules/.pnpm/pdfjs-dist@6.4.299/node_modules/pdfjs-dist/legacy/build/pdf.mjs
+  // node_modules/pdfjs-dist/legacy/build/pdf.mjs
   var pdf_exports = {};
   __export(pdf_exports, {
     AbortException: () => AbortException,
@@ -5633,9 +5633,9 @@ var RelationshipNotesPlugin = (() => {
       if (!matches) {
         return null;
       }
-      const year2 = parseInt(matches[1], 10);
-      let month2 = parseInt(matches[2], 10);
-      month2 = month2 >= 1 && month2 <= 12 ? month2 - 1 : 0;
+      const year = parseInt(matches[1], 10);
+      let month = parseInt(matches[2], 10);
+      month = month >= 1 && month <= 12 ? month - 1 : 0;
       let day = parseInt(matches[3], 10);
       day = day >= 1 && day <= 31 ? day : 1;
       let hour = parseInt(matches[4], 10);
@@ -5656,7 +5656,7 @@ var RelationshipNotesPlugin = (() => {
         hour -= offsetHour;
         minute -= offsetMinute;
       }
-      return new Date(Date.UTC(year2, month2, day, hour, minute, second));
+      return new Date(Date.UTC(year, month, day, hour, minute, second));
     }
   };
   function getRGBA(color) {
@@ -33296,7 +33296,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (interest && out.length < max) add("topic", interest.question, [{ description: interest.fact.quote ? "已确认兴趣的直接正向依据" : "你手动确认的兴趣：" + interest.pref.text, factId: interest.fact.uid, quote: interest.fact.quote ? clipSuggestion(interest.pref.quote) : "" }], "先轻轻确认近况，不把历史兴趣当作当前正在做的事。", 0.7);
     if (!out.length && last) {
       const placeholder = /^(?:【[^】]{1,8}】|\[[^\]]{1,8}\]|.*\.(?:jpg|jpeg|png|gif|webp|mp4|amr|silk|mp3))$/i, real = [...msgs].reverse().find((message) => !placeholder.test(String(message.text || "").trim())), basis = real ? [{ description: "依据最近一条文字对话", messageIndex: contact.messages.indexOf(real), quote: clipSuggestion(real.text) }] : [{ description: "依据不足：最近几条都是表情或附件，等有文字对话再给具体建议", quote: "" }];
-      add("topic", "可以回应对方刚分享的内容，并问一个容易回答、也容易略过的问题。", basis, "通用建议，依据有限。", 0.35);
+      add("topic", "可以回应对方刚分享的内容，并问一个容易回答、也容易略过的问题。", basis, "通用建议，依据有限；想推进就直接说清需求，不靠试探观察反应。", 0.35);
     }
     const followup = facts.find((f) => ["followup", "recent", "agreement"].includes(f.field));
     if (followup && out.length < max) add("nextStep", `如果仍然合适，可以轻轻问候此前提到的“${clipSuggestion(followup.value, 60)}”进展。`, [{ description: "已确认的待跟进事项", factId: followup.uid, quote: clipSuggestion(followup.quote || followup.value) }], "先核对日期与近况，不把旧安排当成现在的约定。", 0.6);
@@ -33875,7 +33875,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (!real.length) return null;
       return h("details", null, h("summary", null, "自动分析进度 · " + real.length + " 位联系人"), h("p", null, "首次自动分批归纳全部导入文本；追加消息只处理新增部分。图片、语音只按已有文字占位处理，不进行媒体识别。模型未配置时等待，可随时暂停。"), ...real.map((contact) => {
         const cache = contact.autoAnalysis || {}, total = cache.totalMessages ?? buildAutoAnalysisPlan(contact).totalMessages;
-        return h("div", { key: contact.id }, h("strong", null, contact.target), h("span", null, " · " + (labels2[cache.status] || "等待自动分析") + " · " + (cache.coveredMessages || 0) + " / " + total + " 条"), cache.error && h("p", null, cache.error), cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续自动分析" : "重试自动分析") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停自动分析"));
+        return h("div", { key: contact.id }, h("strong", null, contact.target), h("span", null, " · " + (labels2[cache.status] || "等待自动分析") + " · " + (cache.coveredMessages || 0) + " / " + total + " 条"), cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停"));
       }));
     };
   }
@@ -33892,7 +33892,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setError("复制失败，请手动选择草稿。");
         }
       };
-      return h("section", { className: "rn-interpretations" }, h("h3", null, "可能解释与回复思路"), h("p", { role: "status" }, status + " · 已覆盖 " + (cache.coveredMessages || 0) + " / " + plan.totalMessages + " 条文本"), h("details", { className: "rn-metric-why" }, h("summary", null, "说明：怎么分析、有哪些限制"), h("p", null, "历史文本自动分批归纳并保留进度，再结合近期原文提出多种解释。图片、语音仅按已有文字占位处理，不进行媒体识别。无法知道对方真实想法。")), (!s?.provider || !s?.model) && h("div", { className: "rn-empty" }, h("strong", null, "未配置模型，自动分析保持等待"), h("p", null, "未配置模型时不会生成「可能解释」，也不会把聊天内容发送给模型；可以先用本地草稿和原文核对。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, h("button", { type: "button", className: "primary", onClick: () => onOpenSettings?.() }, "去设置选择模型"), h("details", null, h("summary", null, "查看如何配置"), h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型；配置后自动分析会继续。")))), cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续自动分析" : "重试自动分析") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停自动分析"), cache.error && h("p", { role: "alert" }, cache.error), error && h("p", { role: "alert" }, error), ...(current ? cache.interpretations || [] : []).map((item, index) => h("article", { className: "rn-message", key: index }, h("strong", null, "可能解释 " + (index + 1)), h("p", null, item.explanation), h("p", null, "不确定性：" + item.uncertainty), h("details", null, h("summary", null, "原文依据"), ...(item.evidence || []).map((e, i) => h("blockquote", { key: i }, e.quote, onEvidence && h("button", { type: "button", onClick: () => onEvidence?.(e) }, "查看解释依据上下文")))), h("p", null, "回复思路：" + item.reply), h("button", { type: "button", onClick: () => copy(item.reply) }, "复制这条草稿"))));
+      return h("section", { className: "rn-interpretations" }, h("h3", null, "可能解释与回复思路"), h("div", { role: "status", style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "nowrap", margin: "4px 0" } }, h("span", { style: { fontSize: 12, color: "#556659", minWidth: 0 } }, status + " · " + (cache.coveredMessages || 0) + "/" + plan.totalMessages + (cache.error ? " · " + cache.error : "")), cache.paused || cache.status === "error" ? h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onPause?.(contact.id) }, "暂停")), h("details", { className: "rn-metric-why" }, h("summary", null, "说明：怎么分析、有哪些限制"), h("p", null, "历史文本自动分批归纳并保留进度，再结合近期原文提出多种解释。图片、语音仅按已有文字占位处理，不进行媒体识别。无法知道对方真实想法。")), (!s?.provider || !s?.model) && h("div", { className: "rn-empty" }, h("strong", null, "未配置模型，自动分析保持等待"), h("p", null, "未配置模型时不会生成「可能解释」，也不会把聊天内容发送给模型；可以先用本地草稿和原文核对。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, h("button", { type: "button", className: "primary", onClick: () => onOpenSettings?.() }, "去设置选择模型"), h("details", null, h("summary", null, "查看如何配置"), h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型；配置后自动分析会继续。")))), cache.error && h("p", { role: "alert" }, cache.error), error && h("p", { role: "alert" }, error), ...(current ? cache.interpretations || [] : []).map((item, index) => h("article", { className: "rn-message", key: index }, h("strong", null, "可能解释 " + (index + 1)), h("p", null, item.explanation), h("p", null, "不确定性：" + item.uncertainty), h("details", null, h("summary", null, "原文依据"), ...(item.evidence || []).map((e, i) => h("blockquote", { key: i }, e.quote, onEvidence && h("button", { type: "button", onClick: () => onEvidence?.(e) }, "查看解释依据上下文")))), h("p", null, "回复思路：" + item.reply), h("button", { type: "button", onClick: () => copy(item.reply) }, "复制这条草稿"))));
     };
   }
 
@@ -33995,9 +33995,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   // src/views/topic-suggestions.js
   function createTopicSuggestionsView(React2, E) {
     const h = React2.createElement;
+    const compact = { padding: "2px 6px", fontSize: 12, flex: "0 0 auto" };
     return function TopicSuggestionsView({ result, onFeedback, onEvidence }) {
-      const render = (item, suppressed = false) => h("article", { className: "rn-message", key: item.id }, h("p", null, item.text), ...(item.basis || []).map((basis, index) => h("div", { key: index, style: { display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between", minWidth: 0 } }, h("small", { style: { minWidth: 0 } }, basis.description + (basis.quote ? "：" + basis.quote : "")), basis.quote && h("button", { type: "button", style: { flex: "0 0 auto", padding: "4px 8px" }, onClick: () => onEvidence(basis) }, "上下文"))), h("small", null, item.risk || "供你选择"), item.type === "topic" && h("div", { className: "rn-actions" }, suppressed ? h("button", { type: "button", onClick: () => onFeedback(item, "reset") }, "恢复此话题") : [h("button", { type: "button", key: "discussed", onClick: () => onFeedback(item, "discussed") }, "已经聊过"), h("button", { type: "button", key: "unsuitable", onClick: () => onFeedback(item, "unsuitable") }, "不合适")]));
-      return h("section", { className: "rn-session-suggestions" }, h("h3", null, "下一步建议"), ...(result.suggestions || []).map((item) => render(item)), !result.suggestions?.length && h("p", null, "暂无新的合适话题，可先等待对方回应或补充近况。"), h("details", { className: "rn-metric-why" }, h("summary", null, "口径说明"), h("small", null, result.disclaimer)), (result.suppressed || []).length > 0 && h("details", null, h("summary", null, "已隐藏的话题 · " + result.suppressed.length), ...result.suppressed.map((item) => render(item, true))));
+      const heading = h("h3", { style: { margin: 0, fontSize: 13, whiteSpace: "nowrap" } }, "下一步建议"), acts = (item, suppressed) => item.type === "topic" ? suppressed ? [h("button", { type: "button", key: "reset", style: compact, onClick: () => onFeedback(item, "reset") }, "恢复此话题")] : [h("button", { type: "button", key: "discussed", style: compact, onClick: () => onFeedback(item, "discussed") }, "已经聊过"), h("button", { type: "button", key: "unsuitable", style: compact, onClick: () => onFeedback(item, "unsuitable") }, "不合适")] : [];
+      const text = (b) => b.description + (b.quote ? "：" + b.quote : "");
+      const render = (item, suppressed = false, label = null) => {
+        const basis = item.basis || [], risk = item.risk || "供你选择", last = basis.length - 1, cells = basis.map((b, i) => h("small", { key: "b" + i, style: { minWidth: 0, flex: "1 1 110px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }, title: text(b) + (i === last ? " · " + risk : "") }, text(b) + (i === last ? " · " + risk : "")));
+        if (!basis.length) cells.push(h("small", { key: "risk", style: { minWidth: 0 } }, risk));
+        return h("article", { className: "rn-message", key: item.id }, h("div", { style: { display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap", minWidth: 0 } }, label, h("p", { style: { margin: 0, minWidth: 0, flex: "1 1 140px" } }, item.text)), h("div", { style: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 } }, ...cells, basis[0] && basis[0].quote && h("button", { type: "button", style: compact, onClick: () => onEvidence(basis[0]) }, "上下文"), ...acts(item, suppressed)));
+      };
+      return h("section", { className: "rn-session-suggestions" }, ...(result.suggestions || []).map((item, index) => render(item, false, index === 0 ? heading : null)), !result.suggestions?.length && h("div", { style: { display: "flex", alignItems: "baseline", gap: 6 } }, heading, h("p", { style: { margin: 0 } }, "暂无新的合适话题，可先等待对方回应或补充近况。")), h("details", { className: "rn-metric-why" }, h("summary", null, "口径说明"), h("small", null, result.disclaimer)), (result.suppressed || []).length > 0 && h("details", null, h("summary", null, "已隐藏的话题 · " + result.suppressed.length), ...result.suppressed.map((item) => render(item, true))));
     };
   }
 
@@ -34072,7 +34079,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var NAV_STYLE = { minHeight: 44, minWidth: 44, fontSize: 13 };
   var SMALL = { fontSize: 12 };
   function monthSummary(days, date) {
-    const month2 = date.slice(0, 7), rows = days.filter((day) => day.date.slice(0, 7) === month2);
+    const month = date.slice(0, 7), rows = days.filter((day) => day.date.slice(0, 7) === month);
     if (!rows.length) return null;
     let weight = 0, weighted = 0, turns = 0;
     for (const day of rows) {
@@ -34082,7 +34089,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       turns += day.targetTurns || 0;
     }
     const raw = weighted / weight, folded = turns < MONTH_FOLD_TURNS && raw > 32, score = folded ? Math.round(32 + (raw - 32) * Math.min(1, turns / MONTH_FOLD_TURNS)) : Math.round(raw);
-    return { month: month2, days: rows.length, turns, raw: Math.round(raw * 10) / 10, folded, score };
+    return { month, days: rows.length, turns, raw: Math.round(raw * 10) / 10, folded, score };
   }
   function conclusion(day, breakdown) {
     const negatives = breakdown.items.filter((item) => item.hit && item.delta < 0 && item.key !== "clamp").sort((a, b) => a.delta - b.delta);
@@ -34104,8 +34111,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const h = React2.createElement;
     return function ScoringBasisView({ contact, date = "", onDateChange, onOpenDaily, onOpenRules }) {
       if (!contact) return h("section", { className: "rn-box" }, h("h2", null, "打分依据"), h("p", { className: "rn-muted" }, "先选择一个联系人。"));
-      const timeline2 = E.analyzeDailyTimeline(contact.messages || [], contact.self, contact.target, contact.interactionCorrections || []);
-      const days = timeline2.days || [];
+      const timeline = E.analyzeDailyTimeline(contact.messages || [], contact.self, contact.target, contact.interactionCorrections || []);
+      const days = timeline.days || [];
       if (!days.length) return h("section", { className: "rn-box" }, h("h2", null, "打分依据"), h("p", { className: "rn-muted" }, "当前联系人还没有带日期的聊天记录，无法拆解打分。"));
       const foundIndex = days.findIndex((day2) => day2.date === date);
       const index = foundIndex >= 0 ? foundIndex : days.length - 1;
@@ -34124,7 +34131,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       };
       const metrics = [[day.messages.length, "当天条数"], [day.turns, "交流轮次"], [day.targetTurns || 0, "对方回合"], [breakdown.score, "最终分"], [breakdown.score >= 32 ? "≥ 32" : breakdown.score >= 20 ? "20 ~ 31" : "< 20", "分数段"]];
       const metricCards = metrics.map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value)));
-      const month2 = monthSummary(days, day.date);
+      const month = monthSummary(days, day.date);
       const title = h("h2", null, "打分依据");
       const dayButtons = h(
         "div",
@@ -34138,7 +34145,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const position = h("p", { className: "rn-muted", style: SMALL }, foundIndex >= 0 ? "第 " + (index + 1) + " / " + days.length + " 个有记录日。" : day.date + " 没有可识别的记录，已显示最近有记录的一天（" + day.date + "）。");
       const why = h("h3", null, "为什么是这个分");
       const whyText = h("p", { role: "status" }, conclusion(day, breakdown));
-      const monthLine = month2 ? h("p", { className: "rn-muted", style: SMALL }, month2.month + " 月均：" + month2.days + " 个有记录日、对方回合合计 " + month2.turns + " 轮，按对方回合加权平均 " + month2.raw + " 分；" + (month2.folded ? "当月回合不足 " + MONTH_FOLD_TURNS + " 轮，高于 32 的部分按「回合数 ÷ " + MONTH_FOLD_TURNS + "」向 32 折算 → " + month2.score + " 分。" : "未触发小样本折算（仅当回合不足 " + MONTH_FOLD_TURNS + " 轮且均分高于 32 时折算；低于 32 的均分不向上补）") + "。") : null;
+      const monthLine = month ? h("p", { className: "rn-muted", style: SMALL }, month.month + " 月均：" + month.days + " 个有记录日、对方回合合计 " + month.turns + " 轮，按对方回合加权平均 " + month.raw + " 分；" + (month.folded ? "当月回合不足 " + MONTH_FOLD_TURNS + " 轮，高于 32 的部分按「回合数 ÷ " + MONTH_FOLD_TURNS + "」向 32 折算 → " + month.score + " 分。" : "未触发小样本折算（仅当回合不足 " + MONTH_FOLD_TURNS + " 轮且均分高于 32 时折算；低于 32 的均分不向上补）") + "。") : null;
       const tableHead = h("thead", null, h("tr", null, ...["项名", "触发条件", "本项增减分", "命中原文"].map((label, i) => h("th", { key: i }, label))));
       const rows = breakdown.items.map((item) => h(
         "tr",
@@ -34212,8 +34219,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!raw) return null;
     const local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(raw);
     if (local) {
-      const [, year2, month2, day, hour = "0", minute = "0", second = "0"] = local;
-      const utc = Date.UTC(+year2, +month2 - 1, +day, +hour - 8, +minute, +second);
+      const [, year, month, day, hour = "0", minute = "0", second = "0"] = local;
+      const utc = Date.UTC(+year, +month - 1, +day, +hour - 8, +minute, +second);
       return Number.isFinite(utc) ? utc : null;
     }
     const parsed = Date.parse(raw);
@@ -34308,7 +34315,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var PERSISTED_KEYS = ["contacts", "selectedId", "drafts", "goals", "mediaAnalysis", "scenario", "tone", "intent", "draft", "draftReason", "draftSource", "draftEvidence", "exchangeSent", "exchangeReply", "draftVersions", "previousDraft", "displayFontSize", "displayDensity", "photoFit", "importHistory", "selfProfile", "shareScope", "reviewPreferences"];
   var persistableState = (s) => ({ ...s.persistenceExtensions, ...Object.fromEntries(PERSISTED_KEYS.map((key) => [key, s[key]])) });
   function createWorkspacePersistence({ E, store }) {
-    let persistenceReady = false, persistenceDb = null, persistenceTimer = null, persistenceWrite = Promise.resolve(), lastPersistRefs = null, resolvePersistenceReady;
+    let persistenceReady = false, persistenceDb = null, persistenceTimer = null, persistenceWrite = Promise.resolve(), lastPersistRefs = null, pendingPersistRefs = null, saveGeneration = 0, stopped = false, clearing = false, resolvePersistenceReady;
     const persistenceReadyPromise = new Promise((resolve) => {
       resolvePersistenceReady = resolve;
     });
@@ -34386,49 +34393,72 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       try {
         await assertStorageSpace2(value);
         await writePersistence(persistenceDb, value);
+        lastPersistRefs = persistRefs(state);
         store.set({ persistenceStatus: "" });
       } catch (error) {
         if (error?.name !== "QuotaExceededError" && error?.name !== "NS_ERROR_DOM_QUOTA_REACHED") throw error;
         const reduced = withoutMediaBlobs(value);
         await assertStorageSpace2(reduced);
         await writePersistence(persistenceDb, reduced);
+        lastPersistRefs = persistRefs(state);
         store.set({ persistenceStatus: "空间不足：聊天资料已保存，媒体副本未保存。" });
       }
     }
     function schedulePersistence() {
-      if (!persistenceReady) return;
-      const state = store.getSnapshot(), refs = persistRefs(state);
-      if (lastPersistRefs && refs.every((value, index) => value === lastPersistRefs[index])) return;
-      lastPersistRefs = refs;
+      if (!persistenceReady || stopped || clearing) return;
+      const refs = persistRefs(store.getSnapshot());
+      const tracked = pendingPersistRefs || lastPersistRefs;
+      if (tracked && refs.every((value, index) => value === tracked[index])) return;
+      pendingPersistRefs = refs;
+      const generation = ++saveGeneration;
       clearTimeout(persistenceTimer);
-      persistenceTimer = setTimeout(() => {
-        const snapshot = store.getSnapshot();
-        persistenceWrite = persistenceWrite.catch(() => {
-        }).then(() => persistSnapshot(snapshot)).catch((error) => {
-          store.set({ persistenceStatus: "本机保存失败：" + (error.message || "请检查可用空间。") });
-        });
-      }, 350);
+      const attempt = (number) => {
+        persistenceTimer = setTimeout(() => {
+          if (stopped || generation !== saveGeneration) return;
+          persistenceWrite = persistenceWrite.catch(() => {
+          }).then(async () => {
+            if (stopped || generation !== saveGeneration) return;
+            const snapshot = store.getSnapshot();
+            try {
+              await persistSnapshot(snapshot);
+              if (generation === saveGeneration) pendingPersistRefs = null;
+            } catch (error) {
+              store.set({ persistenceStatus: "本机保存失败：" + (error.message || "请检查可用空间。") });
+              if (!stopped && generation === saveGeneration && number < 2 && !store.getSnapshot().persistenceReadOnly && !["QuotaExceededError", "NS_ERROR_DOM_QUOTA_REACHED"].includes(error.name)) attempt(number + 1);
+            }
+          });
+        }, number === 0 ? 350 : number * 1e3);
+      };
+      attempt(0);
     }
     function flush() {
+      clearTimeout(persistenceTimer);
+      saveGeneration++;
+      pendingPersistRefs = null;
       persistenceWrite = persistenceWrite.catch(() => {
       }).then(() => persistSnapshot(store.getSnapshot()));
       return persistenceWrite;
     }
     async function clear() {
+      clearing = true;
+      saveGeneration++;
+      pendingPersistRefs = null;
       clearTimeout(persistenceTimer);
       persistenceTimer = null;
-      await persistenceWrite.catch(() => {
-      });
-      if (!persistenceDb) persistenceDb = await openPersistenceDb();
-      await deletePersistence(persistenceDb);
       try {
+        await persistenceWrite.catch(() => {
+        });
+        if (!persistenceDb) persistenceDb = await openPersistenceDb();
+        await deletePersistence(persistenceDb);
         persistenceDb.close();
-      } catch {
+        persistenceDb = null;
+        lastPersistRefs = null;
+      } finally {
+        clearing = false;
       }
-      persistenceDb = null;
-      lastPersistRefs = null;
     }
     function start() {
+      stopped = false;
       let active = true, unsubscribe = () => {
       };
       (async () => {
@@ -34455,6 +34485,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         resolvePersistenceReady();
       })();
       return () => {
+        stopped = true;
+        saveGeneration++;
+        pendingPersistRefs = null;
         active = false;
         unsubscribe();
         clearTimeout(persistenceTimer);
@@ -34534,16 +34567,36 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   // src/workspace-media.js
   var MEDIA_LABELS = { image: "图片", video: "视频", audio: "语音", sticker: "表情", file: "文件" };
   function createMediaUrls() {
-    const urls = /* @__PURE__ */ new WeakMap();
-    return (file) => {
+    const urls = /* @__PURE__ */ new Map();
+    const resolve = (file) => {
       if (!file) return "";
-      let value = urls.get(file);
-      if (!value) {
-        value = URL.createObjectURL(file);
-        urls.set(file, value);
-      }
-      return value;
+      if (!urls.has(file)) urls.set(file, URL.createObjectURL(file));
+      return urls.get(file);
     };
+    resolve.retain = (root) => {
+      const retained = /* @__PURE__ */ new Set(), seen = /* @__PURE__ */ new WeakSet();
+      const visit = (value) => {
+        if (!value || typeof value !== "object" || seen.has(value)) return;
+        seen.add(value);
+        if (value instanceof Blob) {
+          retained.add(value);
+          return;
+        }
+        for (const child of Object.values(value)) visit(child);
+      };
+      visit(root);
+      for (const [file, url] of urls) {
+        if (!retained.has(file)) {
+          URL.revokeObjectURL(url);
+          urls.delete(file);
+        }
+      }
+    };
+    resolve.dispose = () => {
+      for (const url of urls.values()) URL.revokeObjectURL(url);
+      urls.clear();
+    };
+    return resolve;
   }
   var mediaKind = (message) => {
     for (const value of [...(message?.attachments || []).map((item) => item.kind), message?.typeName, message?.type]) {
@@ -34681,7 +34734,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rnw{display:block;font-family:system-ui,'Segoe UI','Microsoft YaHei',sans-serif;font-size:var(--rn-font,13px);line-height:1.55;color:var(--foreground,#252525);box-sizing:border-box}.rnw *{box-sizing:border-box}.rnw{width:100%!important;max-width:100%!important;height:100%;overflow:auto;background:var(--background,#fff);padding:28px 18px 18px}.rnw #rn-panel{display:block;width:100%!important;min-width:0;max-width:none;overflow:visible}.rnw button,.rnw input,.rnw select,.rnw textarea{font-family:inherit;font-size:var(--rn-font,13px);line-height:1.5}.rnw h1{font-size:24px;line-height:1.3;font-weight:650;margin:7px 0 0;letter-spacing:-.4px}.rnw h2{font-size:16px;margin:0 0 14px;font-weight:600}.rnw h3{font-size:14px;margin:18px 0 8px;font-weight:650}.rnw p{margin:8px 0}.rnw label{display:flex;flex-direction:column;gap:6px}.rnw input:not([type=checkbox]):not([type=file]),.rnw select,.rnw textarea{border:1px solid var(--border,#dedede);border-radius:7px;background:var(--background,#fff);color:inherit;padding:8px 10px;width:100%}.rnw textarea{resize:vertical;min-height:94px}.rnw button{border:1px solid var(--border,#dedede);background:var(--background,#fff);color:inherit;padding:7px 12px;border-radius:7px;cursor:pointer}.rnw button:hover{background:var(--accent,#f3f3f3)}.rnw button.primary{background:var(--foreground,#272727);color:var(--background,#fff);border-color:transparent}.rnw button:disabled{opacity:.45;cursor:default}.rnw :focus-visible{outline:2px solid var(--ring,#6b83ac);outline-offset:2px}.rn-head{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:22px}.rn-head label{min-width:170px}.rn-muted,.rn-breadcrumb{color:var(--muted-foreground,#777);font-size:12px}.rn-tabs{display:flex;overflow-x:auto;gap:24px;border-bottom:1px solid var(--border,#e7e7e7);margin-bottom:24px}.rn-tabs button{flex:none;white-space:nowrap;border:0;border-radius:0;background:transparent;padding:10px 0 11px;color:var(--muted-foreground,#777);border-bottom:2px solid transparent}.rn-tabs button[aria-selected=true]{border-bottom-color:var(--foreground,#333);color:var(--foreground,#222);font-weight:600}.rn-split{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(220px,1fr);gap:20px}.rn-box{border:1px solid var(--border,#e6e6e6);border-radius:12px;padding:22px;min-width:0}.rn-form{display:grid;gap:calc(var(--rn-gap,14px) + 2px)}.rn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.rn-actions{display:flex;gap:calc(var(--rn-gap,14px) - 5px);flex-wrap:wrap;margin-top:17px}.rn-upload{border:1px dashed var(--border,#cecece);border-radius:10px;min-height:174px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:var(--muted,#fafafa);text-align:center;padding:20px}.rn-upload input{display:none}.rn-status{min-height:20px;margin-top:12px;color:var(--muted-foreground,#666)}.rn-error{color:#b43c38}.rn-fact,.rn-message,.rn-goal{padding:13px 0;border-bottom:1px solid var(--border,#ebebeb)}.rn-fact:last-child,.rn-message:last-child,.rn-goal:last-child{border-bottom:0}.rnw blockquote{border-left:2px solid var(--border,#ddd);padding-left:12px;margin:8px 0;color:var(--muted-foreground,#777)}.rnw pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;background:var(--muted,#f6f6f6);padding:12px;border-radius:7px;max-height:360px;overflow:auto}.rn-metrics{display:flex;border:1px solid var(--border,#e5e5e5);border-radius:12px;padding:20px 0;margin-bottom:20px}.rn-metric{flex:1;padding:0 20px;border-right:1px solid var(--border,#e7e7e7)}.rn-metric:last-child{border-right:0}.rn-metric strong{display:block;font-size:20px;font-weight:600;margin:4px 0}.rnw table{width:100%;border-collapse:collapse;text-align:left}.rnw th,.rnw td{padding:12px;border-bottom:1px solid var(--border,#e8e8e8);vertical-align:top}.rnw th{font-weight:600;background:var(--muted,#fafafa)}.rn-check{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:8px!important}.rn-check input{margin-top:4px}.rn-goal{display:flex;align-items:center;justify-content:space-between;gap:16px}.rn-empty{padding:48px 24px;text-align:center;border:1px dashed var(--border,#ddd);border-radius:12px}.rn-module-tabs{margin-bottom:0;gap:18px}.rn-feature-tabs{margin-bottom:14px;gap:16px;border-bottom:0}.rn-context-tabs{margin-bottom:20px}.rn-group-tab{font-size:12px!important}.rn-feature-tab[aria-selected=true]{color:var(--foreground,#222);font-weight:600}@media(max-width:850px){.rnw{padding:22px 20px}.rn-split{grid-template-columns:1fr}.rn-head{align-items:flex-start}.rn-tabs{gap:17px}.rn-metric{padding:0 10px}.rn-metric strong{font-size:20px}}
  .rn-media img,.rn-media video{display:block;max-width:min(100%,420px);max-height:360px;border-radius:8px;margin-top:8px}.rn-media audio{display:block;max-width:100%;margin-top:8px}.rn-metrics{flex-wrap:wrap}.rn-metric{min-width:130px}.rn-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:18px}.rn-media-card{min-width:0;border:1px solid var(--border,#e6e6e6);border-radius:10px;padding:10px;margin:0}.rn-media-card img,.rn-media-card video{width:100%;height:180px;object-fit:contain;background:var(--muted,#f6f6f6);border-radius:6px}.rn-media-card figcaption{font-size:12px;color:var(--muted-foreground,#777);overflow-wrap:anywhere;margin:7px 0}.rn-media-result{white-space:pre-wrap;font-size:12px}.rn-media-result{border-left:2px solid var(--border,#ddd);padding-left:9px}
  .rn-chat-preview{background:#f4f7f4;border:1px solid #e5ebe5;border-radius:14px;padding:14px}.rn-chat-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 4px 12px;border-bottom:1px solid #e2e8e2;font-size:12px}.rn-chat-title span,.rn-chat-meta{color:var(--muted-foreground,#777);font-size:12px}.rn-chat-list{max-height:380px;overflow:auto;padding:14px 5px 4px;display:flex;flex-direction:column;gap:12px}.rn-chat-row{display:flex;align-items:flex-start;gap:8px;max-width:90%}.rn-chat-row.outgoing{align-self:flex-end;flex-direction:row-reverse}.rn-chat-row.incoming{align-self:flex-start}.rn-chat-avatar{width:27px;height:27px;flex:0 0 27px;border-radius:7px;background:#e5e9e5;color:#59635b;display:grid;place-items:center;font-size:12px}.rn-chat-row.outgoing .rn-chat-avatar{background:#cfe9d1;color:#37653b}.rn-chat-content{min-width:0}.rn-chat-meta{display:flex;gap:8px;margin:0 3px 4px}.rn-chat-row.outgoing .rn-chat-meta{justify-content:flex-end}.rn-chat-bubble{position:relative;width:fit-content;max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap;background:#fff;border:1px solid #e7ebe7;border-radius:4px 12px 12px;padding:8px 11px;font-size:var(--rn-font,13px);line-height:1.55}.rn-chat-row.outgoing .rn-chat-bubble{margin-left:auto;background:#95ec69;border-color:#8bd65e;border-radius:12px 4px 12px 12px}.rn-preview-sections{display:grid;grid-template-columns:1fr 1.6fr;gap:12px;margin-top:12px}.rn-preview-sections>section{min-width:0;border:1px solid var(--border,#e6e6e6);border-radius:10px;padding:12px}.rn-preview-sections h3{font-size:14px;margin:0 0 10px}.rn-preview-facts{margin:0;padding-left:16px;font-size:12px}.rn-preview-facts li{margin:5px 0}.rn-preview-facts strong{margin-right:7px}.rn-preview-days{max-height:175px;overflow:auto;display:flex;flex-direction:column;gap:7px}.rn-preview-day{display:grid;grid-template-columns:100px 1fr 1fr;align-items:center;gap:8px;border-bottom:1px solid var(--border,#eee);padding:5px 0;font-size:12px}.rn-preview-day small{grid-column:1/-1;color:var(--muted-foreground,#777)}.rn-payload-details{margin-top:10px;font-size:12px}.rn-payload-details pre{max-height:260px;overflow:auto;padding:12px;background:var(--muted,#f6f6f6);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}.rn-exchange{margin-top:20px;padding:16px;border:1px solid var(--border,#e4e7e4);border-radius:12px;background:color-mix(in srgb,#70bd73 5%,transparent)}.rn-exchange h3{margin:0 0 6px}.rn-exchange label{display:block;margin:12px 0}.rn-exchange textarea{display:block;width:100%;margin-top:5px;box-sizing:border-box}.rn-reply-flow{max-width:900px}.rn-calendar-wrap{border:1px solid var(--border,#e6e6e6);border-radius:12px;overflow:hidden}.rn-calendar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;border-bottom:1px solid var(--border,#e8e8e8)}.rn-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.rn-calendar-weekday,.rn-calendar-cell{min-height:76px;padding:7px;border-right:1px solid var(--border,#eee);border-bottom:1px solid var(--border,#eee)}.rn-calendar-weekday{text-align:center;min-height:auto;color:var(--muted-foreground,#777);font-size:12px}.rn-calendar-cell:nth-child(7n){border-right:0}.rn-calendar-cell.empty{background:var(--muted,#fafafa)}.rn-day{width:100%;height:100%;min-height:60px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:6px!important;border:1px solid transparent!important;background:transparent!important;border-radius:8px!important}.rn-day[data-level="1"]{background:color-mix(in srgb,#6c9 14%,transparent)!important}.rn-day[data-level="2"]{background:color-mix(in srgb,#4a8 30%,transparent)!important}.rn-day[aria-pressed="true"]{border-color:var(--foreground,#333)!important}.rn-day-count{font-size:12px;color:var(--muted-foreground,#666)}.rn-day-affinity{font-size:12px;color:#3f6b46}.rn-day-detail{margin-top:16px}.rn-day-messages{max-height:480px;overflow:auto}.rn-day-evidence{border-left:2px solid #78a47a;padding-left:10px;margin:10px 0}.rn-calendar-legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0;color:var(--muted-foreground,#777);font-size:12px}
-.rn-session{display:grid;width:100%;min-width:0;grid-template-columns:minmax(170px,200px) minmax(0,1fr) minmax(220px,260px);grid-template-areas:"list main right";gap:var(--rn-gap,14px);align-items:stretch;min-height:640px}.rn-session-pane{min-width:0;background:var(--background,#fff);border:1px solid var(--border,#e6e9e7);border-radius:14px;overflow:hidden}.rn-session-list-pane{grid-area:list}.rn-session-list{padding:14px 10px}.rn-session-list h3{margin:2px 8px 12px;color:#556659;font-size:12px}.rn-session-contact{display:flex;align-items:center;gap:10px;width:100%;border:0!important;text-align:left!important;background:#edf5ef!important;padding:10px!important}.rn-session-contact-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.rn-session-contact-copy strong,.rn-session-contact-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rn-session-contact-copy small{font-size:12px;color:#556659}.rn-session-links{display:grid;gap:3px;margin-top:18px}.rn-session-links button{text-align:left;border:0;background:transparent;padding:7px 8px;color:var(--muted-foreground,#63716a)}.rn-session-avatar{width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#dce8e1;color:#536b5d;font-weight:650}.rn-session-avatar img{width:100%;height:100%;object-fit:cover}.rn-session-avatar.large{width:42px;height:42px;flex-basis:42px}.rn-session-main{grid-area:main;display:flex;flex-direction:column;align-self:stretch;gap:calc(var(--rn-gap,14px) - 2px);min-width:0;height:min(680px,calc(100vh - 160px));min-height:500px;max-height:680px;overflow:hidden}.rn-session-header{display:flex;align-items:center;gap:11px;padding:13px 16px;grid-column:1;grid-row:1;align-self:stretch;width:100%}.rn-session-heading{min-width:0;display:grid;gap:2px}.rn-session-heading strong{font-size:14px}.rn-session-heading small{color:#556659;font-size:12px}.rn-session-history{grid-column:1;grid-row:2;flex:1 1 0;height:auto;min-height:0;overflow:auto;padding:14px;background:#f2f6f3;border-radius:13px;display:flex;flex-direction:column;gap:var(--rn-gap,14px)}.rn-session-day{align-self:center;padding:4px 11px;border-radius:99px;background:#e4ebe6;color:#556659;font-size:12px}.rn-session-message{display:flex;align-items:flex-start;gap:8px;max-width:86%;min-width:0;content-visibility:auto;contain-intrinsic-size:auto 76px}.rn-session-message.self{align-self:flex-end;flex-direction:row-reverse}.rn-session-message-body{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.rn-session-message-meta{display:flex;gap:8px;margin:0 4px 4px;color:#556659;font-size:12px}.rn-session-message.self .rn-session-message-meta{justify-content:flex-end}.rn-session-bubble{font-size:var(--rn-font,13px);max-width:100%;padding:9px 12px;background:#fff;border:1px solid #e6ebe7;border-radius:4px 12px 12px;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.55}.rn-session-message.self .rn-session-bubble{font-size:var(--rn-font,13px);background:#a9e8a1;border-color:#9cdd95;border-radius:12px 4px 12px}.rn-session-media{display:block;max-width:min(100%,280px);max-height:240px;object-fit:contain;border-radius:8px;margin-top:7px;background:#e7ece9}.rn-session-media.video{width:min(100%,340px)}.rn-session-media.audio{height:34px;max-width:270px}.rn-media-placeholder{display:inline-flex;margin-top:4px;padding:3px 8px;border-radius:6px;background:#eef2ef;color:#55645a;font-size:12px}.rn-session-message.self .rn-media-placeholder{background:#d3f0ce}.rn-session-draft{padding:13px 16px;border:1px solid #dfe9df;border-radius:12px;background:#fff}.rn-session-draft strong{font-size:12px;color:#3f6b46}.rn-session-draft textarea{min-height:60px;margin-top:8px}.rn-session-compose{flex:0 0 auto;padding:12px 14px}.rn-session-compose textarea{min-height:68px;max-height:140px}.rn-session-compose-tools{display:flex;align-items:end;gap:calc(var(--rn-gap,14px) - 4px);flex-wrap:wrap;margin-top:10px}.rn-session-compose-tools label{font-size:12px;color:#556659}.rn-session-compose-tools select{min-width:128px}.rn-session-right{grid-area:right;display:grid;gap:13px;min-width:0}.rn-session-photo{height:320px;width:100%;display:grid;place-items:center;overflow:hidden;background:#edf2ef;border-radius:14px;position:relative;cursor:pointer}.rn-session-photo img{display:block;width:100%;height:100%;object-fit:cover}.rn-session-photo-empty{display:grid;place-items:center;gap:10px;color:#556659;font-size:12px}.rn-session-photo-empty>span:first-child{font-size:20px}.rn-session-photo-empty>span:nth-child(2){font-size:12px;text-align:center}.rn-session-photo-empty img{width:78%;height:78%;object-fit:contain;border-radius:12px}.rn-session-photo input,.rn-session-avatar-input{display:none}.rn-session-avatar-actions{display:flex;gap:7px;margin-top:10px}.rn-session-avatar-actions button{flex:1;min-width:0;padding:7px 6px;font-size:12px}.rn-session-tools{padding:15px}.rn-session-tools h3{margin:2px 0 10px}.rn-session-stat{border-radius:10px;padding:12px;background:#f4f8f5;margin-bottom:12px}.rn-session-stat strong{display:block;font-size:20px}.rn-session-stat small{color:#556659}.rn-session-tool-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rn-session-tool-buttons button{font-size:12px;padding:9px 6px}.rn-session-details{margin-top:12px;padding-top:10px;border-top:1px solid var(--border,#e8ece9)}.rn-session-details summary{cursor:pointer;font-size:12px}.rn-session-details .rn-form{margin-top:10px}.rn-session-exchange{margin-top:12px;padding-top:10px;border-top:1px solid var(--border,#e8ece9)}.rn-session-exchange textarea{min-height:56px;margin-top:5px}.rn-session-exchange label{font-size:12px;margin-top:9px}.rn-session-status{font-size:12px;color:#556659;margin-top:8px}
+.rn-session{display:grid;width:100%;min-width:0;grid-template-columns:minmax(170px,200px) minmax(0,1fr) minmax(220px,260px);grid-template-areas:"list main right";gap:var(--rn-gap,14px);align-items:stretch;min-height:640px}.rn-session-pane{min-width:0;background:var(--background,#fff);border:1px solid var(--border,#e6e9e7);border-radius:14px;overflow:hidden}.rn-session-list-pane{grid-area:list}.rn-session-list{padding:14px 10px}.rn-session-list h3{margin:2px 8px 12px;color:#556659;font-size:12px}.rn-session-contact{display:flex;align-items:center;gap:10px;width:100%;border:0!important;text-align:left!important;background:#edf5ef!important;padding:10px!important}.rn-session-contact-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.rn-session-contact-copy strong,.rn-session-contact-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rn-session-contact-copy small{font-size:12px;color:#556659}.rn-session-links{display:grid;gap:3px;margin-top:18px}.rn-session-links button{text-align:left;border:0;background:transparent;padding:7px 8px;color:var(--muted-foreground,#63716a)}.rn-session-avatar{width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#dce8e1;color:#536b5d;font-weight:650}.rn-session-avatar img{width:100%;height:100%;object-fit:cover}.rn-session-avatar.large{width:42px;height:42px;flex-basis:42px}.rn-session-main{grid-area:main;display:flex;flex-direction:column;align-self:stretch;gap:calc(var(--rn-gap,14px) - 2px);min-width:0;height:min(680px,calc(100vh - 160px));min-height:500px;max-height:680px;overflow:hidden}.rn-session-header{display:flex;align-items:center;gap:11px;padding:13px 16px;grid-column:1;grid-row:1;align-self:stretch;width:100%}.rn-session-heading{min-width:0;display:grid;gap:2px}.rn-session-heading strong{font-size:14px}.rn-session-heading small{color:#556659;font-size:12px}.rn-session-history{grid-column:1;grid-row:2;flex:1 1 0;height:auto;min-height:0;overflow:auto;padding:14px;background:#f2f6f3;border-radius:13px;display:flex;flex-direction:column;gap:var(--rn-gap,14px)}.rn-session-day{align-self:center;padding:4px 11px;border-radius:99px;background:#e4ebe6;color:#556659;font-size:12px}.rn-session-message{display:flex;align-items:flex-start;gap:8px;max-width:86%;min-width:0;content-visibility:auto;contain-intrinsic-size:auto 76px}.rn-session-message.self{align-self:flex-end;flex-direction:row-reverse}.rn-session-message-body{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}.rn-session-message-meta{display:flex;gap:8px;margin:0 4px 4px;color:#556659;font-size:12px}.rn-session-message.self .rn-session-message-meta{justify-content:flex-end}.rn-session-bubble{font-size:var(--rn-font,13px);max-width:100%;padding:9px 12px;background:#fff;border:1px solid #e6ebe7;border-radius:4px 12px 12px;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.55}.rn-session-message.self .rn-session-bubble{font-size:var(--rn-font,13px);background:#a9e8a1;border-color:#9cdd95;border-radius:12px 4px 12px}.rn-session-media{display:block;max-width:min(100%,280px);max-height:240px;object-fit:contain;border-radius:8px;margin-top:7px;background:#e7ece9}.rn-session-media.video{width:min(100%,340px)}.rn-session-media.audio{height:34px;max-width:270px}.rn-media-placeholder{display:inline-flex;margin-top:4px;padding:3px 8px;border-radius:6px;background:#eef2ef;color:#55645a;font-size:12px}.rn-session-message.self .rn-media-placeholder{background:#d3f0ce}.rn-session-draft{padding:13px 16px;border:1px solid #dfe9df;border-radius:12px;background:#fff}.rn-session-draft strong{font-size:12px;color:#3f6b46}.rn-session-draft textarea{min-height:60px;margin-top:8px}.rn-session-compose{flex:0 0 auto;padding:12px 14px}.rn-session-compose textarea{min-height:68px;max-height:140px}.rn-session-compose-tools{display:flex;align-items:end;gap:calc(var(--rn-gap,14px) - 4px);flex-wrap:wrap;margin-top:10px}.rn-session-compose-tools label{font-size:12px;color:#556659}.rn-session-compose-tools select{min-width:128px}.rn-session-right{grid-area:right;display:grid;gap:13px;min-width:0}.rn-session-photo{height:320px;width:100%;display:grid;place-items:center;overflow:hidden;background:#edf2ef;border-radius:14px;position:relative;cursor:pointer}.rn-session-photo img{display:block;width:100%;height:100%;object-fit:cover}.rn-session-photo-empty{display:grid;place-items:center;gap:10px;color:#556659;font-size:12px}.rn-session-photo-empty>span:first-child{font-size:20px}.rn-session-photo-empty>span:nth-child(2){font-size:12px;text-align:center}.rn-session-photo-empty img{width:78%;height:78%;object-fit:contain;border-radius:12px}.rn-session-photo input,.rn-session-avatar-input{display:none}.rn-session-avatar-actions{display:flex;gap:7px;margin-top:10px}.rn-session-avatar-actions button{flex:1;min-width:0;padding:7px 6px;font-size:12px}.rn-session-tools{padding:12px}.rn-session-tools h3{margin:2px 0 8px}.rn-session-stat{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;border-radius:10px;padding:6px 9px;background:#f4f8f5;margin-bottom:6px}.rn-session-stat strong{font-size:15px;white-space:nowrap}.rn-session-stat small{color:#556659;font-size:12px;min-width:0}.rn-session-tool-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rn-session-tool-buttons button{font-size:12px;padding:9px 6px}.rn-session-details{margin-top:12px;padding-top:10px;border-top:1px solid var(--border,#e8ece9)}.rn-session-details summary{cursor:pointer;font-size:12px}.rn-session-details .rn-form{margin-top:10px}.rn-session-exchange{margin-top:12px;padding-top:10px;border-top:1px solid var(--border,#e8ece9)}.rn-session-exchange textarea{min-height:56px;margin-top:5px}.rn-session-exchange label{font-size:12px;margin-top:9px}.rn-session-status{font-size:12px;color:#556659;margin-top:8px}
 .rnw #rn-panel{display:block;width:100%!important;min-width:0;max-width:none;overflow:visible}
  .rn-session-shell{container-type:inline-size;container-name:rn-session-shell;width:100%;max-width:100%;min-width:0}.rnw,.rnw #rn-panel{width:100%!important;max-width:100%!important;min-width:0!important}.rnw #rn-panel .rn-session{display:grid!important;width:100%!important;max-width:100%!important;min-width:0;grid-template-columns:minmax(190px,220px) minmax(0,1fr) minmax(230px,260px)!important;grid-template-areas:"list main right"!important;gap:14px;align-items:stretch}.rnw #rn-panel .rn-session-list-pane{grid-area:list!important;display:block!important;min-width:0;flex:none!important}.rnw #rn-panel .rn-session-main{grid-area:main!important;min-width:0!important;flex:none!important}.rnw #rn-panel .rn-session-right{grid-area:right!important;min-width:0!important;flex:none!important}@container rn-session-shell (max-width: 760px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr) minmax(180px,32%)!important;grid-template-areas:"main right"!important;gap:10px}.rnw #rn-panel .rn-session-list-pane{display:none!important}}@container rn-session-shell (max-width: 560px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr) minmax(180px,38%)!important;grid-template-areas:"main right"!important;gap:10px}.rnw #rn-panel .rn-session-photo{height:220px}}@container rn-session-shell (max-width: 420px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main" "right"!important}.rnw #rn-panel .rn-session-main{grid-column:1!important;grid-row:1!important}.rnw #rn-panel .rn-session-right{grid-column:1!important;grid-row:2!important}.rnw #rn-panel .rn-session-photo{height:220px}}
 
@@ -34871,7 +34924,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           } catch (error) {
             if (!stopped) set({ sharedContactId: "", profileBridgeStatus: error.message });
             if (shared) {
-              hostPost("profile/sync", JSON.stringify({ clientId, enabled: false }), { keepalive: true }).catch(() => {
+              hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
               });
               shared = "";
             }
@@ -34880,7 +34933,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             if (shared) {
               const current = store.getSnapshot();
               if (stopped) {
-                hostPost("profile/sync", JSON.stringify({ clientId, enabled: false }), { keepalive: true }).catch(() => {
+                hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
                 });
                 shared = "";
               } else if (current.sharedContactId !== shared || current.selectedId !== shared) queueMicrotask(pump);
@@ -34892,8 +34945,23 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           stopped = true;
           unsubscribe();
           clearInterval(timer);
-          if (shared) hostPost("profile/sync", JSON.stringify({ clientId, enabled: false }), { keepalive: true }).catch(() => {
+          if (shared) hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
           });
+        };
+      });
+      ctx.effect(() => {
+        let previous = store.getSnapshot();
+        const unsubscribe = store.subscribe(() => {
+          const current = store.getSnapshot();
+          if (current.contacts !== previous.contacts || current.undoData !== previous.undoData || current.undoRestore !== previous.undoRestore || current.undoImportContacts !== previous.undoImportContacts || current.undoMessageContact !== previous.undoMessageContact) {
+            localFileUrl.retain(current);
+          }
+          previous = current;
+        });
+        return () => {
+          unsubscribe();
+          localFileUrl.dispose();
+          if (pdfWorkerUrl) URL.revokeObjectURL(pdfWorkerUrl);
         };
       });
       ctx.effect(() => persistence.start());
@@ -35125,7 +35193,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         set({ mediaAnalysisBusy: { ...state.mediaAnalysisBusy, [key]: true }, status: "本地提取媒体画面…" });
         try {
           const frames = await analysisFrames(file, kind);
-          const response = await hostPost("media-analysis", JSON.stringify({ mediaType: kind === "video" ? "video" : "image", frames }));
+          const response = await hostPost("media-analysis", { mediaType: kind === "video" ? "video" : "image", frames });
           const data = await response.json();
           if (!response.ok || data.ok === false || typeof data.analysis !== "string") throw new Error(data.error || "媒体分析失败。");
           const latest = store.getSnapshot();
@@ -35173,7 +35241,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             if (controllerForRun.signal.aborted) throw Object.assign(new Error("已停止"), { name: "AbortError" });
           };
           const saveBatch = async (batch) => {
-            const response = await hostPost("timeline-analysis", JSON.stringify({ self: contact.self, target: contact.target, days: batch }), { signal: controllerForRun.signal }), data = await response.json();
+            const response = await hostPost("timeline-analysis", { self: contact.self, target: contact.target, days: batch }, { signal: controllerForRun.signal }), data = await response.json();
             if (!response.ok || data.ok === false || !Array.isArray(data.days)) throw new Error(data.error || "未收到有效的日期分析");
             const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
             if (!updatedContact) throw new Error("联系人已不存在。");
@@ -35285,7 +35353,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           const facts = [...contact.facts || []];
           for (let i = 0; i < batches.length; i++) {
             set({ status: `正在整理联系人资料 ${i + 1} / ${batches.length}…` });
-            const response = await httpPost("profile-analysis", JSON.stringify({ target: contact.target, messages: batches[i] }), { signal: profileController.signal }), data = await response.json();
+            const response = await httpPost("profile-analysis", { target: contact.target, messages: batches[i] }, { signal: profileController.signal }), data = await response.json();
             if (!valid()) return;
             if (!response.ok || !data.ok) throw new Error(data.error || "资料分析失败");
             const liveMessages = store.getSnapshot().contacts.find((c) => c.id === contact.id)?.messages || [];
@@ -35318,7 +35386,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             set({ contacts: store.getSnapshot().contacts.map((c) => c.id === contact.id ? { ...c, profileNeedsRefresh: false } : c), status: "没有可归纳的新资料，已清除「待整理」提示。" });
             return;
           }
-          const response = await hostPost("profile-analysis", JSON.stringify({ target: contact.target, messages, mode: "summary" }), { signal: profileController.signal }), data = await response.json();
+          const response = await hostPost("profile-analysis", { target: contact.target, messages, mode: "summary" }, { signal: profileController.signal }), data = await response.json();
           if (!valid()) return;
           if (!response.ok || !data.ok) throw new Error(data.error || "档案归纳失败");
           const current = store.getSnapshot(), liveMessages = current.contacts.find((c) => c.id === contact.id)?.messages || [], profileSummary = (data.facts || []).filter(E.supportedProfileSummary).map((f) => E.resolveProfileResponseFact(f, requestMessages, liveMessages, contact.target)).filter(Boolean);
@@ -35388,7 +35456,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         React2.useEffect(() => {
           setEvidencePage(1);
         }, [filter, evidenceAppliedQuery, evidenceOrder]);
-        [granularity, setGranularity] = React2.useState("month"), timeline = contact ? E.analyzeDailyTimeline(contact.messages, contact.self, contact.target, contact.interactionCorrections || []) : null, lastDate = timeline?.days.at(-1)?.date || formatChatDayKey(Date.now()), [month, setMonth] = React2.useState(lastDate.slice(0, 7)), [selectedDate, setSelectedDate] = React2.useState(lastDate), [year, setYear] = React2.useState(lastDate.slice(0, 4));
+        const [granularity, setGranularity] = React2.useState("month"), timeline = React2.useMemo(() => contact ? E.analyzeDailyTimeline(contact.messages, contact.self, contact.target, contact.interactionCorrections || []) : null, [contact?.messages, contact?.self, contact?.target, contact?.interactionCorrections]), lastDate = timeline?.days.at(-1)?.date || formatChatDayKey(Date.now()), [month, setMonth] = React2.useState(lastDate.slice(0, 7)), [selectedDate, setSelectedDate] = React2.useState(lastDate), [year, setYear] = React2.useState(lastDate.slice(0, 4));
         React2.useEffect(() => {
           if (contact) {
             const last = s.behaviorDate || timeline?.days.at(-1)?.date || formatChatDayKey(Date.now());
@@ -35397,11 +35465,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             setYear(last.slice(0, 4));
           }
         }, [contact?.id, lastDate, s.behaviorDate]);
-        if (!contact) return empty();
-        const a = E.analyzeConversation(contact.messages, contact.self, contact.target), media = contact.messages.reduce((out, message) => {
+        const a = React2.useMemo(() => contact ? E.analyzeConversation(contact.messages, contact.self, contact.target) : null, [contact?.messages, contact?.self, contact?.target]);
+        const media = React2.useMemo(() => contact ? contact.messages.reduce((out, message) => {
           for (const attachment of message.attachments || []) out[attachment.kind] = (out[attachment.kind] || 0) + 1;
           return out;
-        }, { image: 0, video: 0, audio: 0, sticker: 0 }), affinityScores = timeline.days.filter((day) => day.affinityScore !== null).map((day) => day.affinityScore), affinityAverage = affinityScores.length ? Math.round(affinityScores.reduce((sum, value) => sum + value, 0) / affinityScores.length) : null;
+        }, { image: 0, video: 0, audio: 0, sticker: 0 }) : null, [contact?.messages]);
+        if (!contact) return empty();
+        const affinityScores = timeline.days.filter((day) => day.affinityScore !== null).map((day) => day.affinityScore), affinityAverage = affinityScores.length ? Math.round(affinityScores.reduce((sum, value) => sum + value, 0) / affinityScores.length) : null;
         if (tab === "review") return h(PeriodReviewView, { contact, preferences: s.reviewPreferences?.[contact.id] || {}, onPreferencesChange: (value) => set({ reviewPreferences: { ...store.getSnapshot().reviewPreferences || {}, [contact.id]: value } }), onEvidence: (ref) => showEvidence(contact.id, ref) });
         if (tab === "daily") {
           const [calendarYear, monthNumber] = month.split("-").map(Number);
@@ -35691,7 +35761,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           const variants = refine ? [{ label: refine, tone: s.tone }] : [{ label: "自然接话", tone: "gentle" }, { label: "简短回复", tone: "concise" }, { label: "直接清晰", tone: "direct" }], results = [];
           for (const variant of variants) {
             const state = { ...s, tone: variant.tone, intent: refine ? (s.intent + "；请改写以下草稿，要求" + refine + "：" + previous).slice(0, 500) : s.intent };
-            const response = await hostPost("reply", JSON.stringify(payload(state, contact)), { signal: controller.signal }), data = await response.json();
+            const response = await hostPost("reply", payload(state, contact), { signal: controller.signal }), data = await response.json();
             if (ticket !== request || store.getSnapshot().selectedId !== contact.id) return;
             if (!response.ok || data.ok === false || typeof data.draft !== "string") throw new Error(data.error || "未收到有效草稿");
             results.push({ label: variant.label, text: data.draft });
@@ -35736,7 +35806,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const [search, setSearch] = React2.useState(""), [jumpDate, setJumpDate] = React2.useState(""), [messageSide, setMessageSide] = React2.useState("target"), [messageText, setMessageText] = React2.useState(""), [messageTime, setMessageTime] = React2.useState(""), [chatSource, setChatSource] = React2.useState("all");
         const photoInput = React2.useRef(null), selfAvatarInput = React2.useRef(null), targetAvatarInput = React2.useRef(null), historyRef = React2.useRef(null), [recordOpen, setRecordOpen] = React2.useState(false), messageCount = contact?.messages?.length || 0, contactMessages = contact?.messages || emptyMessages;
         const latestMessages = React2.useMemo(() => contact ? contactMessages.filter((message) => (message.sender === contact.self || message.sender === contact.target) && (chatSource === "all" || (chatSource === "qq" ? /QQ/i.test((message.file || "") + " " + (message.source || "")) : !/QQ/i.test((message.file || "") + " " + (message.source || ""))))) : emptyMessages, [contactMessages, contact?.self, contact?.target, chatSource]);
-        const historyChunkSize = 120, [historyStart, setHistoryStart] = React2.useState(() => historyViews.get(contact?.id + ":" + chatSource)?.start ?? Math.max(0, latestMessages.length - historyChunkSize)), historyAnchor = React2.useRef(null), restoredHistory = React2.useRef(false);
+        const historyChunkSize = 120, [historyStart, setHistoryStart] = React2.useState(() => Math.max(0, latestMessages.length - historyChunkSize)), historyAnchor = React2.useRef(null), restoredHistory = React2.useRef(false);
         const rememberAnchor = () => {
           const pane = historyRef.current;
           if (!pane) return;
@@ -35759,11 +35829,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (!pane) return;
           if (restoredHistory.current !== contact?.id + ":" + chatSource) {
             restoredHistory.current = contact?.id + ":" + chatSource;
-            const saved = historyViews.get(contact?.id + ":" + chatSource);
-            if (saved) {
-              pane.scrollTop = saved.top;
-              return;
-            }
+            pane.scrollTop = pane.scrollHeight;
+            return;
           }
           const anchor = historyAnchor.current;
           if (anchor) {
@@ -35775,7 +35842,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           pane.scrollTop = search.trim() ? 0 : pane.scrollHeight;
         }, [contact?.id, messageCount, Boolean(s.draft), historyStart, search, chatSource]);
         React2.useEffect(() => {
-          setHistoryStart(historyViews.get(contact?.id + ":" + chatSource)?.count === messageCount ? historyViews.get(contact?.id + ":" + chatSource).start : Math.max(0, latestMessages.length - historyChunkSize));
+          setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
         }, [contact?.id, messageCount, chatSource]);
         if (!contact) return empty();
         const provider = s.models.find((p) => p.id === s.provider), modelOptions = (provider?.models || []).map((m) => {
@@ -35905,7 +35972,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const photoClick = () => photoInput.current?.click();
         const scenarioLabels = { continue: "继续当前话题", question: "轻量提问", invite: "发出邀请", boundary: "表达自己的边界" }, toneLabels = { gentle: "真诚", casual: "轻松", concise: "简短", direct: "直接清晰" };
         const copyPrompt = async () => {
-          const text = "请以「" + contact.self + "」的身份回复「" + contact.target + "」。场景：" + (scenarioLabels[s.scenario] || "继续当前话题") + "；语气：" + (toneLabels[s.tone] || "真诚") + "。" + (String(s.intent || "").trim() ? "我想表达的意思是：" + String(s.intent).trim() + "。" : "回复要具体、简短，不给对方下结论。") + "只依据聊天原文，不推测对方的真实想法。";
+          const text = "请以「" + contact.self + "」的身份回复「" + contact.target + "」。场景：" + (scenarioLabels[s.scenario] || "继续当前话题") + "；语气：" + (toneLabels[s.tone] || "真诚") + "。" + (String(s.intent || "").trim() ? "我想表达的意思是：" + String(s.intent).trim() + "。" : "回复要具体、简短，不给对方下结论。") + "只依据聊天原文，不推测对方的真实想法；需要什么就直接说清，不靠试探或冷处理；鼓励对方按自己的意愿回应。";
           try {
             await navigator.clipboard.writeText(text);
             set({ status: "提示词已复制，可粘贴到 DSH 主对话使用。" });
@@ -35947,7 +36014,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const file = e.target.files?.[0];
             e.target.value = "";
             choosePhoto(file);
-          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref) => showEvidence(contact.id, ref) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref) => showEvidence(contact.id, ref) }), h("div", { className: "rn-session-stat" }, h("small", null, lastDay ? `最近记录日 ${lastDay.date} · ${lastDay.activityScore} 活跃度` : "暂无带日期的聊天记录"), h("strong", null, `${lastCount} 条消息`), h("small", null, latestScore === null ? "尚无好感线索" : `最近好感线索 ${latestScore} / 100 · ${latestAffinity.date}`)), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
+          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref) => showEvidence(contact.id, ref) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref) => showEvidence(contact.id, ref) }), h("div", { className: "rn-session-stat" }, h("strong", null, `${lastCount} 条消息`), h("small", null, [lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录", latestScore === null ? "好感 —" : `好感 ${latestScore}/100`].join(" · "))), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)), button("模型设置", () => nav("settings", "general"))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
             chooseAvatar(file, "self");
@@ -35955,7 +36022,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const file = e.target.files?.[0];
             e.target.value = "";
             chooseAvatar(file, "target");
-          } })), recordOpen && h("div", { className: "rn-session-exchange" }, h("label", null, "我实际发送了", h("textarea", { value: s.exchangeSent || s.draft, onChange: (e) => set({ exchangeSent: e.target.value }), placeholder: "填入实际发出的内容。" })), h("label", null, "对方回复了", h("textarea", { value: s.exchangeReply, onChange: (e) => set({ exchangeReply: e.target.value }), placeholder: "填入对方的实际回复。" })), button("记录并更新时间线", saveExchange, { className: "primary", disabled: !((s.exchangeSent || s.draft || "").trim() && s.exchangeReply.trim()) })), button("模型设置", () => nav("settings", "general"))), h("details", { className: "rn-session-details" }, h("summary", null, "补充新消息"), select("发送者", messageSide, [["target", contact.target], ["self", "我"]], setMessageSide), h("textarea", { value: messageText, onChange: (e) => {
+          } })), recordOpen && h("div", { className: "rn-session-exchange" }, h("label", null, "我实际发送了", h("textarea", { value: s.exchangeSent || s.draft, onChange: (e) => set({ exchangeSent: e.target.value }), placeholder: "填入实际发出的内容。" })), h("label", null, "对方回复了", h("textarea", { value: s.exchangeReply, onChange: (e) => set({ exchangeReply: e.target.value }), placeholder: "填入对方的实际回复。" })), button("记录并更新时间线", saveExchange, { className: "primary", disabled: !((s.exchangeSent || s.draft || "").trim() && s.exchangeReply.trim()) }))), h("details", { className: "rn-session-details" }, h("summary", null, "补充新消息"), select("发送者", messageSide, [["target", contact.target], ["self", "我"]], setMessageSide), h("textarea", { value: messageText, onChange: (e) => {
             setMessageText(e.target.value);
             setMessagePreview(null);
           }, placeholder: "输入实际聊天内容；多条可使用“我：… / 对方：…”分行", "aria-label": "补充新消息" }), h("input", { type: "datetime-local", value: messageTime, onChange: (e) => setMessageTime(e.target.value), "aria-label": "消息时间" }), s.undoMessageContact && button("撤销上次录入", () => {
