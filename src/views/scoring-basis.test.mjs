@@ -29,14 +29,14 @@ test('对方整天零回合记中性 32，扣分项保留但不真正扣分',()=
  assert.equal(result.items.find(item=>item.key==='silent').hit,true);
  assert.equal(result.items.find(item=>item.key==='quiet').delta,32-result.computed);
 });
-test('有对方回合但只有敷衍短句的日子低于 32，并标注命中的扣分项',()=>{
+test('单次应和按中性处理，低频覆盖仍保留时延依据',()=>{
  const c=contact(),days=timelineOf(c).days,day=days.find(d=>d.date==='2026-06-06'),result=E.interactionScoreBreakdown(countsOf(day));
- assert.equal(result.quiet,false);
- assert(result.score<32,'2026-06-06 这类日子应低于基础分');
- assert(result.items.find(item=>item.key==='empty').hit);
+ assert.equal(result.quiet,true);
+ assert.equal(result.score,32);
+ assert.equal(result.items.find(item=>item.key==='empty').hit,false);
  assert(result.items.find(item=>item.key==='slow').hit);
  const conclusion=harness(E.createScoringBasisView).render({contact:c,date:'2026-06-06',onDateChange(){},onOpenDaily(){},onOpenRules(){}});
- assert(conclusion.some(node=>node.props.role==='status'&&node.children.some(child=>typeof child==='string'&&child.includes('低于 32 分的原因'))));
+ assert(conclusion.some(node=>node.props.role==='status'&&node.children.some(child=>typeof child==='string'&&child.includes('低频日'))));
 });
 test('打分依据页展示条数回合与最终分，可翻日和回链每日历程',()=>{
  const c=contact(),days=timelineOf(c).days,last=days.at(-1);

@@ -28,8 +28,8 @@ test('does not infer affinity from message volume and skips unparseable dates',(
   message('林小雨','收到','2026/10/21 09:01'),
  ],'我','林小雨');
  assert.equal(result.days.length,1);
- assert.equal(result.days[0].affinityScore,6);
- assert.match(result.days[0].affinityNote,/敷衍或收尾式回合 1 轮/);
+ assert.equal(result.days[0].affinityScore,32);
+ assert.equal(result.days[0].perfunctoryReplies,0);
  assert.equal('limitations' in result,false);
 });
 

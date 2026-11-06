@@ -26,3 +26,5 @@ export * from './reply-feedback.js';
 export * from './period-review.js';
 export * from './message-identity.js';
 export * from './auto-analysis.js';
+
+export * from './interaction-context.js';

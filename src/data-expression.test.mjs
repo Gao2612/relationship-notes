@@ -80,14 +80,14 @@ test('评分规则页不再用两列表格，公式单独成等宽块',()=>{
  assert.equal((source.match(/\.rn-rule-card\{/g)||[]).length>=1,true);
 });
 
-test('好感线索均分与互动均衡分各带口径说明，并声明不是同一标尺',()=>{
+test('互动投入均分与互动均衡分各带口径说明，并声明不是同一标尺',()=>{
  assert.match(source,/'口径：只比较双方发言条数是否接近，100 表示条数持平。'/);
- assert.match(source,/'口径：按措辞、回合与回复速度严格折算，38 分起算，普遍偏低。'/);
- assert.match(source,/互动均衡分与好感线索均分不是同一标尺，不可直接相比/);
+ assert.match(source,/'口径：按回应、提问、分享及回合计算投入，38 分起算，明确正向表达另列证据。'/);
+ assert.match(source,/互动均衡分与互动投入均分不是同一标尺，不可直接相比/);
  const why=source.indexOf("className:'rn-metric-why'");
- const note=source.indexOf('互动均衡分按双方发言条数计算；好感线索分更严苛');
+ const note=source.indexOf('互动均衡分按双方发言条数计算；投入分结合上下文');
  assert.ok(why>0&&note>why,'口径解释应贴在指标附近');
- assert.equal((source.match(/互动均衡分按双方发言条数计算；好感线索分更严苛/g)||[]).length,1,'解释从页底移走后不应重复');
+ assert.equal((source.match(/互动均衡分按双方发言条数计算；投入分结合上下文/g)||[]).length,1,'解释从页底移走后不应重复');
  const box=source.slice(source.indexOf("box('统计依据'"),source.indexOf("button('查看每日历程'"));
  assert.ok(!box.includes('互动均衡分按双方发言条数计算'),'「统计依据」不再重复口径解释');
 });

@@ -68,8 +68,9 @@ test('明确负向、摩擦和解释不重复计入低信息量',()=>{
 });
 
 test('新增四类回合信号支持纠正恢复且每日总体一致',()=>{
- for(const [kind,text] of [['perfunctory','收到'],['lowContent','刚到家'],['conflict','随便你'],['appeasement','没别的意思']]){
-  const contact={self:'我',target:'对方',messages:[message('我','你好','09:00'),message('对方',text,'09:01')]};
+ for(const [kind,text] of [['perfunctory','收到'],['lowContent','就那样'],['conflict','随便你'],['appeasement','没别的意思']]){
+  const messages=['perfunctory','lowContent'].includes(kind)?[message('我','补充资料','09:00'),message('对方',text,'09:01'),message('我','补充资料','09:02'),message('对方',text,'09:03'),message('我','补充资料','09:04'),message('对方',text,'09:05')]:[message('我','你好','09:00'),message('对方',text,'09:01')];
+  const contact={self:'我',target:'对方',messages};
   const indicator=analyzeInteractionMetrics(contact).indicators.find(item=>item.kind===kind);
   assert.equal(indicator.count,1,kind);
   const action={kind,key:indicator.evidence[0].key,excluded:true};

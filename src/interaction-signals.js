@@ -1,3 +1,4 @@
+import {scoringMessage,sceneGroups,replyContext} from './interaction-context.js';
 // One conservative signal vocabulary for daily and overall views.
 // 「?」不等于提问：反问、道谢、赌气都带问号，先排除这些句式再判。
 const RHETORICAL=/(?:谢谢你|谢了|就这|讲啥道理|讲道理|难道|难不成|你以为|谁不知道|还用说|凭什么|有什么好|何必|岂不是|可不是|至于吗|行了吧|算了|呵呵|随便你)/;
@@ -20,6 +21,7 @@ export const question=text=>{
  return clauses.some(clause=>{
  if(!clause.replace(/[?？\s]/g,'')||RHETORICAL.test(clause))return false;
  const body=stripTail(clause);
+ if(/^(?:没有)+[。！!\s]*$/.test(body)||/(?:问问|问一下|替我问|帮我问)/.test(body))return false;
  if(/[?？]/.test(clause))return true;
  if(/(?:吗|嘛)$/.test(body))return true;
  if(/(?:不|没)(?:怎么样|如何)$/.test(body))return false;
@@ -37,7 +39,7 @@ export function boundary(text){
   return /(?:请)?(?:不要|别)(?:再)?(?:联系我|给我发|发消息|发信息|打扰我|找我)|我不想(?:再)?(?:见面|见你|聊天|联系|继续)|请别再发|停止联系|不再联系我/.test(part);
  });
 }
-export const sharing=text=>{text=directText(text);return !question(text)&&/(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text);};
+export const sharing=text=>{text=directText(text);return !question(text)&&(/(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text)||/(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text));};
 export const acknowledgment=text=>/^(?:(?:好(?:的|呀|啊)?|嗯+|收到|了解|明白(?:了)?|谢谢|没问题|知道了)[，,。！!\s]*)+$/.test(text.trim());
 const positivePattern=/(?:(?<!不)喜欢你|想你|想见你|期待(?:见你|和你)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|你真好|好可爱|好漂亮|好厉害|辛苦你了|谢谢你|关心你|担心你|抱抱|亲亲|❤️|❤|🥰|😍|😘)/i;
 
@@ -89,7 +91,9 @@ function toMillis(timestamp){
 }
 /** Who opened each conversation block, how fast the other side answered, and how empty those answers were. */
 export function engagementSignals(messages,self,isExcluded){
- const list=Array.isArray(messages)?messages:[];
+ const list=Array.isArray(messages)?messages.filter(scoringMessage):[];
+ const assignments=new WeakMap();
+ for(const [scene,rows] of Object.entries(sceneGroups(list)))for(const row of rows)assignments.set(row,scene);
  const turns=[];
  for(const message of list){
   const at=toMillis(message.timestamp),last=turns.at(-1);
@@ -99,28 +103,42 @@ export function engagementSignals(messages,self,isExcluded){
  }
  let selfStarts=0,targetStarts=0,previousAt=null,previousSender=null,previousWasSelf=false,lastSelfAt=null;
  let perfunctoryReplies=0,lowContentReplies=0,targetTurns=0,selfTurns=0,conflictReplies=0,appeasementReplies=0;
- let sessionConflicts=0,strongConflict=false;
+ let sessionConflicts=0,strongConflict=false,previousText='',emptyStreak=0;
+ const scenes={work:0,daily:0,mixed:0,unknown:0};
+ const startsByScene={work:0,daily:0,mixed:0,unknown:0};
+ let answeredTurns=0,continuedTurns=0;
  const latencies=[],turnEvidence=[];
  for(const turn of turns){
   const at=turn.firstAt,isTarget=turn.sender!==self;
   const newSession=previousSender===null||at===null||previousAt===null||at-previousAt>=SESSION_GAP_MINUTES*60000;
   if(newSession){
    if(isTarget)targetStarts++;else selfStarts++;
-   sessionConflicts=0;
+   sessionConflicts=0;emptyStreak=0;
   }
   if(isTarget){
    targetTurns++;
    if(previousWasSelf&&at!==null&&lastSelfAt!==null&&at>=lastSelfAt)latencies.push((at-lastSelfAt)/60000);
    const joined=turn.messages.map(message=>String(message.text??'').trim()).filter(Boolean).join(' ');
    const message=turn.messages[0];
+   const scene=assignments.get(message)||'unknown';
+   scenes[scene]++;
+   if(newSession)startsByScene[scene]++;
+   const rawContext=replyContext(!newSession&&previousWasSelf?previousText:'',joined,!newSession&&previousWasSelf&&question(previousText));
+   const excludeAnswer=isExcluded?.(message,'answer'),excludeContinuation=isExcluded?.(message,'continuation');
+   const context={answer:rawContext.answer&&!excludeAnswer,affirmative:rawContext.affirmative&&!excludeAnswer,continuation:rawContext.continuation&&!excludeContinuation};
+   if(context.answer||context.affirmative)answeredTurns++;
+   if(context.continuation)continuedTurns++;
    const detectedConflict=conflict(joined),detectedAppeasement=appeasement(joined);
    const hasSpecificNegative=detectedConflict||detectedAppeasement||negative(joined);
-   const detectedPerfunctory=!hasSpecificNegative&&perfunctory(joined);
-   const detectedLowContent=!hasSpecificNegative&&!detectedPerfunctory&&lowContent(joined);
-   const detected={conflict:detectedConflict,appeasement:detectedAppeasement,perfunctory:detectedPerfunctory,lowContent:detectedLowContent};
+   const laughter=/^(?:哈+|嘿嘿)[。！!\s]*$/.test(joined);
+   const generic=perfunctory(joined)||lowContent(joined);
+   emptyStreak=generic&&!context.answer&&!context.affirmative&&!context.continuation&&!laughter?emptyStreak+1:0;
+   const detectedPerfunctory=!hasSpecificNegative&&!laughter&&!context.answer&&!context.affirmative&&(emptyStreak>=3||/^(?:回头再说|再说吧|先这样|不聊了)[。！!\s]*$/.test(joined))&&perfunctory(joined);
+   const detectedLowContent=!hasSpecificNegative&&!detectedPerfunctory&&emptyStreak>=3&&!context.answer&&!context.continuation&&lowContent(joined);
+   const detected={answer:rawContext.answer||rawContext.affirmative,continuation:rawContext.continuation,conflict:detectedConflict,appeasement:detectedAppeasement,perfunctory:detectedPerfunctory,lowContent:detectedLowContent};
    const kinds=Object.keys(detected).filter(kind=>detected[kind]);
    const applied=kinds.filter(kind=>!isExcluded?.(message,kind));
-   turnEvidence.push({message,quote:joined,kinds,applied});
+   turnEvidence.push({message,quote:joined,kinds,applied,scene,context});
    if(applied.includes('perfunctory'))perfunctoryReplies++;
    if(applied.includes('lowContent'))lowContentReplies++;
    if(applied.includes('conflict')){conflictReplies++;sessionConflicts++;}
@@ -134,10 +152,11 @@ export function engagementSignals(messages,self,isExcluded){
   else{selfTurns++;lastSelfAt=at;previousWasSelf=true;}
   previousAt=turn.at??previousAt;
   previousSender=turn.sender;
+  previousText=turn.messages.map(message=>String(message.text??'')).join(' ');
  }
  const sorted=[...latencies].sort((a,b)=>a-b);
  const medianMinutes=sorted.length?Math.round(sorted[Math.floor((sorted.length-1)/2)]):null;
- return {selfStarts,targetStarts,medianMinutes,slowReplies:latencies.filter(minutes=>minutes>=SESSION_GAP_MINUTES).length,perfunctoryReplies,lowContentReplies,targetTurns,conflictReplies,appeasementReplies,selfTurns,replySamples:latencies.length,strongConflict,turnEvidence};
+ return {selfStarts,targetStarts,medianMinutes,slowReplies:latencies.filter(minutes=>minutes>=SESSION_GAP_MINUTES).length,perfunctoryReplies,lowContentReplies,targetTurns,conflictReplies,appeasementReplies,selfTurns,replySamples:latencies.length,strongConflict,turnEvidence,scenes,startsByScene,answeredTurns,continuedTurns};
 }
 /** 与 interactionScore 同一套算式，但逐项返回，供「打分依据」页展示。 */
 export function interactionScoreBreakdown(counts={}){
