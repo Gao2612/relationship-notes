@@ -57,7 +57,7 @@ test('daily interaction view labels affinity as an evidence-based cue and keeps 
  assert.match(source,/本地规则识别到|它不等于真实好感|不代表真实心理|无法从聊天记录证明真实原因|仅凭消息数量无法判断聊天量变化的原因/);
  assert.match(source,/重新生成当天总结|正在生成…/);
  assert.match(source,/生成当天总结/);
- assert.match(source,/known\[day\.date\]\?\.version!==4/);
+ assert.match(source,/known\[day\.date\+'#'\+channel\]\?\.version!==4/);
  assert.match(source,/version:4/);
 });
 

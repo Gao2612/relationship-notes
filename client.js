@@ -33217,12 +33217,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var positiveCue = { test: positive };
   var negativeCue = { test: negative };
   var topics = [["工作", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/], ["日常", /(今天|最近|吃饭|睡觉|下班|天气|回家)/], ["周末计划", /(周末|休息日|下周|明天|约吗|有空|见面|一起去)/], ["兴趣活动", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]];
-  var dayKey = shanghaiDateKey;
+  var dayKey2 = shanghaiDateKey;
   function analyzeDailyTimeline(messages, self2, target, corrections = []) {
     const list = selected(messages, self2, target), groups = /* @__PURE__ */ new Map();
     corrections = interactionCorrectionIndex(corrections, list);
     for (const message of list) {
-      const date = dayKey(message.timestamp);
+      const date = dayKey2(message.timestamp);
       if (!date) continue;
       let day = groups.get(date);
       if (!day) {
@@ -34861,6 +34861,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/workspace.js
+  var channelOf = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
   function formatChatDayKey(value) {
     const timezone = "Asia/Shanghai";
     let date = null;
@@ -34984,7 +34985,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
 .rn-history-toolbar{display:flex;gap:6px;flex:0 0 auto}.rn-history-toolbar button{flex:0 0 54px;white-space:nowrap;padding:6px!important}.rn-history-toolbar input{min-width:0;width:100%;padding:6px!important}.rn-history-toolbar input[type=date]{max-width:136px}.rnw #rn-panel .rn-session{grid-template-columns:160px minmax(0,1fr) 240px!important;min-height:0;height:clamp(480px,calc(100dvh - 225px),880px)}.rn-session-main{height:100%!important;max-height:none!important;min-height:0!important;gap:8px!important}.rn-session-header{flex:0 0 auto;padding:10px 12px}.rn-session-draft{flex:0 0 auto;max-height:150px;overflow:auto;padding:9px 12px}.rn-session-draft p{margin:6px 0}.rn-session-compose{padding:10px 12px}.rn-session-compose textarea{min-height:42px}.rn-session-compose-tools{gap:6px;margin-top:6px}.rn-session-compose-tools select{min-width:100px}.rn-session-right{grid-template-rows:minmax(180px,42%) minmax(0,1fr);height:100%;overflow:hidden}.rn-session-photo{height:100%!important}.rn-session-tools{overflow:auto}.rn-session-list-pane{height:100%}.rn-head{margin-bottom:12px!important}.rn-context-tabs,.rn-feature-tabs{margin-top:10px!important;margin-bottom:12px!important}@container rn-session-shell (max-width:900px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr) 220px!important;grid-template-areas:"main right"!important}.rnw #rn-panel .rn-session-list-pane{display:none!important}}@container rn-session-shell (max-width:620px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main"!important}.rnw #rn-panel .rn-session-right{display:none!important}}
 
-.rnw{padding-top:14px}.rn-breadcrumb{display:none}.rn-head h1{font-size:24px;margin:0}.rn-head label{font-size:12px}.rn-head{gap:12px}.rn-group-tabs{margin-bottom:12px}.rn-history-toolbar{display:grid;grid-template-columns:76px minmax(80px,1fr) 132px 54px;align-items:end;gap:6px}.rn-history-toolbar label{font-size:12px;gap:2px}.rn-history-toolbar select{min-height:44px;padding:5px!important}.rn-history-toolbar input,.rn-history-toolbar button{height:44px}.rn-session-draft .rn-actions{margin-top:5px;gap:5px}.rn-session-draft .rn-actions button{font-size:12px;padding:4px 7px}.rn-session-draft-empty{font-size:12px;margin:4px 0!important}.rn-session-compose-tools button{font-size:12px;padding:6px}.rn-session-compose-tools select{padding:5px!important}.rn-session-history{overscroll-behavior:contain}.rn-session-history .rn-session-media{display:block;width:min(100%,420px);height:220px;object-fit:contain;background:var(--muted,#f2f5f3);border-radius:8px;margin-top:6px}.rn-session-history .rn-session-media.audio{height:44px}.rn-session-status{grid-column:1/-1}@container rn-session-shell (max-width:620px){.rn-history-toolbar{grid-template-columns:70px minmax(80px,1fr) 54px}.rn-history-toolbar input[type=date]{grid-column:1/-1;max-width:none!important}.rn-session{height:700px!important}}
+.rnw{padding-top:14px}.rn-breadcrumb{display:none}.rn-head h1{font-size:24px;margin:0}.rn-head label{font-size:12px}.rn-head{gap:12px}.rn-group-tabs{margin-bottom:12px}.rn-history-toolbar{display:grid;grid-template-columns:76px minmax(80px,1fr) 132px 54px;align-items:end;gap:6px}.rn-history-toolbar label{font-size:12px;gap:2px}.rn-history-toolbar select{min-height:44px;padding:5px!important}.rn-history-toolbar input,.rn-history-toolbar button{height:44px}.rn-session-draft .rn-actions{margin-top:5px;gap:5px}.rn-session-draft .rn-actions button{font-size:12px;padding:4px 7px}.rn-session-draft-empty{font-size:12px;margin:4px 0!important}.rn-session-compose-tools button{font-size:12px;padding:6px}.rn-session-compose-tools select{padding:5px!important}.rn-session-history{overscroll-behavior:contain}.rn-session-history .rn-session-media{display:block;width:min(100%,420px);height:220px;object-fit:contain;background:var(--muted,#f2f5f3);border-radius:8px;margin-top:6px}.rn-session-history .rn-session-media.audio{height:44px}.rn-channel-block{margin-top:10px}.rn-channel-block h4{margin:0 0 4px;font-size:12px;color:#556659}.rn-session-status{grid-column:1/-1}@container rn-session-shell (max-width:620px){.rn-history-toolbar{grid-template-columns:70px minmax(80px,1fr) 54px}.rn-history-toolbar input[type=date]{grid-column:1/-1;max-width:none!important}.rn-session{height:700px!important}}
 
 .rn-calendar-detail-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:16px;align-items:start;margin-top:16px}.rn-calendar-detail-panel{max-height:760px;overflow:auto;position:sticky;top:10px}.rn-calendar-detail-panel .rn-day-detail{margin-top:0}@media(max-width:1100px){.rn-calendar-detail-layout{grid-template-columns:1fr}.rn-calendar-detail-panel{position:static;max-height:none}}
 
@@ -35451,12 +35452,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }
       }
       async function analyzeTimeline(contactId, { force = false, onlyDate = "" } = {}) {
+        const channelOf2 = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
         const initial = store.getSnapshot(), contact = initial.contacts.find((item) => item.id === contactId);
         if (!contact) return;
         if (timelineController) timelineController.abort();
         const ticket = ++timelineRequest;
         timelineController = new AbortController();
-        const allDays = E.analyzeDailyTimeline(contact.messages, contact.self, contact.target, contact.interactionCorrections || []).days, known = contact.timelineAnalysis || {}, days = allDays.filter((day) => (force || known[day.date]?.version !== 4) && (!onlyDate || day.date === onlyDate));
+        const channelSets = [["qq", contact.messages.filter((message) => channelOf2(message) === "qq")], ["wechat", contact.messages.filter((message) => channelOf2(message) !== "qq")]], known = contact.timelineAnalysis || {}, days = channelSets.flatMap(([channel, messages]) => E.analyzeDailyTimeline(messages, contact.self, contact.target, contact.interactionCorrections || []).days.filter((day) => (force || known[day.date + "#" + channel]?.version !== 4) && (!onlyDate || day.date === onlyDate)).map((day) => ({ ...day, channel, key: day.date + "#" + channel })));
         if (!days.length) {
           timelineController = null;
           set({ status: "没有可分析的聊天日期。" });
@@ -35465,7 +35467,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const controllerForRun = timelineController;
         set({ timelineAnalysisContact: contactId, timelineAnalysisProgress: `准备分析 ${days.length} 个日期`, status: "正在使用 DSH 默认模型分析聊天时间线…" });
         try {
-          const requestDays = days.map((day) => ({ date: day.date, messageCount: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages, turns: day.turns, activityScore: day.activityScore, affinityScore: day.affinityScore, affinityChange: day.affinityChange, transcript: day.messages.map((message) => {
+          const requestDays = days.map((day) => ({ date: day.date, channel: day.channel, key: day.key, messageCount: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages, turns: day.turns, activityScore: day.activityScore, affinityScore: day.affinityScore, affinityChange: day.affinityChange, transcript: day.messages.map((message) => {
             const body = String(message.text || "").trim(), kind = messageMediaKind(message);
             return { sender: message.sender, text: body ? body.slice(0, 300) + (body.length > 300 ? "…" : "") : `【${mediaLabels[kind] || "媒体消息"}】` };
           }) })), batches = [];
@@ -35495,10 +35497,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             if (!response.ok || data.ok === false || !Array.isArray(data.days)) throw new Error(data.error || "未收到有效的日期分析");
             const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
             if (!updatedContact) throw new Error("联系人已不存在。");
-            const timelineAnalysis = { ...updatedContact.timelineAnalysis || {}, ...Object.fromEntries(data.days.map((day) => [day.date, { summary: cleanTimelineDisplayText(day.summary), activityReason: cleanTimelineDisplayText(day.activityReason), affinityContext: cleanTimelineDisplayText(day.affinityContext), version: 4 }])) };
+            const timelineAnalysis = { ...updatedContact.timelineAnalysis || {}, ...Object.fromEntries(data.days.map((day, index) => {
+              const request2 = batch.find((item) => item.date === day.date && item.channel === day.channel) || batch[index] || {};
+              return [request2.key || day.date, { summary: cleanTimelineDisplayText(day.summary), activityReason: cleanTimelineDisplayText(day.activityReason), affinityContext: cleanTimelineDisplayText(day.affinityContext), channel: request2.channel || null, version: 4 }];
+            })) };
             set({ contacts: current.contacts.map((item) => item.id === contactId ? { ...item, timelineAnalysis, timelineAnalysisModel: data.model || "DSH 默认模型", timelineAnalysisUpdatedAt: Date.now() } : item) });
-            const saved = new Set(data.days.map((day) => day.date));
-            return { saved: saved.size, missing: batch.map((day) => day.date).filter((date) => !saved.has(date)) };
+            const savedKeys = new Set(data.days.map((day, index) => {
+              const request2 = batch.find((item) => item.date === day.date && item.channel === day.channel) || batch[index] || {};
+              return request2.key || day.date;
+            }));
+            return { saved: savedKeys.size, missing: batch.map((day) => day.key || day.date).filter((key) => !savedKeys.has(key)) };
           };
           for (const batch of batches) {
             stopIfAborted();
@@ -35509,7 +35517,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
               for (const date of result.missing) {
                 stopIfAborted();
                 try {
-                  const retried = await saveBatch(batch.filter((day) => day.date === date));
+                  const retried = await saveBatch(batch.filter((day) => (day.key || day.date) === date));
                   completed += retried.saved;
                   if (!retried.saved) failedDates.push(date);
                 } catch (error) {
@@ -35525,7 +35533,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
                 try {
                   const result = await saveBatch([day]);
                   completed += result.saved;
-                  if (!result.saved) failedDates.push(day.date);
+                  if (!result.saved) failedDates.push(day.key || day.date);
                 } catch (inner) {
                   if (inner.name === "AbortError") throw inner;
                   failedDates.push(day.date);
@@ -35572,7 +35580,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }, { disabled: s.importBusy })), h("p", { role: "status", className: "rn-status" + (s.importError ? " rn-error" : "") }, s.importError || (s.importBusy ? "正在读取…" : "")));
       }
       function timelineAnalysisCard(s, contact) {
-        const total = E.analyzeDailyTimeline(contact.messages, contact.self, contact.target, contact.interactionCorrections || []).days.length, count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
+        const total = E.analyzeDailyTimeline(contact.messages.filter((message) => channelOf(message) === "qq"), contact.self, contact.target, contact.interactionCorrections || []).days.length + E.analyzeDailyTimeline(contact.messages.filter((message) => channelOf(message) !== "qq"), contact.self, contact.target, contact.interactionCorrections || []).days.length, count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
         return box("AI 聊天分析", muted(busy ? s.timelineAnalysisProgress || "正在分析…" : count ? `已分析 ${count} / ${total} 个有记录日期。` : "分析全部有记录日期。"), button(busy ? "正在分析…" : count >= total ? "重新生成全部日期总结" : count ? "继续分析日期" : "开始 AI 分析", () => analyzeTimeline(contact.id, { force: count >= total }), { className: "primary", disabled: busy }));
       }
       const messageChannel = (m) => /QQ/i.test((m.file || "") + " " + (m.source || "")) ? "qq" : "wechat";
@@ -35761,7 +35769,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             return [day.date, { ...day, displayAffinityScore: day.affinityScore ?? carried, affinityCarried: day.affinityScore === null && carried !== null }];
           }));
           const dates = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`)];
-          const shown = byDate.get(selectedDate), monthLabel = `${calendarYear} 年 ${monthNumber} 月`, storedDay = contact.timelineAnalysis?.[selectedDate], aiDay = storedDay?.version === 4 ? storedDay : null;
+          const shown = byDate.get(selectedDate), monthLabel = `${calendarYear} 年 ${monthNumber} 月`, storedQq = contact.timelineAnalysis?.[selectedDate + "#qq"], storedWechat = contact.timelineAnalysis?.[selectedDate + "#wechat"], storedDay = storedQq?.version === 4 ? storedQq : storedWechat?.version === 4 ? storedWechat : contact.timelineAnalysis?.[selectedDate], aiDay = storedDay?.version === 4 ? storedDay : null;
           const moveMonth = (delta) => {
             const date = new Date(Date.UTC(calendarYear, monthNumber - 1 + delta, 1));
             setMonth(`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`);
@@ -35912,8 +35920,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const metricCards = metrics.map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value)));
             const messages = shown.messages.map((message, i) => h("article", { className: "rn-message", key: i }, source(message), h("p", { style: { whiteSpace: "pre-wrap" } }, message.text || "[" + (message.typeName || "媒体消息") + "]"), message.attachments?.length ? muted(`媒体附件 ${message.attachments.length} 项`) : null));
             const isTimelineBusy = s.timelineAnalysisContact === contact.id;
-            const cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
-            const aiDetails = aiDay ? box("当天内容总结", cleanSummary && h("p", { style: { whiteSpace: "pre-wrap" } }, cleanSummary)) : box("当天内容总结", muted(isTimelineBusy ? s.timelineAnalysisProgress || "正在生成…" : "生成当天聊天内容总结。"), button(isTimelineBusy ? "正在生成…" : "生成当天总结", () => analyzeTimeline(contact.id, { force: true, onlyDate: selectedDate }), { className: "primary", disabled: isTimelineBusy }));
+            const channelToday = [["qq", "QQ"], ["wechat", "微信"]].filter(([channel]) => contact.messages.some((message) => dayKey(message.timestamp) === selectedDate && channelOf(message) === channel)), cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
+            const aiDetails = box("当天内容总结", channelToday.length ? h("div", null, ...channelToday.map(([channel, label]) => {
+              const entry = contact.timelineAnalysis?.[selectedDate + "#" + channel], summary = entry?.version === 4 ? cleanTimelineDisplayText(entry.summary) : "";
+              return h("section", { key: channel, className: "rn-channel-block" }, h("h4", null, label + " 渠道"), summary ? h("p", { style: { whiteSpace: "pre-wrap" } }, summary) : muted(isTimelineBusy ? s.timelineAnalysisProgress || "正在生成…" : "这个渠道当天还没有总结，可用下方按钮生成。"));
+            })) : muted("当天没有可分渠道的聊天记录。"), isTimelineBusy ? null : button("生成当天总结", () => analyzeTimeline(contact.id, { force: true, onlyDate: selectedDate }), { className: "primary" }));
             const addDayGoal = () => {
               set({ goalPrefill: { contactId: contact.id, date: selectedDate, title: "" } });
               nav("goals", "current");
@@ -36127,7 +36138,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           return typeof id2 === "string" && id2.trim() ? [id2.trim(), typeof m === "string" ? m : m.displayName || m.name || id2.trim()] : null;
         }).filter(Boolean), lastDay = daily.days.at(-1), latestAffinity = [...daily.days].reverse().find((day) => day.affinityScore !== null);
         const stamp = (message) => formatTimestamp(message.timestamp);
-        const dayKey2 = (message) => formatChatDayKey(message.timestamp);
+        const dayKey3 = (message) => formatChatDayKey(message.timestamp);
         const fileAvatar = (file, name) => {
           const src = typeof file === "string" ? file : file ? localFileUrl(file) : "";
           return h("span", { className: "rn-session-avatar" }, src ? h("img", { src, alt: name + " 头像" }) : Array.from(name || "?")[0]);
@@ -36181,14 +36192,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setJumpDate(value);
           if (!value) return;
           setSearch("");
-          const index = latestMessages.findIndex((m) => dayKey2(m) >= value);
+          const index = latestMessages.findIndex((m) => dayKey3(m) >= value);
           if (index < 0) {
             set({ status: "该日期之后没有记录。" });
             return;
           }
           historyAnchor.current = null;
           setHistoryStart(Math.max(0, index - 20));
-          requestAnimationFrame(() => requestAnimationFrame(() => historyRef.current?.querySelector('[data-date="' + dayKey2(latestMessages[index]) + '"]')?.scrollIntoView({ block: "start" })));
+          requestAnimationFrame(() => requestAnimationFrame(() => historyRef.current?.querySelector('[data-date="' + dayKey3(latestMessages[index]) + '"]')?.scrollIntoView({ block: "start" })));
         };
         const addMessage = () => {
           if (!messageText.trim()) return;
@@ -36202,7 +36213,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
           const current = store.getSnapshot(), active = selected2(current), timestamp = messageTime ? messageTime.replace("T", " ") : (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false });
           const message = { sender: messageSide === "self" ? active.self : active.target, text: messageText.trim(), timestamp, source: "manual" }, messages = E.sortChatMessages([...active.messages, ...messagePreview.map((row) => ({ ...message, ...row }))]);
-          set({ contacts: current.contacts.map((c) => c.id === active.id ? { ...c, messages, pairCount: messages.filter((m) => m.sender === c.self || m.sender === c.target).length, timelineAnalysis: Object.fromEntries(Object.entries(c.timelineAnalysis || {}).filter(([date]) => date !== formatChatDayKey(timestamp))), timelineAnalysisUpdatedAt: null, profileSummaryUpdatedAt: null } : c), undoMessageContact: active, status: "新消息已加入时间线。" });
+          set({ contacts: current.contacts.map((c) => c.id === active.id ? { ...c, messages, pairCount: messages.filter((m) => m.sender === c.self || m.sender === c.target).length, timelineAnalysis: Object.fromEntries(Object.entries(c.timelineAnalysis || {}).filter(([date]) => String(date).split("#")[0] !== formatChatDayKey(timestamp))), timelineAnalysisUpdatedAt: null, profileSummaryUpdatedAt: null } : c), undoMessageContact: active, status: "新消息已加入时间线。" });
           setMessageText("");
           setMessagePreview(null);
           analyzeTimeline(active.id, { onlyDate: formatChatDayKey(timestamp) });
@@ -36210,7 +36221,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const history = [];
         let prior = "";
         visibleMessages.slice(search.trim() ? 0 : historyStart, search.trim() ? void 0 : historyStart + 360).forEach((message, visibleIndex) => {
-          const index = historyStart + visibleIndex, date = dayKey2(message);
+          const index = historyStart + visibleIndex, date = dayKey3(message);
           if (date !== prior) {
             history.push(h("div", { className: "rn-session-day", "data-date": date, key: "day-" + index }, date));
             prior = date;
@@ -36236,7 +36247,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             set({ status: "请填写实际发送内容和对方回复后再记录。" });
             return;
           }
-          const timestamp = (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false }), nextMessages = [...active.messages, { sender: active.self, text: sent, timestamp, source: "manual" }, { sender: active.target, text: received, timestamp, source: "manual" }], targetMessages = nextMessages.filter((message) => message.sender === active.target), updated = { ...active, timelineAnalysis: Object.fromEntries(Object.entries(active.timelineAnalysis || {}).filter(([date]) => date !== formatChatDayKey(timestamp))), timelineAnalysisUpdatedAt: null, messages: nextMessages, pairCount: nextMessages.filter((message) => message.sender === active.self || message.sender === active.target).length, facts: E.extractFacts(targetMessages) }, next = E.generateLocalDraft({ ...updated, scenario: current.scenario, tone: current.tone, intent: current.intent });
+          const timestamp = (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false }), nextMessages = [...active.messages, { sender: active.self, text: sent, timestamp, source: "manual" }, { sender: active.target, text: received, timestamp, source: "manual" }], targetMessages = nextMessages.filter((message) => message.sender === active.target), updated = { ...active, timelineAnalysis: Object.fromEntries(Object.entries(active.timelineAnalysis || {}).filter(([date]) => String(date).split("#")[0] !== formatChatDayKey(timestamp))), timelineAnalysisUpdatedAt: null, messages: nextMessages, pairCount: nextMessages.filter((message) => message.sender === active.self || message.sender === active.target).length, facts: E.extractFacts(targetMessages) }, next = E.generateLocalDraft({ ...updated, scenario: current.scenario, tone: current.tone, intent: current.intent });
           set({ contacts: current.contacts.map((item) => item.id === active.id ? updated : item), draft: next.draft, draftReason: next.reason, draftSource: "本地规则（根据新回复）", draftEvidence: next.evidence, exchangeSent: "", exchangeReply: "", status: `已把本轮实际往来加入 ${timestamp.slice(0, 10)} 的时间线；日历和每日统计已更新。` });
           setRecordOpen(false);
           analyzeTimeline(active.id, { onlyDate: formatChatDayKey(timestamp) });
