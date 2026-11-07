@@ -34861,6 +34861,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/workspace.js
+  var autoSummaryTried = /* @__PURE__ */ new Set();
   var channelOf = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
   function formatChatDayKey(value) {
     const timezone = "Asia/Shanghai";
@@ -35533,7 +35534,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
                 try {
                   const result = await saveBatch([day]);
                   completed += result.saved;
-                  if (!result.saved) failedDates.push(day.key || day.date);
+                  if (!result.saved) failedDates.push((day.key || day.date) + "（接口没有返回该日期的结果）");
                 } catch (inner) {
                   if (inner.name === "AbortError") throw inner;
                   failedDates.push(day.date);
@@ -35542,7 +35543,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             }
             set({ timelineAnalysisProgress: `已分析 ${completed} / ${days.length} 个日期` });
           }
-          if (ticket === timelineRequest) set({ timelineAnalysisContact: "", timelineAnalysisProgress: "", status: failedDates.length ? `已分析 ${completed} / ${days.length} 个日期，${failedDates.length} 个日期未能分析，可再次点击继续分析重试。` : `已完成 ${days.length} 个日期的 AI 分析。` });
+          if (ticket === timelineRequest) set({ timelineAnalysisContact: "", timelineAnalysisProgress: "", status: failedDates.length ? `已分析 ${completed} / ${days.length} 个日期，${failedDates.length} 个日期未能分析（${failedDates.slice(0, 2).join("；")}），可再次点击继续分析重试。` : `已完成 ${days.length} 个日期的 AI 分析。` });
         } catch (error) {
           if (ticket === timelineRequest) set({ timelineAnalysisContact: "", timelineAnalysisProgress: "", status: error.name === "AbortError" ? "已停止 AI 日期分析。" : "AI 日期分析中断：" + (error.message || "请求失败") + "；已完成的日期已保存，点击可继续。" });
         } finally {
@@ -35751,6 +35752,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
         }, [contact?.id, lastDate, s.behaviorDate]);
         const a = React2.useMemo(() => contact ? E.analyzeConversation(contact.messages, contact.self, contact.target) : null, [contact?.messages, contact?.self, contact?.target]);
+        React2.useEffect(() => {
+          if (!contact || s.timelineAnalysisContact === contact.id) return;
+          const dayMessages = timeline?.days.find((day) => day.date === selectedDate)?.messages || [], channels = [...new Set(dayMessages.map(channelOf))], missing = channels.filter((channel) => contact.timelineAnalysis?.[selectedDate + "#" + channel]?.version !== 4);
+          if (!missing.length) return;
+          const key = contact.id + "#" + selectedDate;
+          if (autoSummaryTried.has(key)) return;
+          autoSummaryTried.add(key);
+          analyzeTimeline(contact.id, { onlyDate: selectedDate });
+        }, [contact?.id, selectedDate, s.timelineAnalysisContact]);
         const media = React2.useMemo(() => contact ? contact.messages.reduce((out, message) => {
           for (const attachment of message.attachments || []) out[attachment.kind] = (out[attachment.kind] || 0) + 1;
           return out;
