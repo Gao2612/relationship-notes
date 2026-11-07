@@ -35269,8 +35269,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       });
       ctx.effect(() => {
         let cancelled = false;
+        const wait = (predicate, steps = 60) => new Promise((resolve) => {
+          let left = steps;
+          const tick = () => {
+            if (cancelled) return resolve(false);
+            if (predicate(store.getSnapshot())) return resolve(true);
+            if (left-- <= 0) return resolve(false);
+            setTimeout(tick, 500);
+          };
+          tick();
+        });
         const sweep = async () => {
-          await new Promise((done) => setTimeout(done, 2500));
+          if (!await wait((s2) => s2.persistenceReady || s2.persistenceReadOnly)) return;
+          await wait((s2) => Boolean(s2.provider && s2.model), 40);
           if (cancelled) return;
           const s = store.getSnapshot();
           if (!s.persistenceReady || s.persistenceReadOnly) return;
@@ -35560,10 +35571,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
                 try {
                   const retried = await saveBatch(batch.filter((day) => (day.key || day.date) === date));
                   completed += retried.saved;
-                  if (!retried.saved) failedDates.push(date);
+                  if (!retried.saved) failedDates.push(date + "（重试后仍无该日期结果）");
                 } catch (error) {
                   if (error.name === "AbortError") throw error;
-                  failedDates.push(date);
+                  failedDates.push(date + "（" + (error.message || "重试失败") + "）");
                 }
               }
             } catch (error) {
@@ -35577,7 +35588,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
                   if (!result.saved) failedDates.push((day.key || day.date) + "（接口没有返回该日期的结果）");
                 } catch (inner) {
                   if (inner.name === "AbortError") throw inner;
-                  failedDates.push(day.date);
+                  failedDates.push(day.date + "（" + (inner.message || "分析失败") + "）");
                 }
               }
             }

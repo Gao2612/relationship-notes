@@ -308,15 +308,17 @@ function createTimelineAnalysisHandler(llm, { timeoutMs = 9e4, defaultSelection 
       }
       if (!parsed || !Array.isArray(parsed.days) || !parsed.days.length) throw new RequestError("模型没有返回可用的日期分析，请重试。", 502);
       const expected = new Set(body.days.map((day) => day.date)), seen = new Set(), results = [], dropped = new Map();
+      const normalizeDate = (value) => { const digits = String(value ?? "").replace(/\D/g, ""); return digits.length === 8 ? `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}` : ""; };
+      const trimField = (value) => (typeof value === "string" && value.length > 800 ? value.slice(0, 800) : value);
       for (const day of parsed.days) {
-        if (!day || !expected.has(day.date) || seen.has(day.date)) continue;
-        if (["summary", "activityReason", "affinityContext"].some((key) => typeof day[key] !== "string" || day[key].length > 800)) { dropped.set(day.date, "字段缺失或超长"); continue; }
-        const cleaned = { summary: cleanTimelineText(day.summary), activityReason: cleanTimelineText(day.activityReason), affinityContext: cleanTimelineText(day.affinityContext) };
-        if (!cleaned.summary || !cleaned.activityReason) { dropped.set(day.date, "总结内容为空"); continue; }
-        seen.add(day.date);
-        results.push({ date: day.date, ...cleaned });
+        if (!day) continue;
+        const matched = expected.has(day.date) ? day.date : normalizeDate(day.date);
+        if (!matched || !expected.has(matched) || seen.has(matched)) { if (day.date) dropped.set(String(day.date).slice(0, 20), "模型返回的日期与请求不一致"); continue; }
+        const cleaned = { summary: cleanTimelineText(trimField(day.summary)), activityReason: cleanTimelineText(trimField(day.activityReason)), affinityContext: cleanTimelineText(trimField(day.affinityContext || "")) };
+        if (!cleaned.summary || !cleaned.activityReason) { dropped.set(matched, "模型返回的总结内容为空"); continue; }
+        seen.add(matched);
+        results.push({ date: matched, ...cleaned });
       }
-      if (!results.length) throw new RequestError("模型未返回可用的日期分析，请重试。", 502);
       const missing = body.days.map((day) => day.date).filter((date) => !seen.has(date)), missingDetails = missing.map((date) => ({ date, reason: dropped.get(date) || "模型未返回该日期" }));
       return Response.json({ ok: true, days: results, missing, missingDetails, provider: selected.provider, model: selected.model });
     } catch (error) {
