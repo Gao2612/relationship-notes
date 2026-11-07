@@ -6,7 +6,8 @@ export function scoringMessage(message){
  const type=String(message.type??'');
  if(type==='10000'||/系统消息/.test(message.typeName||''))return false;
  if(type&&type!=='1'&&!/引用/.test(message.typeName||'')&&type!=='244813135921')return false;
- return !/^(?:【[^】]+】|\[[^\]]+\])$/.test(String(message.text??'').trim());
+ const text=String(message.text??'').trim();
+ return !!text&&!/^(?:【[^】]+】|\[[^\]]+\])$/.test(text);
 }
 
 export function interactionScene(text){
@@ -40,14 +41,18 @@ function terms(text){
  for(const part of String(text).match(/[\u4e00-\u9fff]{2,}/g)||[]){
   for(let i=0;i<part.length-1;i++){
    const term=part.slice(i,i+2);
-   if(!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term))result.add(term);
+   if(!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term)&&!new Set(['今天','明天','昨天','现在','最近','时候','感觉','其实','真的','一点','刚才','已经']).has(term))result.add(term);
   }
  }
  return result;
 }
 
+function directContext(text){
+ return String(text??'').replace(/[“「『‘"][^”」』’"]*[”」』’"]/g,'').split(/[。！!；;\n]/).filter(part=>!/(?:他|她|朋友|同事|有人).*(?:说|表示|告诉)|台词|原话|引用/.test(part)).join('。');
+}
 export function replyContext(previous,text,previousQuestion){
- const body=String(text).trim();
+ previous=directContext(previous);
+ const body=directContext(text).trim();
  const acknowledgment=/^(?:可以|行|好|好的|嗯+|对|是|是呀|是了|okk?|收到|没问题)[!！。\s]*$/i.test(body);
  const yesNo=/吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
  const affirmative=acknowledgment&&(yesNo||/试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
@@ -62,13 +67,17 @@ export function replyContext(previous,text,previousQuestion){
   /人多|排队|拥挤|客流|游客|人少/,
   /歌曲|音乐|歌手|唱|专辑/
  ];
- const continuation=[...current].some(term=>prior.has(term))||topics.some(topic=>topic.test(previous)&&topic.test(body));
+ const emotionalDisclosure=/我(?:今天|最近|现在|真的|很|有点|特别|其实|觉得|感到|也|还)*(?:难过|伤心|紧张|害怕|失落|委屈|焦虑|沮丧|压力很大)/.test(previous);
+ const goodNews=/我[^。！？!?]{0,24}(?:通过.{0,6}考试|考上|录取|升职|获奖|拿到.{0,6}offer|考过|成功了|毕业了)/i.test(previous);
+ const supportive=(emotionalDisclosure&&/我(?:能)?理解你|我(?:会|愿意)?(?:陪着你|陪你|听你说)|你(?:可以|愿意).{0,6}(?:跟我说|找我)|别怕|抱抱你/.test(body))||(goodNews&&/(?:恭喜|祝贺)你|(?:为你|替你)(?:高兴|开心)|你的努力.{0,6}(?:回报|值得)|你(?:一直|真的|那么).{0,6}努力/.test(body));
+ const dismissive=/别再.{0,8}(?:说|提)|不想听|谁在乎|关我什么事|别说了/.test(body);
+ const continuation=!dismissive&&([...current].some(term=>prior.has(term))||topics.some(topic=>topic.test(previous)&&topic.test(body))||supportive);
  let answer=false;
  if(previousQuestion){
-  if(/几点|什么时候|啥时候|何时/.test(previous))answer=/[0-9零一二三四五六七八九十两半]+\s*(?:点|时|分|天|号|月)|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
+  if(/几点|什么时候|啥时候|何时/.test(previous))answer=/[0-9零一二三四五六七八九十两半]+\s*(?:点|时|天|号|月)|\d{1,2}:\d{2}|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
   else if(/在哪|哪里|哪儿|去哪|什么地方/.test(previous))answer=/家里|公司|学校|饭店|餐厅|商场|车站|地铁|[\u4e00-\u9fff]{2,}(?:路|街|市|县|区|店)/.test(body);
   else if(/多少|几个|几人|几位/.test(previous))answer=/[0-9零一二三四五六七八九十百千万两]+/.test(body);
-  else if(yesNo)answer=acknowledgment||/^(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|我不|我会|我去|我可以)/.test(body)||continuation;
+  else if(yesNo)answer=acknowledgment||/^(?:我)?(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|可以|不可以)(?:的|了|啊|呀|呢|哦)?[。！!\s]*$/.test(body)||continuation;
   else answer=continuation||/^(?:因为|由于|主要是|原因是)/.test(body);
  }
  return {answer:answer&&relatedEvent,affirmative,continuation};

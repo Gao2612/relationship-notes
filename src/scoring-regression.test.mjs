@@ -18,14 +18,14 @@ test('封顶、去重、低频覆盖的展示明细之和等于最终分',()=>{
  }
 });
 
-test('日历与依据页的回合、单轮扣分采用同一输入',()=>{
+test('日历与依据页的回合、有效回应采用同一输入',()=>{
  const messages=['09:00','09:04','09:08'].map(time=>message('我','我在准备资料',time));
  messages.push(message('对方','今天准备把资料全部整理完成','09:09'));
  const day=analyzeDailyTimeline(messages,'我','对方').days[0];
  assert.equal(day.selfTurns,3);
  assert.equal(day.turns,4);
  assert.equal(analyzeConversation(messages,'我','对方').scoringTurns,day.turns);
- const result=interactionScoreBreakdown({messages:day.messages.length,selfMessages:day.selfMessages,targetMessages:day.targetMessages,selfTurns:day.selfTurns,targetTurns:day.targetTurns,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,strongConflict:day.strongConflict});
+ const result=interactionScoreBreakdown({messages:day.messages.length,selfMessages:day.selfMessages,targetMessages:day.targetMessages,selfTurns:day.selfTurns,targetTurns:day.targetTurns,responsiveTurns:day.responsiveTurns,positiveTurns:day.positiveTurns,questionTurns:day.questionTurns,sharingTurns:day.sharingTurns,boundaryTurns:day.boundaryTurns,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,strongConflict:day.strongConflict});
  assert.equal(result.score,day.affinityScore);
 });
 
@@ -42,21 +42,23 @@ test('道谢不遮挡独立问题，反问与纯道谢仍被排除',()=>{
  for(const text of ['谢谢你？','谢了','你以为我不知道吗？'])assert.equal(question(text),false,text);
 });
 
-test('较强摩擦要求同段重复或先摩擦后解释',()=>{
+test('较强摩擦要求同段重复，解释不升级冲突',()=>{
  const paired=(first,second,lastTime)=>[message('对方',first,'09:00'),message('我','我明白你说的事情了','09:01'),message('对方',second,lastTime)];
  assert.equal(engagementSignals(paired('随便你','无语','09:02'),'我').strongConflict,true);
- assert.equal(engagementSignals(paired('随便你','没别的意思','09:02'),'我').strongConflict,true);
+ assert.equal(engagementSignals(paired('随便你','没别的意思','09:02'),'我').strongConflict,false);
  assert.equal(engagementSignals(paired('没别的意思','随便你','09:02'),'我').strongConflict,false);
  assert.equal(engagementSignals(paired('随便你','无语','12:00'),'我').strongConflict,false);
  assert.equal(engagementSignals(paired('随便你','没别的意思','12:00'),'我').strongConflict,false);
 });
 
-test('慢回复次数与中位时延负向处罚去重',()=>{
- const result=interactionScoreBreakdown({messages:20,selfMessages:10,targetMessages:10,targetTurns:5,selfTurns:5,slowReplies:1,medianMinutes:400});
- assert.equal(result.score,26);
- assert.equal(result.items.find(item=>item.key==='latencyOverlap').delta,5);
- const heavier=interactionScoreBreakdown({messages:20,selfMessages:10,targetMessages:10,targetTurns:5,selfTurns:5,slowReplies:4,medianMinutes:400});
- assert.equal(heavier.score,18);
+test('时延仅展示，不直接处罚异步沟通',()=>{
+ const base={messages:20,selfMessages:10,targetMessages:10,targetTurns:5,selfTurns:5};
+ const normal=interactionScoreBreakdown(base);
+ for(const slowReplies of [1,4]){
+  const delayed=interactionScoreBreakdown({...base,slowReplies,medianMinutes:400});
+  assert.equal(delayed.score,normal.score);
+  assert.equal(delayed.items.find(item=>item.key==='latency').delta,0);
+ }
 });
 
 test('明确负向、摩擦和解释不重复计入低信息量',()=>{

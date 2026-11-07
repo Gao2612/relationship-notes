@@ -4,11 +4,11 @@ import {analyzeInteractionMetrics,correctInteraction,interactionEvidenceKey,lega
 import {analyzeDailyTimeline} from './analysis.js';
 test('correction excludes a signal without editing evidence and survives reordering',()=>{
  const message={sender:'你',text:'喜欢你',timestamp:'2026-11-01'},contact={self:'我',target:'你',messages:[message]};
- const original=analyzeInteractionMetrics(contact);assert.equal(original.score,60);
+ const original=analyzeInteractionMetrics(contact);assert.equal(original.score,34);
  const corrected=correctInteraction(contact,{key:interactionEvidenceKey(message),kind:'positive',excluded:true,note:'引用台词'});
  assert.equal(analyzeInteractionMetrics(corrected).score,32);assert.equal(corrected.messages[0].text,'喜欢你');
  const restored=correctInteraction({...corrected,messages:[{sender:'我',text:'你好'},message]},{key:interactionEvidenceKey(message),kind:'positive',excluded:false});
- assert.equal(analyzeInteractionMetrics(restored).score,50);assert.equal(restored.interactionCorrections.length,2);
+ assert.equal(analyzeInteractionMetrics(restored).score,34);assert.equal(restored.interactionCorrections.length,2);
  assert.throws(()=>correctInteraction(contact,{key:'missing',kind:'positive'}));
  assert.equal(analyzeDailyTimeline(corrected.messages,corrected.self,corrected.target,corrected.interactionCorrections).days[0].affinityScore,32);
 });

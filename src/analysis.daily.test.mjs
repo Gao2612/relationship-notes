@@ -14,9 +14,11 @@ test('groups messages by exported local date and counts both speakers and turns'
  assert.equal(days.length,2);
  assert.deepEqual([days[0].messages.length,days[0].selfMessages,days[0].targetMessages,days[0].turns],[3,2,1,2]);
  assert.equal(days[0].activityScore,100);
- assert.equal(days[0].affinityScore,46);
- assert.equal(days[1].affinityScore,24);
- assert.equal(days[1].affinityChange,-22);
+ assert.equal(days[0].positivePoints,6);
+ assert.equal(days[0].emotionalSharingTurns,1);
+ assert.equal(days[0].affinityScore,35);
+ assert.equal(days[1].affinityScore,14);
+ assert.equal(days[1].affinityChange,-21);
  assert.match(days[0].reason,/周末计划/);
  assert.match(days[1].affinityNote,/负向或拒绝表达 1 条/);
 });
@@ -54,7 +56,7 @@ test('separates target-side engagement cues from chat activity volume',()=>{
   message('林小雨','你周末有空吗？','2026-10-29 09:01:00'),
  ],'我','林小雨');
  assert.equal(result.days[0].activityScore,100);
- assert.equal(result.days[0].affinityScore,32);
+ assert.equal(result.days[0].affinityScore,33);
  assert.equal(result.days[0].targetQuestions,1);
  assert.match(result.days[0].affinityNote,/提问 1 条/);
 });

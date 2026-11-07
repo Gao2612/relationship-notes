@@ -40,7 +40,7 @@ var RelationshipNotesPlugin = (() => {
     default: () => client_entry_default
   });
 
-  // node_modules/pdfjs-dist/legacy/build/pdf.mjs
+  // node_modules/.pnpm/pdfjs-dist@6.4.299/node_modules/pdfjs-dist/legacy/build/pdf.mjs
   var pdf_exports = {};
   __export(pdf_exports, {
     AbortException: () => AbortException,
@@ -32612,7 +32612,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const type = String(message.type ?? "");
     if (type === "10000" || /系统消息/.test(message.typeName || "")) return false;
     if (type && type !== "1" && !/引用/.test(message.typeName || "") && type !== "244813135921") return false;
-    return !/^(?:【[^】]+】|\[[^\]]+\])$/.test(String(message.text ?? "").trim());
+    const text = String(message.text ?? "").trim();
+    return !!text && !/^(?:【[^】]+】|\[[^\]]+\])$/.test(text);
   }
   function interactionScene(text) {
     const work = WORK.test(text), daily = DAILY.test(text);
@@ -32643,13 +32644,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const part of String(text).match(/[\u4e00-\u9fff]{2,}/g) || []) {
       for (let i = 0; i < part.length - 1; i++) {
         const term = part.slice(i, i + 2);
-        if (!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term)) result.add(term);
+        if (!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term) && !(/* @__PURE__ */ new Set(["今天", "明天", "昨天", "现在", "最近", "时候", "感觉", "其实", "真的", "一点", "刚才", "已经"])).has(term)) result.add(term);
       }
     }
     return result;
   }
+  function directContext(text) {
+    return String(text ?? "").replace(/[“「『‘"][^”」』’"]*[”」』’"]/g, "").split(/[。！!；;\n]/).filter((part) => !/(?:他|她|朋友|同事|有人).*(?:说|表示|告诉)|台词|原话|引用/.test(part)).join("。");
+  }
   function replyContext(previous, text, previousQuestion) {
-    const body = String(text).trim();
+    previous = directContext(previous);
+    const body = directContext(text).trim();
     const acknowledgment2 = /^(?:可以|行|好|好的|嗯+|对|是|是呀|是了|okk?|收到|没问题)[!！。\s]*$/i.test(body);
     const yesNo = /吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
     const affirmative = acknowledgment2 && (yesNo || /试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
@@ -32664,13 +32669,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       /人多|排队|拥挤|客流|游客|人少/,
       /歌曲|音乐|歌手|唱|专辑/
     ];
-    const continuation = [...current].some((term) => prior.has(term)) || topics2.some((topic) => topic.test(previous) && topic.test(body));
+    const emotionalDisclosure = /我(?:今天|最近|现在|真的|很|有点|特别|其实|觉得|感到|也|还)*(?:难过|伤心|紧张|害怕|失落|委屈|焦虑|沮丧|压力很大)/.test(previous);
+    const goodNews = /我[^。！？!?]{0,24}(?:通过.{0,6}考试|考上|录取|升职|获奖|拿到.{0,6}offer|考过|成功了|毕业了)/i.test(previous);
+    const supportive = emotionalDisclosure && /我(?:能)?理解你|我(?:会|愿意)?(?:陪着你|陪你|听你说)|你(?:可以|愿意).{0,6}(?:跟我说|找我)|别怕|抱抱你/.test(body) || goodNews && /(?:恭喜|祝贺)你|(?:为你|替你)(?:高兴|开心)|你的努力.{0,6}(?:回报|值得)|你(?:一直|真的|那么).{0,6}努力/.test(body);
+    const dismissive = /别再.{0,8}(?:说|提)|不想听|谁在乎|关我什么事|别说了/.test(body);
+    const continuation = !dismissive && ([...current].some((term) => prior.has(term)) || topics2.some((topic) => topic.test(previous) && topic.test(body)) || supportive);
     let answer = false;
     if (previousQuestion) {
-      if (/几点|什么时候|啥时候|何时/.test(previous)) answer = /[0-9零一二三四五六七八九十两半]+\s*(?:点|时|分|天|号|月)|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
+      if (/几点|什么时候|啥时候|何时/.test(previous)) answer = /[0-9零一二三四五六七八九十两半]+\s*(?:点|时|天|号|月)|\d{1,2}:\d{2}|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
       else if (/在哪|哪里|哪儿|去哪|什么地方/.test(previous)) answer = /家里|公司|学校|饭店|餐厅|商场|车站|地铁|[\u4e00-\u9fff]{2,}(?:路|街|市|县|区|店)/.test(body);
       else if (/多少|几个|几人|几位/.test(previous)) answer = /[0-9零一二三四五六七八九十百千万两]+/.test(body);
-      else if (yesNo) answer = acknowledgment2 || /^(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|我不|我会|我去|我可以)/.test(body) || continuation;
+      else if (yesNo) answer = acknowledgment2 || /^(?:我)?(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|可以|不可以)(?:的|了|啊|呀|呢|哦)?[。！!\s]*$/.test(body) || continuation;
       else answer = continuation || /^(?:因为|由于|主要是|原因是)/.test(body);
     }
     return { answer: answer && relatedEvent, affirmative, continuation };
@@ -32782,6 +32791,52 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return { ...contact, profileSummary: next, profileSummaryUpdatedAt: now };
   }
 
+  // src/interaction-boundary.js
+  var QUOTED = /[“「『‘"][^”」』’"]*[”」』’"]/g;
+  var REPORTED = /(?:她|他|朋友|同事|对方|有人).*(?:说|表示|告诉)|(?:台词|原话|引用)/;
+  var PAST = /^(?:我)?(?:以前|从前|曾经|之前|过去|当时|那时|那天)/;
+  var PREFERENCE_QUESTION = /^(?:你|他|她)(?:真的?|现在|也|还|是)?(?:是不是|是否|想不想|愿不愿|不想|不喜欢)|^(?:是不是|是否)你/;
+  var REASSURANCE = /(?:不是|并非|没有|并没有)(?:说过|说|觉得|真的?|完全|真的说)?(?:不喜欢你|不想(?:再)?(?:见面|见你|聊天|联系|继续)|不要(?:再)?(?:联系我|打扰我|找我)|不愿(?:再)?(?:见你|聊天|联系))/;
+  var STOP = /(?:不要|别)(?:再)?(?:联系我(?!的|们|老板|朋友|同事|家人)|给我发|发消息|发信息|打扰我|找我)|请别再发|停止联系|(?:我们|咱们)(?:就)?(?:(?:不要|别)(?:再)?|不再)(?:联系|聊天)/;
+  var PERSONAL_OBJECT = /^(?:的|这样|这么|这种|那样|那么|那种|妈妈|爸爸|父母|朋友|同事|老板)/;
+  function clauses(text) {
+    const direct = String(text ?? "").replace(QUOTED, "");
+    const sentences = direct.match(/[^。！？!?；;\n]+[。！？!?；;\n]*/g) || [];
+    return sentences.filter((sentence) => !REPORTED.test(sentence)).flatMap((sentence) => sentence.split(/[，,]|但是|不过|然而|可是|但(?=我|你|请|别|不要|不想|不愿|现在)/)).map((part) => part.trim()).filter(Boolean);
+  }
+  function currentClause(part) {
+    return !PAST.test(part) && !REASSURANCE.test(part) && !PREFERENCE_QUESTION.test(part) && !/(?:不喜欢你|不想见你)(?:是)?(?:以前|过去|之前)的(?:事|想法)/.test(part);
+  }
+  function boundary(text) {
+    return clauses(text).some((part) => {
+      if (!currentClause(part)) return false;
+      if (STOP.test(part)) return true;
+      if (/[?？]/.test(part)) return false;
+      const desire = /(?:^|\s)(?:现在|目前|其实)?我(?:现在|真的)?不想(?:再)?(见面|见你|聊天|联系|继续)/.exec(part);
+      if (desire) {
+        const action = desire[1], rest = part.slice(desire.index + desire[0].length);
+        if (action === "见你") return !PERSONAL_OBJECT.test(rest);
+        if (action === "联系") return /^(?:你)?(?:了)?[。！!\s]*$/.test(rest);
+        if (action === "继续") return /^(?:(?:和你|跟你)?(?:联系|聊天|聊|见面)|这段关系)?(?:了)?[。！!\s]*$/.test(rest);
+        return true;
+      }
+      return /^不再联系我(?:了)?[。！!\s]*$/.test(part);
+    });
+  }
+  function negative(text) {
+    if (boundary(text)) return true;
+    return clauses(text).some((part) => {
+      if (!currentClause(part) || /[?？]/.test(part)) return false;
+      const rejection = /(?:不喜欢你|不想(?:再)?(?:见你|和你聊|联系你))/g;
+      for (const match of part.matchAll(rejection)) {
+        if (!PERSONAL_OBJECT.test(part.slice(match.index + match[0].length))) return true;
+      }
+      if (/(?:没有|没|不|不再|并不|不是).{0,3}(?:不舒服|很烦|生气)/.test(part)) return false;
+      if (/(?:没有|没|不|不再|并不|不是)(?:觉得|认为|感觉)?(?:[和跟]你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气)/.test(part)) return false;
+      return /(?:[和跟]你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气)/.test(part);
+    });
+  }
+
   // src/interaction-signals.js
   var RHETORICAL = /(?:谢谢你|谢了|就这|讲啥道理|讲道理|难道|难不成|你以为|谁不知道|还用说|凭什么|有什么好|何必|岂不是|可不是|至于吗|行了吧|算了|呵呵|随便你)/;
   var ASK_STRONG = /(?:干嘛|干啥|干什么|做什么|去哪儿|去哪里|在哪儿|在哪里|几点|多少钱|多少个?人|为什么|为啥|要不要|能不能|可不可以|会不会|是不是|对不对|好不好|有没有|行不行|在不在|有空吗|可以吗|咋了|怎么了|咋回事|怎么办|怎么样)/;
@@ -32797,9 +32852,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var question = (text) => {
     text = directText(text);
     if (!text) return false;
-    const clauses = (text.match(/[^，,。！!；;\n?？]+[?？]?/g) || []).map((part) => part.replace(/^(?:谢谢你|谢了)[呀啊啦哦~～\s]*/, ""));
-    return clauses.some((clause) => {
-      if (!clause.replace(/[?？\s]/g, "") || RHETORICAL.test(clause)) return false;
+    const clauses2 = (text.match(/[^，,。！!；;\n?？]+[?？]?/g) || []).map((part) => part.replace(/^(?:谢谢你|谢了)[呀啊啦哦~～\s]*/, ""));
+    return clauses2.some((clause) => {
+      if (!clause.replace(/[?？\s]/g, "") || RHETORICAL.test(clause) || boundary(clause)) return false;
       const body = stripTail(clause);
       if (/^(?:没有)+[。！!\s]*$/.test(body) || /(?:问问|问一下|替我问|帮我问)/.test(body)) return false;
       if (/[?？]/.test(clause)) return true;
@@ -32808,42 +32863,46 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       return ASK_STRONG.test(body);
     });
   };
-  function boundary(text) {
-    text = text.replace(/[“「『‘"][^”」』’"]*[”」』’"]/g, "");
-    return text.split(/[。！!\n]/).some((part) => {
-      part = part.replace(/[，,][^，,]*[?？]\s*$/, "");
-      if (/(?:她|他|朋友|同事|对方|有人).*(?:说|表示|告诉)|(?:台词|原话|引用)/.test(part)) return false;
-      if (/[?？]|是不是|是否|能不能|可不可以|你.*(?:不想|不要|别再)/.test(part)) return false;
-      return /(?:请)?(?:不要|别)(?:再)?(?:联系我|给我发|发消息|发信息|打扰我|找我)|我不想(?:再)?(?:见面|见你|聊天|联系|继续)|请别再发|停止联系|不再联系我/.test(part);
+  function emotionalSharing(text) {
+    return directText(text).split(/[。！？!?，,\n]/).some((part) => {
+      if (question(part) || directedRequest(part) || /如果|假如|要是|假设/.test(part)) return false;
+      return /^\s*我(?:(?:最近|今天|昨天|现在|其实|真的|一直|有点|有些|很|特别|非常|感到|觉得|挺|也|还|不太|并不|不怎么|没有那么))*?(?:开心|难过|紧张|害怕|担心|失落|委屈|幸福|安心|焦虑|孤独|伤心|兴奋|沮丧|压力很大)/.test(part);
     });
   }
   function sharing(text) {
     const direct = directText(text);
-    if (question(direct)) return false;
-    return direct.split(/[。！？!?，,\n]/).some((text2) => {
+    return emotionalSharing(direct) || direct.split(/[。！？!?，,\n]/).some((text2) => {
       text2 = text2.trim();
-      if (directedRequest(text2)) return false;
+      if (question(text2) || directedRequest(text2) || /如果|假如|要是|假设/.test(text2)) return false;
       return /(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text2) || /(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text2);
     });
   }
   var acknowledgment = (text) => /^(?:(?:好(?:的|呀|啊)?|嗯+|收到|了解|明白(?:了)?|谢谢|没问题|知道了)[，,。！!\s]*)+$/.test(text.trim());
-  var positivePattern = /(?:(?<!不)喜欢你|想你|想见你|期待(?:见你|和你)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|你真好|好可爱|好漂亮|好厉害|辛苦你了|谢谢你|关心你|担心你|抱抱|亲亲|❤️|❤|🥰|😍|😘)/i;
   function directText(text) {
     const value = String(text).replace(/[“「『‘"][^”」』’"]*[”」』’"]/g, "");
     return (value.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || []).filter((part) => !/(?:她|他|朋友|同事|对方|有人).*(?:说|表示|告诉)|(?:台词|原话|引用)/.test(part)).join("");
   }
-  function positive(text) {
-    const value = directText(text).split(/[。！？!?，,\n]/).filter((part) => !directedRequest(part)).join("。");
-    if (conflict(value)) return false;
-    for (const match of value.matchAll(new RegExp(positivePattern.source, "ig"))) {
-      if (!/(?:不|没|并非|不是|不太|不想|不再).{0,3}$/.test(value.slice(0, match.index))) return true;
+  var positivePatterns = [
+    { kind: "affection", label: "明确亲近表达", weight: 6, pattern: /(?:喜欢你(?!的|们)|爱你(?!的|们)|想你(?=了|啦|呀|啊|呢|哦|[。！!，,\s]|$)|想见你|期待(?:见你|和你见面)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|(?:愿意|想|会)(?:一直)?陪(?:着)?你)/g },
+    { kind: "support", label: "关心、支持或具体感谢", weight: 4, pattern: /(?:关心你|担心你|心疼你|我(?:能)?理解你(?:的感受|的心情|的难处)|我(?:愿意|可以)听你说|我(?:会|愿意)支持你|(?:为你|替你)(?:开心|高兴)|恭喜你|祝贺你|(?:谢谢|感谢)你(?:一直|这么|那么|愿意|耐心|特意|陪|帮|听|关心|支持)|你(?:真的|真|太|好|很)(?:好|可爱|漂亮|厉害|体贴|温柔))/g },
+    { kind: "courtesy", label: "礼貌或一般积极表达", weight: 1, pattern: /(?:谢谢(?:你)?|谢了|辛苦(?:你)?了|抱抱|亲亲|❤️|❤|🥰|😍|😘)/g }
+  ];
+  function positiveSignal(text) {
+    let best = { kind: "none", label: "未识别正向表达", weight: 0 };
+    for (const part of directText(text).split(/[。！？!?，,\n]/)) {
+      if (directedRequest(part) || conflict(part) || /如果|假如|要是|假设/.test(part) || /^\s*(?:他|她|他们|她们|同事|朋友|小猫|小狗)/.test(part)) continue;
+      for (const signal of positivePatterns) {
+        for (const match of part.matchAll(new RegExp(signal.pattern.source, "g"))) {
+          const prefix = part.slice(0, match.index);
+          if (/(?:不|没|未|别|并非|不是|不用|无需|不必).{0,4}$/.test(prefix)) continue;
+          if (/(?:是不是|是否|难道|会不会|你说|你觉得)/.test(prefix)) continue;
+          if (signal.weight > best.weight) best = { kind: signal.kind, label: signal.label, weight: signal.weight };
+        }
+      }
     }
-    return false;
+    return best;
   }
-  function negative(text) {
-    const value = directText(text);
-    return boundary(value) || /(?:不喜欢你|不想(?:再)?(?:见你|和你聊|联系你)|(?:和你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气))/.test(value);
-  }
+  var positive = (text) => positiveSignal(text).weight > 0;
   var interactionDetectors = { question, sharing, positive, boundary: negative };
   var brushOffPattern = /^(?:在忙|忙|有点忙|很忙|加班|没空|没时间|回头(?:再)?说|晚点(?:再)?说|再说吧|改天(?:再)?聊|先这样|不聊了|困了|睡了)[。！!，,~～…\s]*$/;
   var fillerOnlyPattern = /^(?:嗯+|哦+|噢+|喔+|啊+|嗯嗯|哈+|呵+|嘿嘿|好吧|行吧|行|可以|好的|好|收到|了解|明白了|知道了|没事|随你|都行|不知道)[。！!，,~～…\s]*$/;
@@ -32871,7 +32930,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var APPEASE_PATTERN = /(?:我只是(?:说|讲|着急|觉得|随口)|没啥啊|没别的意思|你别多想|不是那个意思|我说的是(?:工作|事情)|你决定(?:好)?就行|随口一说)/;
   function conflict(text) {
     const body = directText(text).replace(/\s+/g, " ").trim();
-    return CONFLICT_PATTERN.test(body);
+    const external = /工作|加班|客户|老板|同事|堵车|天气|考试|作业|系统|电脑|手机|自己/;
+    const directed = /你让我|你怎么|你总是|你又|跟你|对你|烦死你|随便你|关你什么事|你什么意思|你看着办|你赢了|别问我/;
+    if (external.test(body) && !directed.test(body)) return false;
+    return body.split(/[。！？!?，,\n]/).some((part) => {
+      if (external.test(part) && !directed.test(part)) return false;
+      return CONFLICT_PATTERN.test(part);
+    });
   }
   function appeasement(text) {
     const body = directText(text).replace(/\s+/g, " ").trim();
@@ -32896,10 +32961,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     let sessionConflicts = 0, strongConflict = false, previousText = "", emptyStreak = 0;
     const scenes = { work: 0, daily: 0, mixed: 0, unknown: 0 };
     const startsByScene = { work: 0, daily: 0, mixed: 0, unknown: 0 };
-    let answeredTurns = 0, continuedTurns = 0;
+    let answeredTurns = 0, continuedTurns = 0, responsiveTurns = 0;
+    let positiveTurns = 0, questionTurns = 0, sharingTurns = 0, boundaryTurns = 0, positivePoints = 0, emotionalSharingTurns = 0;
     const latencies = [], turnEvidence = [], events = [];
     for (const turn of turns) {
-      const before = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns };
+      const before = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns, responsiveTurns, positiveTurns, questionTurns, sharingTurns, boundaryTurns, positivePoints, emotionalSharingTurns };
       const latencyStart = latencies.length;
       let turnStrong = false;
       const excluded = (kind) => {
@@ -32929,7 +32995,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const scene = assignments.get(message) || "unknown";
         scenes[scene]++;
         if (newSession) startsByScene[scene]++;
-        const rawContext = replyContext(!newSession && previousWasSelf ? previousText : "", joined, !newSession && previousWasSelf && question(previousText));
+        const rawContext = replyContext(previousWasSelf ? previousText : "", joined, previousWasSelf && question(previousText));
         const excludeAnswer = excluded("answer"), excludeContinuation = excluded("continuation");
         const context = { answer: rawContext.answer && !excludeAnswer, affirmative: rawContext.affirmative && !excludeAnswer, continuation: rawContext.continuation && !excludeContinuation };
         if (context.answer || context.affirmative) answeredTurns++;
@@ -32937,13 +33003,26 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const detectedConflict = conflict(joined), detectedAppeasement = appeasement(joined);
         const hasSpecificNegative = detectedConflict || detectedAppeasement || negative(joined);
         const laughter = /^(?:哈+|嘿嘿)[。！!\s]*$/.test(joined);
-        const generic = perfunctory(joined) || lowContent(joined);
+        const ordinaryPause = /^(?:我(?:现在)?(?:在|有点)?|今天)?(?:在忙|忙|有点忙|很忙|加班|开会|没空|没时间|困了|睡了|先睡了|准备睡了|要睡了|休息了|晚安|回头再说|晚点再说|先这样|改天再聊|明天聊|晚点聊|回头聊|先忙了|稍后聊|晚点再聊|回头再聊|不聊了|再说吧)[。！!，,~～…\s]*$/.test(joined);
+        const generic = !ordinaryPause && (perfunctory(joined) || lowContent(joined));
         emptyStreak = generic && !context.answer && !context.affirmative && !context.continuation && !laughter ? emptyStreak + 1 : 0;
-        const detectedPerfunctory = !hasSpecificNegative && !laughter && !context.answer && !context.affirmative && (emptyStreak >= 3 || /^(?:回头再说|再说吧|先这样|不聊了)[。！!\s]*$/.test(joined)) && perfunctory(joined);
+        const detectedPerfunctory = !ordinaryPause && !hasSpecificNegative && !laughter && !context.answer && !context.affirmative && emptyStreak >= 3 && perfunctory(joined);
         const detectedLowContent = !hasSpecificNegative && !detectedPerfunctory && emptyStreak >= 3 && !context.answer && !context.continuation && lowContent(joined);
         const detected = { answer: rawContext.answer || rawContext.affirmative, continuation: rawContext.continuation, conflict: detectedConflict, appeasement: detectedAppeasement, perfunctory: detectedPerfunctory, lowContent: detectedLowContent };
         const kinds = Object.keys(detected).filter((kind) => detected[kind]);
         const applied = kinds.filter((kind) => !excluded(kind));
+        const hasSignal = (kind, detect) => turn.messages.some((message2) => detect(message2.text) && !isExcluded?.(message2, kind));
+        const hasBoundary = hasSignal("boundary", negative);
+        if (hasBoundary) boundaryTurns++;
+        const positiveWeight = Math.max(0, ...turn.messages.map((message2) => isExcluded?.(message2, "positive") ? 0 : positiveSignal(message2.text).weight));
+        if (positiveWeight) {
+          positiveTurns++;
+          positivePoints += positiveWeight;
+        }
+        if (hasSignal("question", question)) questionTurns++;
+        if (hasSignal("sharing", sharing)) sharingTurns++;
+        if (hasSignal("sharing", emotionalSharing)) emotionalSharingTurns++;
+        if (!hasBoundary && !applied.includes("conflict") && (applied.includes("answer") || applied.includes("continuation"))) responsiveTurns++;
         turnEvidence.push({ message, messages: turn.messages, quote: joined, kinds, applied, scene, context });
         if (applied.includes("perfunctory")) perfunctoryReplies++;
         if (applied.includes("lowContent")) lowContentReplies++;
@@ -32951,13 +33030,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           conflictReplies++;
           sessionConflicts++;
         }
-        if (applied.includes("appeasement")) {
-          appeasementReplies++;
-          if (sessionConflicts > 0) {
-            strongConflict = true;
-            turnStrong = true;
-          }
-        }
+        if (applied.includes("appeasement")) appeasementReplies++;
         if (sessionConflicts >= 2) {
           strongConflict = true;
           turnStrong = true;
@@ -32969,7 +33042,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         lastSelfAt = turn.at;
         previousWasSelf = true;
       }
-      const after = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns };
+      const after = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns, responsiveTurns, positiveTurns, questionTurns, sharingTurns, boundaryTurns, positivePoints, emotionalSharingTurns };
       events.push({ date: shanghaiDateKey(turn.messages[0].timestamp), counts: Object.fromEntries(Object.keys(before).map((key) => [key, after[key] - before[key]])), latencies: latencies.slice(latencyStart), strongConflict: turnStrong, scene: assignments.get(turn.messages[0]) || "unknown" });
       previousAt = turn.at ?? previousAt;
       previousSender = turn.sender;
@@ -32977,61 +33050,58 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     const sorted = [...latencies].sort((a, b) => a - b);
     const medianMinutes = sorted.length ? Math.round(sorted[Math.floor((sorted.length - 1) / 2)]) : null;
-    return { selfStarts, targetStarts, medianMinutes, slowReplies: latencies.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length, perfunctoryReplies, lowContentReplies, targetTurns, conflictReplies, appeasementReplies, selfTurns, replySamples: latencies.length, strongConflict, turnEvidence, scenes, startsByScene, answeredTurns, continuedTurns, events };
+    return { selfStarts, targetStarts, medianMinutes, slowReplies: latencies.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length, perfunctoryReplies, lowContentReplies, targetTurns, conflictReplies, appeasementReplies, selfTurns, replySamples: latencies.length, strongConflict, turnEvidence, scenes, startsByScene, answeredTurns, continuedTurns, responsiveTurns, positiveTurns, questionTurns, sharingTurns, boundaryTurns, positivePoints, emotionalSharingTurns, events };
   }
   function interactionScoreBreakdown(counts = {}) {
-    const num = (value) => Number.isFinite(value) ? value : 0;
-    const positive2 = num(counts.positive), boundary2 = num(counts.boundary), question2 = num(counts.question), sharing2 = num(counts.sharing), perfunctoryCount = num(counts.perfunctoryReplies), lowContentCount = num(counts.lowContentReplies), slowReplies = num(counts.slowReplies), selfStarts = num(counts.selfStarts), targetStarts = num(counts.targetStarts), selfMessages = num(counts.selfMessages), targetMessages = num(counts.targetMessages), medianMinutes = Number.isFinite(counts.medianMinutes) ? counts.medianMinutes : null;
-    const hasMessages = counts.messages === void 0 ? selfMessages + targetMessages > 0 : num(counts.messages) > 0;
-    const corpus = positive2 + boundary2 + question2 + sharing2 + perfunctoryCount + lowContentCount + slowReplies + selfStarts + targetStarts;
-    if (!hasMessages && !corpus) return null;
-    const starts = selfStarts + targetStarts, initiative = starts ? Math.round((targetStarts / starts - 0.5) * 20) : 0;
-    const latency = medianMinutes === null ? 0 : medianMinutes <= 10 ? 6 : medianMinutes <= 30 ? 3 : medianMinutes <= 120 ? 0 : medianMinutes <= 360 ? -7 : -12;
-    const oneSided = hasMessages && targetMessages === 0 ? 18 : 0;
-    const imbalance = selfMessages && targetMessages ? Math.min(selfMessages, targetMessages) / Math.max(selfMessages, targetMessages) : 1;
-    const imbalancePenalty = imbalance < 0.2 ? 8 : imbalance < 0.35 ? 4 : 0;
+    const num = (value) => Number.isFinite(value) ? Math.max(0, value) : 0;
     const targetTurns = num(counts.targetTurns), selfTurns = num(counts.selfTurns);
-    const warm = Math.min(45, Math.min(targetTurns >= 2 ? 24 : 12, 12 * positive2) + 8 * question2 + 6 * sharing2);
-    const emptyRate = targetTurns ? Math.min(1, (perfunctoryCount + lowContentCount) / targetTurns) : 0;
-    const silentDay = hasMessages && targetTurns === 0 ? 24 : 0;
-    const latencyOverlap = Math.min(5 * slowReplies, Math.max(0, -latency));
-    const rawCold = 24 * boundary2 + Math.round(32 * emptyRate) + 5 * slowReplies + Math.max(oneSided, silentDay) - latencyOverlap;
-    const cold = Math.min(60, rawCold);
+    const selfMessages = num(counts.selfMessages), targetMessages = num(counts.targetMessages);
+    const totalMessages = counts.messages === void 0 ? selfMessages + targetMessages : num(counts.messages);
+    const turnCount = (kind) => Math.min(targetTurns, Number.isFinite(counts[kind + "Turns"]) ? num(counts[kind + "Turns"]) : num(counts[kind]));
+    const positive2 = turnCount("positive"), question2 = turnCount("question"), sharing2 = turnCount("sharing"), boundary2 = turnCount("boundary");
+    const perfunctoryCount = num(counts.perfunctoryReplies), lowContentCount = num(counts.lowContentReplies);
+    const responsiveTurns = Math.min(targetTurns, num(counts.responsiveTurns));
     const conflictCount = num(counts.conflictReplies), appeasementCount = num(counts.appeasementReplies);
-    const strong = typeof counts.strongConflict === "boolean" ? counts.strongConflict : conflictCount >= 2 || conflictCount >= 1 && appeasementCount >= 1;
-    const tension = strong ? Math.min(60, 30 * Math.min(2, conflictCount) + 10 * Math.min(3, appeasementCount)) : Math.min(12, 12 * conflictCount);
-    const thinDay = selfTurns >= 2 && targetTurns === 1 ? Math.min(16, 8 * Math.min(2, selfTurns - 1)) : 0;
-    const computed = Math.max(0, Math.min(100, Math.round(38 + warm - cold + initiative + latency - imbalancePenalty - tension - thinDay)));
-    const totalMessages = hasMessages ? counts.messages === void 0 ? selfMessages + targetMessages : num(counts.messages) : 0;
-    const quiet = hasMessages && (targetTurns === 0 || totalMessages < 4) && !boundary2 && !conflictCount && !positive2 && !perfunctoryCount && !lowContentCount;
-    const picked = quiet ? 32 : computed;
-    const score = strong ? Math.min(picked, 48) : picked;
-    const rawWarm = Math.min(targetTurns >= 2 ? 24 : 12, 12 * positive2) + 8 * question2 + 6 * sharing2, rawTension = strong ? 30 * Math.min(2, conflictCount) + 10 * Math.min(3, appeasementCount) : 12 * conflictCount;
-    const interval = medianMinutes === null ? "无可用回复间隔" : medianMinutes + " 分钟";
-    const rawTotal = 38 + warm - cold + initiative + latency - imbalancePenalty - tension - thinDay;
-    const items = [
-      { key: "base", label: "基础分", condition: "当天有记录即从 38 起算", delta: 38, hit: true, detail: "38" },
-      { key: "positive", label: "正向措辞", condition: "对方每个正向措辞 +12；对方 ≥2 轮最多认 2 句（+24），只回 1 轮最多认 1 句（+12）", delta: Math.min(targetTurns >= 2 ? 24 : 12, 12 * positive2), hit: positive2 > 0, kind: "positive", detail: "对方正向措辞 " + positive2 + " 条 · 对方回合 " + targetTurns },
-      { key: "question", label: "对方提问", condition: "对方每提 1 个问题 +8", delta: 8 * question2, hit: question2 > 0, kind: "question", detail: "对方提问 " + question2 + " 条" },
-      { key: "sharing", label: "对方自我分享", condition: "对方每分享 1 条第一人称近况 +6", delta: 6 * sharing2, hit: sharing2 > 0, kind: "sharing", detail: "对方自我分享 " + sharing2 + " 条" },
-      { key: "warmCap", label: "正向合计上限 +45", condition: "措辞＋提问＋分享合计超过 45 时只算 45", delta: warm - rawWarm, hit: rawWarm > 45, detail: "正向合计原为 +" + rawWarm },
-      { key: "boundary", label: "负向或拒绝措辞", condition: "每句明确拒绝或边界 −24", delta: -24 * boundary2, hit: boundary2 > 0, kind: "negative", detail: "负向措辞 " + boundary2 + " 条" },
-      { key: "empty", label: "敷衍或低信息量回合（已排除摩擦、解释和明确负向）", condition: "−32 ×（敷衍回合＋低信息量回合）÷ 对方发言回合", delta: -Math.round(32 * emptyRate), hit: Math.round(32 * emptyRate) > 0, detail: "敷衍 " + perfunctoryCount + " 轮＋低信息量 " + lowContentCount + " 轮，对方 " + targetTurns + " 轮，比例 " + Math.round(emptyRate * 100) + "%" },
-      { key: "slow", label: "超过 2 小时才回", condition: "对方每次 ≥2 小时才回 −5", delta: -5 * slowReplies, hit: slowReplies > 0, detail: "慢回复 " + slowReplies + " 次" },
-      { key: "silent", label: "对方整天零回合", condition: "−24（与「单方独白 −18」取较大值，不叠加）", delta: -Math.max(oneSided, silentDay), hit: Math.max(oneSided, silentDay) > 0, detail: targetTurns === 0 ? "对方 0 轮，我方 " + selfMessages + " 条；该日同时符合低频日条件，最终按 32 记" : "对方仍有发言，本项不触发" },
-      { key: "thin", label: "只回 1 轮而我方连发", condition: "对方只回 1 轮、我方 ≥2 轮：按多出的轮次 −8~−16", delta: -thinDay, hit: thinDay > 0, detail: "我方 " + selfTurns + " 轮 / 对方 " + targetTurns + " 轮" },
-      { key: "initiative", label: "主动开口偏向", condition: "按 ≥2 小时切段，对方主动占比高于一半加分，越低扣分（−10~+10）", delta: initiative, hit: initiative !== 0, detail: "对方主动 " + targetStarts + " 次 / 我方 " + selfStarts + " 次" },
-      { key: "latency", label: "回复间隔调整", condition: "中位 ≤10 分钟 +6、≤30 分钟 +3、≤2 小时 0、≤6 小时 −7、>6 小时 −12", delta: latency, hit: latency !== 0, detail: "对方回复中位间隔 " + interval },
-      { key: "latencyOverlap", label: "回复时延重复扣分返还", condition: "慢回复次数与负向中位时延处罚取较重者", delta: latencyOverlap, hit: latencyOverlap > 0, detail: "返还重复扣分 " + latencyOverlap },
-      { key: "imbalance", label: "单方条数失衡", condition: "双方条数差 5 倍以上 −8，2.86 倍以上 −4", delta: -imbalancePenalty, hit: imbalancePenalty > 0, detail: "条数比 " + selfMessages + ":" + targetMessages },
-      { key: "tension", label: "摩擦或冷战", condition: "单句反讽 −12；同一对话段 2 轮摩擦或先摩擦后解释判较强摩擦：每处 −30（最多 60）、补一句 −10", delta: -rawTension, hit: tension > 0, detail: "反讽 " + conflictCount + " 处、事后解释 " + appeasementCount + " 条" + (strong ? "（判定为真吵起来）" : "（未达摩擦判定）") },
-      { key: "tensionCap", label: "摩擦扣分上限 −60", condition: "摩擦项最多 −60", delta: rawTension - tension, hit: rawTension > 60, detail: "摩擦原为 −" + rawTension },
-      { key: "coldCap", label: "扣分合计上限 −60", condition: "扣分合计最多 −60", delta: rawCold - cold, hit: rawCold > 60, detail: "本日扣分原为 −" + rawCold },
-      { key: "clamp", label: "结果限制 0–100", condition: "合计低于 0 记 0、高于 100 记 100", delta: computed - rawTotal, hit: computed !== rawTotal, detail: "按信号合计 " + rawTotal + " 分" },
-      { key: "quiet", label: "低频日中性能化", condition: "对方整天零回合，或当天来回不足 4 条、且没有正负向与敷衍证据 → 直接记 32", delta: picked - computed, hit: quiet, detail: "按信号本应为 " + computed + " 分，低频日改记 32" },
-      { key: "strongCap", label: "摩擦日总分封顶 48", condition: "判定为真吵起来时总分不超过 48", delta: score - picked, hit: strong && picked > 48, detail: strong ? "当日判定为真吵起来" : "当日未判定摩擦" }
-    ];
-    return { score, computed, picked, quiet, strong, items, counts: { positive: positive2, boundary: boundary2, question: question2, sharing: sharing2, perfunctoryCount, lowContentCount, slowReplies, selfStarts, targetStarts, selfMessages, targetMessages, medianMinutes, targetTurns, selfTurns, conflictCount, appeasementCount, totalMessages } };
+    const selfStarts = num(counts.selfStarts), targetStarts = num(counts.targetStarts);
+    if (!totalMessages && !targetTurns && !selfTurns) return null;
+    const positivePoints = Number.isFinite(counts.positivePoints) ? Math.min(6 * positive2, num(counts.positivePoints)) : 6 * positive2;
+    const emotionalSharingTurns = Math.min(sharing2, num(counts.emotionalSharingTurns));
+    const positiveBonus = Math.min(18, positivePoints), questionBonus = Math.min(8, 2 * question2), sharingBonus = Math.min(10, 2.5 * sharing2 + 1.5 * emotionalSharingTurns);
+    const responseBonus = Math.min(12, 12 * responsiveTurns / Math.max(4, targetTurns));
+    const rawWarm = positiveBonus + questionBonus + sharingBonus + responseBonus, warm = Math.min(45, rawWarm);
+    const initiative = selfTurns > 0 && targetTurns > 0 ? 4 * targetStarts / (selfStarts + targetStarts + 4) : 0;
+    const emptyRate = targetTurns ? Math.min(1, (perfunctoryCount + lowContentCount) / targetTurns) : 0;
+    const emptyPenalty = Math.round(16 * emptyRate), rawCold = 24 * boundary2 + emptyPenalty, cold = Math.min(60, rawCold);
+    const strong = typeof counts.strongConflict === "boolean" ? counts.strongConflict : conflictCount >= 2;
+    const rawTension = (strong ? 12 : 8) * conflictCount, tension = Math.min(strong ? 24 : 8, rawTension);
+    const rawTotal = 38 + warm + initiative - cold - tension;
+    const computed = Math.max(0, Math.min(100, Math.round(rawTotal)));
+    const quiet = totalMessages > 0 && (targetTurns === 0 || selfTurns + targetTurns < 4) && !positive2 && !question2 && !sharing2 && !responsiveTurns && !boundary2 && !conflictCount && !perfunctoryCount && !lowContentCount;
+    const picked = quiet ? 32 : computed, evidenceWeight = Math.min(1, targetTurns / 6);
+    const adjusted = picked > 32 ? Math.round(32 + (picked - 32) * evidenceWeight) : picked;
+    const conflictCapped = strong ? Math.min(adjusted, 48) : adjusted;
+    const score = boundary2 > 0 ? Math.min(conflictCapped, 32) : conflictCapped;
+    const medianMinutes = Number.isFinite(counts.medianMinutes) ? counts.medianMinutes : null;
+    const items = [];
+    const add = (key, label, condition, delta, detail, kind) => items.push({ key, label, condition, delta, hit: delta !== 0, detail, ...kind ? { kind } : {} });
+    add("base", "基础分", "沿用 38 起算；小样本向 32 折算", 38, "38");
+    add("positive", "正向措辞", "每回合取最强一项：礼貌 +1、关心支持或具体感谢 +4、明确亲近 +6；合计最多 +18", positiveBonus, "对方正向措辞 " + positive2 + " 回合，原始加分 " + positivePoints, "positive");
+    add("question", "对方提问", "每个命中回合 +2，最多 +8", questionBonus, "对方提问 " + question2 + " 回合", "question");
+    add("sharing", "对方自我分享", "普通分享每回合 +2.5；其中第一人称感受分享再 +1.5；合计最多 +10", sharingBonus, "对方分享 " + sharing2 + " 回合，其中感受分享 " + emotionalSharingTurns + " 回合", "sharing");
+    add("response", "有效回应", "回答或承接取并集，12 × 有效回应回合 ÷ max(4,对方回合)，最多 +12", responseBonus, "有效回应 " + responsiveTurns + " / " + targetTurns + " 回合");
+    add("warmCap", "正向合计上限 +45", "四项加分总计最多 45", warm - rawWarm, "原正向合计 " + Number(rawWarm.toFixed(2)));
+    add("initiative", "主动开口", "双方均有发言时，4 × 对方开口次数 ÷ (双方开口次数 + 4)", initiative, "对方主动 " + targetStarts + " 次 / 我方 " + selfStarts + " 次");
+    add("boundary", "负向或拒绝措辞", "每个命中回合 −24，最终分不超过 32", -24 * boundary2, "负向或边界 " + boundary2 + " 回合", "negative");
+    add("empty", "连续缺少有效回应", "已识别敷衍或低信息量回合占比 × −16，同轮不重复", -emptyPenalty, "敷衍 " + perfunctoryCount + " 轮，低信息量 " + lowContentCount + " 轮");
+    add("coldCap", "负向组上限 −60", "边界与短回复组最多扣 60", rawCold - cold, "原扣分 " + rawCold);
+    add("tension", "摩擦", "普通摩擦最多 −8；同段重复摩擦每轮 −12，最多 −24；解释不扣分", -tension, "摩擦 " + conflictCount + " 轮，解释 " + appeasementCount + " 轮");
+    add("latency", "回复间隔（仅展示）", "时延不直接加减分", 0, medianMinutes === null ? "无可用样本" : "中位间隔 " + medianMinutes + " 分钟");
+    add("clamp", "取整与范围限制", "四舍五入，限制 0–100", computed - rawTotal, "未取整合计 " + Number(rawTotal.toFixed(2)));
+    add("quiet", "低频日", "少量记录且无可评分信号时记 32", picked - computed, quiet ? "低频日按 32 记" : "未触发低频覆盖");
+    add("sampleAdjustment", "小样本折算", "超过 32 的部分乘以 min(1,对方回合数 ÷ 6)", adjusted - picked, "对方 " + targetTurns + " 回合；折算系数 " + evidenceWeight.toFixed(2));
+    add("strongCap", "重复摩擦封顶 48", "同段至少两个摩擦回合时，最终不超过 48", conflictCapped - adjusted, strong ? "触发同段重复摩擦" : "未触发");
+    add("boundaryCap", "明确边界封顶 32", "存在未被排除的负向或拒绝证据时，不被正向信号抵消", score - conflictCapped, boundary2 ? "触发边界上限" : "未触发");
+    return { score, computed, picked, quiet, strong, items, evidenceWeight, formulaVersion: "2.1", counts: { positive: positive2, positivePoints, emotionalSharingTurns, boundary: boundary2, question: question2, sharing: sharing2, perfunctoryCount, lowContentCount, responsiveTurns, selfStarts, targetStarts, selfMessages, targetMessages, medianMinutes, targetTurns, selfTurns, conflictCount, appeasementCount, totalMessages } };
   }
   function interactionScore(counts = {}) {
     const result = interactionScoreBreakdown(counts);
@@ -33068,7 +33138,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const c of text) hash4 = Math.imul(hash4 ^ c.charCodeAt(0), 16777619);
     return "interaction-" + (hash4 >>> 0).toString(36);
   }
-  var labels = { question: "对方提问", sharing: "对方自我分享", positive: "对方明确正向表达", boundary: "对方明确负向表达或边界", perfunctory: "敷衍或收尾回合", lowContent: "低信息量回合", conflict: "摩擦回合", appeasement: "解释回合", answer: "回答或接受建议", continuation: "承接或补充信息" };
+  var labels = { question: "对方提问", sharing: "对方自我分享", positive: "正向表达（含礼貌）", boundary: "对方明确负向表达或边界", perfunctory: "敷衍或收尾回合", lowContent: "低信息量回合", conflict: "摩擦回合", appeasement: "解释回合", answer: "回答或接受建议", continuation: "承接或补充信息" };
   function interactionCorrectionIndex(corrections = [], messages = []) {
     const legacy = /* @__PURE__ */ new Map();
     for (const message of messages) {
@@ -33099,7 +33169,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const indicators = Object.entries(interactionDetectors).map(([kind, detect]) => {
       const evidence = messages.filter((m) => m.sender === contact.target && detect(m.text)).map((message) => {
         const key = interactionEvidenceKey(message), correction = corrections.get(key + "|" + kind);
-        return { key, kind, message, quote: message.text, excluded: correction?.excluded === true, correction };
+        return { key, kind, message, quote: message.text, excluded: isInteractionExcluded(message, kind, corrections), correction, ...kind === "positive" ? { signal: positiveSignal(message.text) } : {} };
       });
       return { kind, label: labels[kind], count: evidence.filter((e) => !e.excluded).length, evidence };
     });
@@ -33123,13 +33193,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       prior = m.sender;
     }
     const selfMessages = messages.filter((m) => m.sender === contact.self).length;
-    return { engagementScore: interactionScore({ ...counts, positive: 0, ...engagement, messages: messages.length, selfMessages, targetMessages: messages.length - selfMessages }), messages: messages.length, turns, indicators, ambiguousCorrectionCount, ...engagement, score: interactionScore({ ...counts, ...engagement, messages: messages.length, selfMessages, targetMessages: messages.length - selfMessages }), confidence: Math.min(0.8, signals / 20), disclaimer: "互动线索指数仅汇总已识别表达，不是好感概率；置信度仅表示线索数量。" };
+    return { engagementScore: interactionScore({ ...counts, positive: 0, ...engagement, positiveTurns: 0, positivePoints: 0, messages: messages.length, selfMessages, targetMessages: messages.length - selfMessages }), messages: messages.length, turns, indicators, ambiguousCorrectionCount, ...engagement, score: interactionScore({ ...counts, ...engagement, messages: messages.length, selfMessages, targetMessages: messages.length - selfMessages }), confidence: Math.min(0.8, signals / 20), disclaimer: "互动线索指数仅汇总已识别表达，不是好感概率；置信度仅表示线索数量。" };
   }
   function correctInteraction(contact, action, now = Date.now()) {
     if (!Object.hasOwn(labels, action.kind) || typeof action.key !== "string") throw Error("互动纠正无效。");
     const found = analyzeInteractionMetrics(contact).indicators.find((i) => i.kind === action.kind)?.evidence.find((e) => e.key === action.key);
     if (!found) throw Error("原文已不存在，无法纠正。");
-    return { ...contact, interactionCorrections: [...contact.interactionCorrections || [], { key: action.key, kind: action.kind, excluded: action.excluded === true, note: String(action.note || "").slice(0, 300), at: now, ...found.messages ? { sources: found.messages.map((message) => ({ key: interactionEvidenceKey(message), text: message.text })) } : {} }] };
+    return { ...contact, interactionCorrections: [...contact.interactionCorrections || [], { key: action.key, kind: action.kind, excluded: action.excluded === true, note: String(action.note || "").slice(0, 300), at: now, sources: (found.messages || [found.message]).map((message) => ({ key: interactionEvidenceKey(message), text: message.text })) }] };
   }
 
   // src/analysis.js
@@ -33190,10 +33260,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       day.activityScore = Math.round(70 * day.messages.length / maxMessages + 30 * day.turns / maxTurns);
       day.activityDelta = Math.round(day.messages.length - averageMessages);
       const engagement = engagements.get(day.date);
-      Object.assign(day, { scenes: engagement.scenes, answeredTurns: engagement.answeredTurns, continuedTurns: engagement.continuedTurns, selfTurns: engagement.selfTurns, strongConflict: engagement.strongConflict, selfStarts: engagement.selfStarts, targetStarts: engagement.targetStarts, medianReplyMinutes: engagement.medianMinutes, slowReplies: engagement.slowReplies, perfunctoryReplies: engagement.perfunctoryReplies, lowContentReplies: engagement.lowContentReplies, targetTurns: engagement.targetTurns, conflictReplies: engagement.conflictReplies, appeasementReplies: engagement.appeasementReplies, replySamples: engagement.replySamples, initiator: engagement.selfStarts === engagement.targetStarts ? "balanced" : engagement.targetStarts > engagement.selfStarts ? "target" : "self" });
+      Object.assign(day, { positivePoints: engagement.positivePoints, emotionalSharingTurns: engagement.emotionalSharingTurns, positiveTurns: engagement.positiveTurns, questionTurns: engagement.questionTurns, sharingTurns: engagement.sharingTurns, boundaryTurns: engagement.boundaryTurns, responsiveTurns: engagement.responsiveTurns, scenes: engagement.scenes, answeredTurns: engagement.answeredTurns, continuedTurns: engagement.continuedTurns, selfTurns: engagement.selfTurns, strongConflict: engagement.strongConflict, selfStarts: engagement.selfStarts, targetStarts: engagement.targetStarts, medianReplyMinutes: engagement.medianMinutes, slowReplies: engagement.slowReplies, perfunctoryReplies: engagement.perfunctoryReplies, lowContentReplies: engagement.lowContentReplies, targetTurns: engagement.targetTurns, conflictReplies: engagement.conflictReplies, appeasementReplies: engagement.appeasementReplies, replySamples: engagement.replySamples, initiator: engagement.selfStarts === engagement.targetStarts ? "balanced" : engagement.targetStarts > engagement.selfStarts ? "target" : "self" });
       const signalCount = day.positiveCues + day.negativeCues + day.targetQuestions + day.targetShares + day.perfunctoryReplies + day.slowReplies + day.targetStarts + day.selfStarts;
       day.affinityScore = interactionScore({ positive: day.positiveCues, boundary: day.negativeCues, question: day.targetQuestions, sharing: day.targetShares, ...engagement, messages: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages });
-      day.engagementScore = interactionScore({ positive: 0, boundary: day.negativeCues, question: day.targetQuestions, sharing: day.targetShares, ...engagement, messages: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages });
+      day.engagementScore = interactionScore({ positive: 0, boundary: day.negativeCues, question: day.targetQuestions, sharing: day.targetShares, ...engagement, positiveTurns: 0, positivePoints: 0, messages: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages });
       day.affinitySignalCount = signalCount;
       day.affinityChange = day.affinityScore === null || previousAffinity === null ? null : day.affinityScore - previousAffinity;
       if (day.affinityScore !== null) previousAffinity = day.affinityScore;
@@ -33213,7 +33283,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (day.conflictReplies) extra.push(`反讽或赌气 ${day.conflictReplies} 处`);
         if (day.appeasementReplies) extra.push(`事后解释 ${day.appeasementReplies} 条`);
         if (day.targetTurns === 1 && day.selfTurns >= 2) extra.push("对方只回 1 轮，我方多轮独白");
-        if (!day.targetTurns && day.messages.length) extra.push("对方整日未开口，记为冷场");
+        if (!day.targetTurns && day.messages.length) extra.push("对方当日无可评分回合，样本不足");
         if (interval) extra.push(`回复中位间隔 ${interval}`);
         day.affinityNote = (day.targetTurns <= 1 && day.messages.length < 6 ? "（样本过少，仅供参考）" : "") + `对方正向表达 ${day.positiveCues} 条、负向或拒绝表达 ${day.negativeCues} 条、提问 ${day.targetQuestions} 条、自我分享 ${day.targetShares} 条${extra.length ? "；" + extra.join("、") : ""}；开口主动 对方 ${day.targetStarts} 次 / 你 ${day.selfStarts} 次。`;
       }
@@ -33393,8 +33463,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   // src/preference-evidence.js
   function extractPreferenceEvidence(value) {
     const result = { positive: [], negative: [], ambiguous: [] };
-    const clauses = String(value || "").split(/[，,。；;！!？?\n]|(?:但是|但后来|但现在|但|不过|可是|然而)/u).map((s) => s.trim()).filter(Boolean);
-    for (const quote of clauses) {
+    const clauses2 = String(value || "").split(/[，,。；;！!？?\n]|(?:但是|但后来|但现在|但|不过|可是|然而)/u).map((s) => s.trim()).filter(Boolean);
+    for (const quote of clauses2) {
       if (/[“”「」『』"]|(?:他说|她说|别人|朋友|你|他|她).{0,5}(?:喜欢|感兴趣)|(?:不是不|没有不|不讨厌|不反感|不是没|不一定|不是很|并不是|不算|算不上|不觉得|谈不上|如果|假如|可能|也许|曾经|以前|为什么|哪种|是否)|喜欢什么|(?:吗|么|呢)$/u.test(quote)) {
         result.ambiguous.push(quote);
         continue;
@@ -34236,7 +34306,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
   // src/views/scoring-basis.js
   var MONTH_FOLD_TURNS = 20;
-  var fmtDelta = (value) => value > 0 ? "+" + value : value < 0 ? "−" + Math.abs(value) : "0";
+  var fmtDelta = (value) => {
+    const rounded = Math.round(Math.abs(value) * 100) / 100;
+    return rounded === 0 ? "0" : (value > 0 ? "+" : "−") + rounded;
+  };
   var signedRow = (value) => value > 0 ? "rn-scoring-pos" : value < 0 ? "rn-scoring-neg" : "rn-muted";
   var NAV_STYLE = { minHeight: 44, minWidth: 44, fontSize: 13 };
   var SMALL = { fontSize: 12 };
@@ -34257,17 +34330,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const negatives = breakdown.items.filter((item) => item.hit && item.delta < 0 && item.key !== "clamp").sort((a, b) => a.delta - b.delta);
     const positives = breakdown.items.filter((item) => item.hit && item.delta > 0 && item.key !== "base");
     if (breakdown.quiet) {
-      const why = day.targetTurns === 0 ? "对方整天一个回合都没开口" : "当天来回只有 " + day.messages.length + " 条";
-      return "低频日：" + why + "，且没有正负向、敷衍或低信息量证据，按口径直接记中性 32 分（按信号本应为 " + breakdown.computed + " 分，未采用）。";
+      const why = day.targetTurns === 0 ? "对方整天一个回合都没开口" : "当天双方合计只有 " + ((day.selfTurns || 0) + (day.targetTurns || 0)) + " 个回合";
+      return "低频日：" + why + "，且没有正向、提问、分享、有效回应、边界、摩擦或短回复证据，按口径直接记中性 32 分（按信号本应为 " + breakdown.computed + " 分，未采用）。";
     }
     if (breakdown.score < 32) {
       const parts = negatives.slice(0, 4).map((item) => item.label + "（" + fmtDelta(item.delta) + "）").join("、");
       const plus = positives.length ? positives.map((item) => item.label + "（" + fmtDelta(item.delta) + "）").join("、") : "无正向线索";
       const empty = breakdown.items.find((item) => item.key === "empty");
-      return "低于 32 分的原因：" + parts + "；加分项只剩 " + plus + "。这天不属于低频日（对方发言 " + (day.targetTurns || 0) + " 轮、来回 " + day.messages.length + " 条" + (empty && empty.hit ? "，且有敷衍/低信息量证据" : "") + "），所以没有按键入 32 处理。";
+      return "当天低于 32 分，命中的负向证据：" + parts + "；正向证据：" + plus + "。对方发言 " + (day.targetTurns || 0) + " 轮、来回 " + day.messages.length + " 条" + (empty && empty.hit ? "，包含持续短回复证据" : "") + "，按实际证据计分。";
     }
     const neg = negatives.length ? negatives.slice(0, 3).map((item) => item.label + "（" + fmtDelta(item.delta) + "）").join("、") : "无扣分项";
-    return "当天得分 " + breakdown.score + " = 38 基础分 " + positives.map((item) => item.label + "（" + fmtDelta(item.delta) + "）").join(" ") + "，扣分：" + neg + "。";
+    return "当天得分 " + breakdown.score + "，从 38 起算。加分：" + (positives.map((item) => item.label + "（" + fmtDelta(item.delta) + "）").join("、") || "无") + "；扣分及折算：" + neg + "。完整加减项见下表。";
   }
   function createScoringBasisView(React2, E) {
     const h = React2.createElement;
@@ -34279,7 +34352,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const foundIndex = days.findIndex((day2) => day2.date === date);
       const index = foundIndex >= 0 ? foundIndex : days.length - 1;
       const day = days[index];
-      const breakdown = E.interactionScoreBreakdown({ positive: day.positiveCues, boundary: day.negativeCues, question: day.targetQuestions, sharing: day.targetShares, selfStarts: day.selfStarts, targetStarts: day.targetStarts, medianMinutes: day.medianReplyMinutes, slowReplies: day.slowReplies, perfunctoryReplies: day.perfunctoryReplies, lowContentReplies: day.lowContentReplies, targetTurns: day.targetTurns, selfTurns: day.selfTurns, strongConflict: day.strongConflict, conflictReplies: day.conflictReplies, appeasementReplies: day.appeasementReplies, messages: (day.messages || []).length, selfMessages: day.selfMessages, targetMessages: day.targetMessages });
+      const breakdown = E.interactionScoreBreakdown({ positivePoints: day.positivePoints, emotionalSharingTurns: day.emotionalSharingTurns, positiveTurns: day.positiveTurns, questionTurns: day.questionTurns, sharingTurns: day.sharingTurns, boundaryTurns: day.boundaryTurns, responsiveTurns: day.responsiveTurns, answeredTurns: day.answeredTurns, continuedTurns: day.continuedTurns, positive: day.positiveCues, boundary: day.negativeCues, question: day.targetQuestions, sharing: day.targetShares, selfStarts: day.selfStarts, targetStarts: day.targetStarts, medianMinutes: day.medianReplyMinutes, slowReplies: day.slowReplies, perfunctoryReplies: day.perfunctoryReplies, lowContentReplies: day.lowContentReplies, targetTurns: day.targetTurns, selfTurns: day.selfTurns, strongConflict: day.strongConflict, conflictReplies: day.conflictReplies, appeasementReplies: day.appeasementReplies, messages: (day.messages || []).length, selfMessages: day.selfMessages, targetMessages: day.targetMessages });
       const go = (step) => {
         const next = days[index + step];
         if (next && onDateChange) onDateChange(next.date);
@@ -34318,14 +34391,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         h("td", null, evidenceCell(item))
       ));
       const table = h("table", { "aria-label": "当天打分分项拆解" }, tableHead, h("tbody", null, ...rows));
-      const totalLine = h("p", { className: "rn-muted", style: SMALL }, "合计：38 " + breakdown.items.filter((item) => item.key !== "base").map((item) => fmtDelta(item.delta)).join(" ") + " = " + breakdown.score + " 分。结果限制 0–100，扣分合计最多 −60，真吵起来当天总分封顶 48。");
+      const totalLine = h("p", { className: "rn-muted", style: SMALL }, "合计：38 " + breakdown.items.filter((item) => item.key !== "base").map((item) => fmtDelta(item.delta)).join(" ") + " = " + breakdown.score + " 分。结果限制 0–100；负向组最多扣 60，摩擦组最多扣 24；不足 6 回合的正向部分折算，较强摩擦封顶 48，明确边界封顶 32。分项最多显示两位小数，合计使用未舍入值。");
       const links = h(
         "div",
         { style: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 } },
         h("button", { type: "button", style: NAV_STYLE, onClick: () => onOpenRules && onOpenRules() }, "查看完整评分规则"),
         h("button", { type: "button", style: NAV_STYLE, onClick: () => onOpenDaily && onOpenDaily(day.date) }, "打开每日历程")
       );
-      const footnote = h("p", { className: "rn-muted", style: SMALL }, "仅按识别到的聊天记录与本地规则计算，不代表对方真实想法；同一天的分与「互动评分」页一致。");
+      const footnote = h("p", { className: "rn-muted", style: SMALL }, "本分与每日历程的好感线索日分同源；互动投入分排除正向表达项，另行计算。权重是工程启发式，不表示好感概率，历史记录按新规则重算。");
       return h("section", { className: "rn-box" }, title, toolbar, position, h("div", { className: "rn-metrics" }, ...metricCards), why, whyText, monthLine, h("h3", null, "分项拆解"), table, totalLine, links, footnote);
     };
   }
@@ -34811,19 +34884,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const rejected = /(?:本地规则识别到|形成好感线索分|原文不足以判断|证据不足|无法(?:从聊天记录|由聊天记录|据此)?(?:判断|证明|推断)|不能(?:从聊天记录|据此)?(?:判断|证明|推断)|不等于真实好感|不代表真实好感|真实好感|心理动机|真实原因|其他原因)/u;
     return String(value || "").replace(/\s+/g, " ").split(/(?<=[，,；;。！？!?])/u).filter((part) => !rejected.test(part)).join("").replace(/[，,；;]+([。！？!?])/g, "$1").replace(/^[，,；;]+|[，,；;]+$/g, "").trim();
   }
-  var AFFINITY_RULE_TEXT = "38 + 正向措辞（每条 +12；对方 ≥2 回合最多 +24，否则最多 +12）+ 8×对方提问 + 6×对方自我分享（正向合计最多 +45）− 24×负向/拒绝措辞 − 32×（敷衍＋低信息量回合 ÷ 对方回合）− 5×慢回复次数 + 时延重复扣分返还（次数处罚与负向中位时延取较重者）− 24（对方零回合，与「单方独白 −18」取较大值，不叠加）− 8~16（对方 1 回合、我方 2/≥3 回合）+ 主动开口偏向 + 回复间隔调整（≤10/30/120/360 分钟分别 +6/+3/0/−7，其余 −12）− 条数失衡；负向组扣分合计最多 −60，结果限制在 0–100，摩擦另按同段时序判断，较强摩擦总分封顶 48；月/年对方实际总回合不足 20 且均分高于 32，高于 32 的部分乘以实际回合数/20；低频日（对方零回合或不足 4 条，且无正负向、摩擦、敷衍和低信息量）直接记中性 32 分；月/年按 max(1,当天对方回合数)加权，对方零回合的日期权重为 1，折算阈值使用实际回合数，一两句寒暄撑不起整月；提问按分句识别，引用和转述排除，摩擦/解释/明确负向不叠加敷衍与低信息量，四类消息及四类回合信号均可纠正恢复，系统和媒体占位排除，短回应先按中性，连续 3 轮无有效回应才判短回复处罚，投入分不含明确正向加分，正向原文另列";
+  var AFFINITY_RULE_TEXT = "38 + 正向表达（每回合取最强层级：礼貌 1／支持 4／亲近 6，最多 +18）+ 提问（每回合 +2，最多 +8）+ 自我分享（普通分享 +2.5，感受分享 +4，合计最多 +10）+ 有效回应（12×回应回合÷max(4,对方回合)，最多 +12）+ 主动开口（4×对方主动次数÷(双方主动总次数+4)）− 负向组（24×边界回合+round(16×短回复占比)，最多 60）− 摩擦（普通最多 8，较强每回合 12、最多 24）；正向四项合计最多 +45，主动加分要求双方均有发言回合，时延、条数失衡与单方连发不直接扣分，解释不升级摩擦；结果限制在 0–100，对方不足 6 回合时高于 32 的部分乘以回合数/6，较强摩擦总分封顶 48，明确边界总分封顶 32；低频日（对方零回合或双方合计不足 4 回合，且无正向、提问、分享、有效回应、边界、摩擦或短回复证据）直接记中性 32 分，完全无记录留缺口；月/年按 max(1,当天对方回合数)加权，实际总回合不足 20 时高于 32 的部分再乘以实际回合数/20；同类命中按回合计分，礼貌不等同亲近，原文展示分层标签，回答与承接同轮只加一次，人工排除后重算，权重是工程启发式而非好感概率，历史曲线按新规则重新计算";
   var RULE_SECTIONS = [
     { id: "affinity", title: "好感线索分" },
     { id: "balance", title: "互动均衡分", value: "round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))" },
-    { id: "active", title: "主动开口", detail: "按 ≥2 小时间隔切分对话段，记每段第一句由谁发出；对方主动占比越高加分越多" },
-    { id: "reply", title: "回复间隔", detail: "取对方在你发言后回复的时延中位数；≥2 小时计慢回复；次数处罚与负向中位时延取较重者" },
-    { id: "perfunctory", title: "敷衍程度", detail: "同一人 3 分钟内连发的短句先合并成一轮再判定：单次简短回应和笑声按中性；结合上一轮的问题、建议和话题识别有效回应；连续 3 轮无有效回应，或明确结束话题，才计入短回复处罚；排除摩擦、解释和明确负向，支持按回合纠正" },
-    { id: "monologue", title: "单方独白", detail: "当天只有你发言扣 24、双方条数比低于 1:5 时扣分；她只回 1 轮而我方多轮时另扣 8–16" },
-    { id: "conflict", title: "摩擦/冷战", detail: "单轮摩擦最多扣 12；同一对话段（相邻回合间隔 <2 小时）至少 2 轮摩擦，或先摩擦后解释时判较强摩擦，每处扣 30（最多 60）、解释每轮扣 10，本项最多扣 60，总分封顶 48；转述、引用、跨段和逆序解释不触发较强摩擦" },
-    { id: "turns", title: "交流轮次", detail: "同一人相邻消息间隔不超过 3 分钟合为一轮，其余增加一轮" },
-    { id: "question", title: "直接提问", detail: "分句检查问号、句末吗/嘛或明确征询词；排除反问，道谢不遮挡其他分句的问题" },
-    { id: "sharing", title: "第一人称分享", detail: "第一人称兴趣、活动等文本线索" },
-    { id: "boundary", title: "明确边界", detail: "停止联系、不要打扰等明确措辞" }
+    { id: "active", title: "主动开口", detail: "按 ≥2 小时间隔切分对话段，记每段第一句由谁发出；双方均有发言回合时，主动加分为 4×对方主动次数÷(双方主动总次数+4)，不会因少主动扣分" },
+    { id: "reply", title: "回复间隔", detail: "展示回复时延中位数和 ≥2 小时的样本数；这些时间统计不直接加减分，异步沟通、工作与休息均可能影响时延" },
+    { id: "perfunctory", title: "敷衍程度", detail: "同一人 3 分钟内连发先合并成一轮，单次短回应和笑声按中性；先结合问题、建议和话题判断有效回应，连续 3 轮无有效回应才识别短回复；忙碌、休息和普通收尾不触发短回复处罚，排除摩擦、解释和明确负向，按回合占比扣分、最多 16，支持纠正" },
+    { id: "monologue", title: "单方独白", detail: "对方零回合和双方条数差仅作记录，不直接扣分；没有其他有效证据的低频日记中性 32 分" },
+    { id: "conflict", title: "摩擦/冷战", detail: "普通摩擦最多扣 8，同一对话段至少 2 轮摩擦才判较强摩擦，每轮扣 12、最多 24，总分封顶 48；解释不升级摩擦、不额外扣分，引用、转述及外部事件抱怨不作为对双方关系的摩擦证据" },
+    { id: "turns", title: "交流轮次", detail: "同一人相邻消息间隔不超过 3 分钟合为一轮，午夜切分但保留上下文；同类正向、提问、分享和边界按回合计分，原文消息数独立展示" },
+    { id: "question", title: "直接提问", detail: "分句检查问号、句末吗/嘛或明确征询词，排除反问；每回合最多计一次，提问加分最多 8" },
+    { id: "sharing", title: "第一人称分享", detail: "第一人称兴趣、活动等分享普通分享 +2.5，感受分享 +4，自己的感受分享再 +1.5，合计最多 10；排除引用、要求对方执行和假设表达，感受的正负与强烈程度不额外改变权重；结合上一轮感受或好消息识别支持回应，归入承接，回答与承接同轮只计一次、最多 12" },
+    { id: "boundary", title: "明确边界", detail: "停止联系、不要打扰等明确措辞含礼貌请求，按回合计数，每回合扣 24，并将总分封顶 32；否定拒绝的安抚表达不算拒绝，不因其他正向信号忽略明确边界" }
   ];
   function splitTopLevel(text, delimiter) {
     const parts = [];
@@ -34884,8 +34957,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return lines;
   }
   function parseAffinityRule(text = AFFINITY_RULE_TEXT) {
-    const clauses = splitRuleClauses(text);
-    return { terms: splitRuleTerms(clauses[0] || ""), notes: clauses.slice(1) };
+    const clauses2 = splitRuleClauses(text);
+    return { terms: splitRuleTerms(clauses2[0] || ""), notes: clauses2.slice(1) };
   }
   function scoreBucketState(bucket) {
     if (bucket && typeof bucket.averageAffinity === "number") return bucket.averageAffinity < 40 ? "low" : "scored";
@@ -35614,7 +35687,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         };
         const metricValues = [
           [analysis.engagementScore, "互动投入分"],
-          [analysis.indicators.find((item) => item.kind === "positive").count, "明确正向表达条数"],
+          [analysis.indicators.find((item) => item.kind === "positive").count, "正向表达条数"],
           [analysis.answeredTurns, "回应问题回合"],
           [analysis.continuedTurns, "承接话题回合"]
         ];
@@ -35630,13 +35703,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const initiativeSummary = Object.entries(sceneLabels).map(([key, label]) => label + " " + analysis.startsByScene[key]).join("，");
         return box(
           "互动投入与表达证据",
-          muted("系统与媒体占位排除计分；短回复结合上一轮问题、建议及话题判断。"),
+          muted("系统与媒体占位排除计分；有效回答和承接同轮只计一次。分数表示可观察线索，权重未经好感概率校准。"),
           h("div", { className: "rn-metrics" }, ...metricCards),
           h("p", null, "对方回合场景：" + sceneSummary),
           h("p", null, "主动发起场景：" + initiativeSummary),
           ...sceneRows,
           analysis.ambiguousCorrectionCount > 0 && h("p", { role: "status" }, "有 " + analysis.ambiguousCorrectionCount + " 条旧纠正无法唯一定位，请重新核对原文。"),
-          ...analysis.indicators.map((indicator) => h("details", { key: indicator.kind }, h("summary", null, indicator.label + " · " + indicator.count + " 条"), ...indicator.evidence.map((row, index) => h("article", { className: "rn-message", key: row.key + index }, h("blockquote", null, row.quote), source(row.message), h("small", null, row.excluded ? "已排除此项识别" : "计入指标"), button(row.excluded ? "恢复识别" : "标记误识别", () => correct(row, !row.excluded)))))),
+          ...analysis.indicators.map((indicator) => h("details", { key: indicator.kind }, h("summary", null, indicator.label + " · " + indicator.count + " 条"), ...indicator.evidence.map((row, index) => h("article", { className: "rn-message", key: row.key + index }, h("blockquote", null, row.quote), row.signal && h("small", { className: "rn-muted" }, row.signal.label + " · 同轮取最高层级"), source(row.message), h("small", null, row.excluded ? "已排除此项识别" : "计入指标"), button(row.excluded ? "恢复识别" : "标记误识别", () => correct(row, !row.excluded)))))),
           h("details", null, h("summary", null, "纠正历史"), ...(contact.interactionCorrections || []).map((item, index) => h("p", { key: index }, formatChatTimestamp(item.at || item.createdAt) + " · " + item.kind + " · " + (item.excluded ? "排除" : "恢复") + " · " + (item.note || ""))))
         );
       }
@@ -35846,14 +35919,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           set({ behaviorDate: value });
           nav("behavior", "daily");
         }, onOpenRules: () => nav("behavior", "rules") });
-        if (tab === "rules") return box("评分与识别规则", muted("按当前本地算法逐项展示。回合分类支持人工纠正，时延重复扣分已去重，较强摩擦结合对话段和先后顺序判断。"), h("div", { className: "rn-rules" }, ...RULE_SECTIONS.map((section) => {
+        if (tab === "rules") return box("评分与识别规则", muted("评分 v2.1 使用可核对的回合证据，支持人工纠正。权重是工程启发式，不表示真实好感概率；历史曲线按新规则重新计算。"), h("div", { className: "rn-rules" }, ...RULE_SECTIONS.map((section) => {
           if (section.id === "affinity") {
             const rule = parseAffinityRule();
             return h("article", { className: "rn-rule-card", key: section.id }, h("h3", null, section.title, h("code", { className: "rn-rule-value" }, "38 分起算 · 逐项加减 · 结果限制 0–100")), h("ol", { className: "rn-rule-formula" }, ...rule.terms.map((term, index) => h("li", { key: "affinity-term-" + index }, h("b", null, index === 0 ? "基准" : term.sign), " ", term.text))), h("ul", { className: "rn-rule-notes" }, ...rule.notes.flatMap((note, noteIndex) => splitRuleLines(note).map((line, lineIndex) => h("li", { key: "affinity-note-" + noteIndex + "-" + lineIndex }, line)))));
           }
           return h("article", { className: "rn-rule-card", key: section.id }, h("h3", null, section.title, section.value && h("code", { className: "rn-rule-value" }, section.value)), section.detail ? (function() {
-            const clauses = splitRuleClauses(section.detail);
-            if (clauses.length > 1) return h("ul", { className: "rn-rule-notes" }, ...clauses.flatMap((clause, clauseIndex) => splitRuleLines(clause).map((line, lineIndex) => h("li", { key: "rule-clause-" + clauseIndex + "-" + lineIndex }, line))));
+            const clauses2 = splitRuleClauses(section.detail);
+            if (clauses2.length > 1) return h("ul", { className: "rn-rule-notes" }, ...clauses2.flatMap((clause, clauseIndex) => splitRuleLines(clause).map((line, lineIndex) => h("li", { key: "rule-clause-" + clauseIndex + "-" + lineIndex }, line))));
             return h("p", null, section.detail);
           })() : null);
         })));
@@ -35875,7 +35948,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             h("div", { className: "rn-evidence-pager" }, button("上一页", () => setEvidencePage(view.page - 1), { disabled: view.page <= 1 }), h("span", { className: "rn-evidence-page" }, `第 ${view.page} / ${view.pageCount} 页`), button("下一页", () => setEvidencePage(view.page + 1), { disabled: view.page >= view.pageCount }), view.searching ? button("清除搜索", clearSearch) : null)
           );
         }
-        return h("div", null, h(InteractionEvidence, { contact }), h("div", { className: "rn-metrics" }, ...[[contact.messages.length, "完整记录", ""], [a.messageBalanceScore === null ? "—" : a.messageBalanceScore, "互动均衡分", "口径：只比较双方发言条数是否接近，100 表示条数持平。"], [affinityAverage === null ? "—" : affinityAverage, "互动投入均分", "口径：按回应、提问、分享及回合计算投入，38 分起算，明确正向表达另列证据。"], [a.scoringTurns, "交流轮次", ""], [a.boundaryCount, "明确边界", ""], [media.image, "图片附件", ""], [media.video, "视频附件", ""]].map(([value, label, note]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value), note && h("small", { className: "rn-metric-note" }, note)))), h("p", { className: "rn-metric-scale" }, "互动均衡分与互动投入均分不是同一标尺，不可直接相比：前者数的是双方发言条数，后者按上下文与回合计算投入。"), h("details", { className: "rn-metric-why" }, h("summary", null, "两个分数各自怎么算"), h("p", null, "互动均衡分按双方发言条数计算；投入分结合上下文：由正向措辞、负向/拒绝措辞、提问、自我分享，再结合主动开口次数、对方回复中位间隔、敷衍或低信息量回合占比与条数失衡计算。")), box("统计依据", h("p", null, a.summary), h("p", null, `${contact.self}：${a.selfCount} 条；${contact.target}：${a.targetCount} 条；双方共 ${a.total} 条消息。`), h("p", null, affinityAverage === null ? "互动投入均分 —" : `互动投入均分 ${affinityAverage} / 100`), h("p", null, `媒体附件：图片 ${media.image}、视频 ${media.video}、语音 ${media.audio}、表情 ${media.sticker}。可在联系人档案 → 图片与视频中逐项分析。`), h("div", { className: "rn-actions" }, button("查看每日历程", () => nav("behavior", "daily")), button("核对原文记录", () => nav("behavior", "evidence")), button("查看打分依据", () => nav("behavior", "basis")), button("查看评分规则", () => nav("behavior", "rules")))));
+        return h("div", null, h(InteractionEvidence, { contact }), h("div", { className: "rn-metrics" }, ...[[contact.messages.length, "完整记录", ""], [a.messageBalanceScore === null ? "—" : a.messageBalanceScore, "互动均衡分", "口径：只比较双方发言条数是否接近，100 表示条数持平。"], [affinityAverage === null ? "—" : affinityAverage, "互动投入均分", "口径：按回应、提问、分享及回合计算投入，38 分起算，正向表达按礼貌、支持与亲近分层列出证据。"], [a.scoringTurns, "交流轮次", ""], [a.boundaryCount, "明确边界", ""], [media.image, "图片附件", ""], [media.video, "视频附件", ""]].map(([value, label, note]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value), note && h("small", { className: "rn-metric-note" }, note)))), h("p", { className: "rn-metric-scale" }, "互动均衡分与互动投入均分不是同一标尺，不可直接相比：前者数的是双方发言条数，后者按上下文与回合计算投入。"), h("details", { className: "rn-metric-why" }, h("summary", null, "两个分数各自怎么算"), h("p", null, "互动均衡分按双方发言条数计算；投入分结合上下文：回答或承接、提问、分享与主动开口加分，明确边界、持续短回复和摩擦扣分。投入分排除正向表达项，回复时延与条数失衡只作统计；样本不足时向 32 折算。")), box("统计依据", h("p", null, a.summary), h("p", null, `${contact.self}：${a.selfCount} 条；${contact.target}：${a.targetCount} 条；双方共 ${a.total} 条消息。`), h("p", null, affinityAverage === null ? "互动投入均分 —" : `互动投入均分 ${affinityAverage} / 100`), h("p", null, `媒体附件：图片 ${media.image}、视频 ${media.video}、语音 ${media.audio}、表情 ${media.sticker}。可在联系人档案 → 图片与视频中逐项分析。`), h("div", { className: "rn-actions" }, button("查看每日历程", () => nav("behavior", "daily")), button("核对原文记录", () => nav("behavior", "evidence")), button("查看打分依据", () => nav("behavior", "basis")), button("查看评分规则", () => nav("behavior", "rules")))));
       }
       function Goals({ s, contact, tab }) {
         const [title, setTitle] = React2.useState(""), [dueDate, setDueDate] = React2.useState(""), [linkedDate, setLinkedDate] = React2.useState("");

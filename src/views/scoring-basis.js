@@ -1,5 +1,5 @@
 const MONTH_FOLD_TURNS=20;
-const fmtDelta=value=>value>0?'+'+value:value<0?'−'+Math.abs(value):'0';
+const fmtDelta=value=>{const rounded=Math.round(Math.abs(value)*100)/100;return rounded===0?'0':(value>0?'+':'−')+rounded;};
 const signedRow=value=>value>0?'rn-scoring-pos':value<0?'rn-scoring-neg':'rn-muted';
 const NAV_STYLE={minHeight:44,minWidth:44,fontSize:13};
 const SMALL={fontSize:12};
@@ -15,17 +15,17 @@ function conclusion(day,breakdown){
  const negatives=breakdown.items.filter(item=>item.hit&&item.delta<0&&item.key!=='clamp').sort((a,b)=>a.delta-b.delta);
  const positives=breakdown.items.filter(item=>item.hit&&item.delta>0&&item.key!=='base');
  if(breakdown.quiet){
-  const why=day.targetTurns===0?'对方整天一个回合都没开口':'当天来回只有 '+day.messages.length+' 条';
-  return '低频日：'+why+'，且没有正负向、敷衍或低信息量证据，按口径直接记中性 32 分（按信号本应为 '+breakdown.computed+' 分，未采用）。';
+  const why=day.targetTurns===0?'对方整天一个回合都没开口':'当天双方合计只有 '+((day.selfTurns||0)+(day.targetTurns||0))+' 个回合';
+  return '低频日：'+why+'，且没有正向、提问、分享、有效回应、边界、摩擦或短回复证据，按口径直接记中性 32 分（按信号本应为 '+breakdown.computed+' 分，未采用）。';
  }
  if(breakdown.score<32){
   const parts=negatives.slice(0,4).map(item=>item.label+'（'+fmtDelta(item.delta)+'）').join('、');
   const plus=positives.length?positives.map(item=>item.label+'（'+fmtDelta(item.delta)+'）').join('、'):'无正向线索';
   const empty=breakdown.items.find(item=>item.key==='empty');
-  return '低于 32 分的原因：'+parts+'；加分项只剩 '+plus+'。这天不属于低频日（对方发言 '+(day.targetTurns||0)+' 轮、来回 '+day.messages.length+' 条'+(empty&&empty.hit?'，且有敷衍/低信息量证据':'')+'），所以没有按键入 32 处理。';
+  return '当天低于 32 分，命中的负向证据：'+parts+'；正向证据：'+plus+'。对方发言 '+(day.targetTurns||0)+' 轮、来回 '+day.messages.length+' 条'+(empty&&empty.hit?'，包含持续短回复证据':'')+'，按实际证据计分。';
  }
  const neg=negatives.length?negatives.slice(0,3).map(item=>item.label+'（'+fmtDelta(item.delta)+'）').join('、'):'无扣分项';
- return '当天得分 '+breakdown.score+' = 38 基础分 '+positives.map(item=>item.label+'（'+fmtDelta(item.delta)+'）').join(' ')+'，扣分：'+neg+'。';
+ return '当天得分 '+breakdown.score+'，从 38 起算。加分：'+(positives.map(item=>item.label+'（'+fmtDelta(item.delta)+'）').join('、')||'无')+'；扣分及折算：'+neg+'。完整加减项见下表。';
 }
 export function createScoringBasisView(React,E){
  const h=React.createElement;
@@ -37,7 +37,7 @@ export function createScoringBasisView(React,E){
   const foundIndex=days.findIndex(day=>day.date===date);
   const index=foundIndex>=0?foundIndex:days.length-1;
   const day=days[index];
-  const breakdown=E.interactionScoreBreakdown({positive:day.positiveCues,boundary:day.negativeCues,question:day.targetQuestions,sharing:day.targetShares,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,slowReplies:day.slowReplies,perfunctoryReplies:day.perfunctoryReplies,lowContentReplies:day.lowContentReplies,targetTurns:day.targetTurns,selfTurns:day.selfTurns,strongConflict:day.strongConflict,conflictReplies:day.conflictReplies,appeasementReplies:day.appeasementReplies,messages:(day.messages||[]).length,selfMessages:day.selfMessages,targetMessages:day.targetMessages});
+  const breakdown=E.interactionScoreBreakdown({positivePoints:day.positivePoints,emotionalSharingTurns:day.emotionalSharingTurns,positiveTurns:day.positiveTurns,questionTurns:day.questionTurns,sharingTurns:day.sharingTurns,boundaryTurns:day.boundaryTurns,responsiveTurns:day.responsiveTurns,answeredTurns:day.answeredTurns,continuedTurns:day.continuedTurns,positive:day.positiveCues,boundary:day.negativeCues,question:day.targetQuestions,sharing:day.targetShares,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,slowReplies:day.slowReplies,perfunctoryReplies:day.perfunctoryReplies,lowContentReplies:day.lowContentReplies,targetTurns:day.targetTurns,selfTurns:day.selfTurns,strongConflict:day.strongConflict,conflictReplies:day.conflictReplies,appeasementReplies:day.appeasementReplies,messages:(day.messages||[]).length,selfMessages:day.selfMessages,targetMessages:day.targetMessages});
   const go=step=>{const next=days[index+step];if(next&&onDateChange)onDateChange(next.date);};
   const evidenceCell=item=>{
    if(!item.hit)return h('span',{className:'rn-muted'},'—');
@@ -67,11 +67,11 @@ export function createScoringBasisView(React,E){
    h('td',{className:signedRow(item.delta)},item.hit?h('strong',null,fmtDelta(item.delta)):h('span',{className:'rn-muted'},'未命中')),
    h('td',null,evidenceCell(item))));
   const table=h('table',{'aria-label':'当天打分分项拆解'},tableHead,h('tbody',null,...rows));
-  const totalLine=h('p',{className:'rn-muted',style:SMALL},'合计：38 '+breakdown.items.filter(item=>item.key!=='base').map(item=>fmtDelta(item.delta)).join(' ')+' = '+breakdown.score+' 分。结果限制 0–100，扣分合计最多 −60，真吵起来当天总分封顶 48。');
+  const totalLine=h('p',{className:'rn-muted',style:SMALL},'合计：38 '+breakdown.items.filter(item=>item.key!=='base').map(item=>fmtDelta(item.delta)).join(' ')+' = '+breakdown.score+' 分。结果限制 0–100；负向组最多扣 60，摩擦组最多扣 24；不足 6 回合的正向部分折算，较强摩擦封顶 48，明确边界封顶 32。分项最多显示两位小数，合计使用未舍入值。');
   const links=h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}},
    h('button',{type:'button',style:NAV_STYLE,onClick:()=>onOpenRules&&onOpenRules()},'查看完整评分规则'),
    h('button',{type:'button',style:NAV_STYLE,onClick:()=>onOpenDaily&&onOpenDaily(day.date)},'打开每日历程'));
-  const footnote=h('p',{className:'rn-muted',style:SMALL},'仅按识别到的聊天记录与本地规则计算，不代表对方真实想法；同一天的分与「互动评分」页一致。');
+  const footnote=h('p',{className:'rn-muted',style:SMALL},'本分与每日历程的好感线索日分同源；互动投入分排除正向表达项，另行计算。权重是工程启发式，不表示好感概率，历史记录按新规则重算。');
   return h('section',{className:'rn-box'},title,toolbar,position,h('div',{className:'rn-metrics'},...metricCards),why,whyText,monthLine,h('h3',null,'分项拆解'),table,totalLine,links,footnote);
  };
 }

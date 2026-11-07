@@ -16,8 +16,8 @@ test('whitespace variants of the same speaker are not a valid pair',()=>{
  assert.equal(api.analyzeConversation([m('我','你好')],'我',' 我 ').total,0);
 });
 test('explicit refusals beat questions and are distinguished from negated questions',()=>{
- for(const text of ['不要再联系我','请别再发消息给我','我不想见面'])assert.equal(api.analyzeConversation([m('小禾',text)],'我','小禾').boundaryCount,1);
- for(const text of ['没问题','我不介意','你是不是不想见面？','你能不能不要再联系我？'])assert.equal(api.analyzeConversation([m('小禾',text)],'我','小禾').boundaryCount,0);
+ for(const text of ['不要再联系我','请别再发消息给我','我不想见面','你能不能不要再联系我？'])assert.equal(api.analyzeConversation([m('小禾',text)],'我','小禾').boundaryCount,1);
+ for(const text of ['没问题','我不介意','你是不是不想见面？'])assert.equal(api.analyzeConversation([m('小禾',text)],'我','小禾').boundaryCount,0);
 });
 test('local drafts use incoming hobby or work evidence without invented memories',()=>{
  assert.equal(typeof api.generateLocalDraft,'function');

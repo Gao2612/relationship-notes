@@ -42,13 +42,13 @@ test('三个图表都带 role=img 与可读标签，数据表兜底保留',()=>{
  assert.match(source,/查看完整数据表（'\+buckets\.length\+' 行）/);
 });
 
-test('评分规则改成逐项卡片，原始数值与措辞逐字保留且可原样拼回',()=>{
+test('评分规则 v2.1 逐项卡片与展示措辞可原样拼回',()=>{
  assert.equal(RULE_SECTIONS.length,11);
  assert.deepEqual(RULE_SECTIONS.map(section=>section.title),['好感线索分','互动均衡分','主动开口','回复间隔','敷衍程度','单方独白','摩擦/冷战','交流轮次','直接提问','第一人称分享','明确边界']);
  assert.equal(RULE_SECTIONS[1].value,'round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))');
  const parsed=parseAffinityRule();
- assert.equal(parsed.terms.length,13,'公式包括时延去重共 13 个加减项');
- assert.equal(parsed.notes.length,5,'封顶/折算/低频/加权/纠正 5 条口径');
+ assert.equal(parsed.terms.length,8,'公式包括基础分、五项加分和两组扣分');
+ assert.equal(parsed.notes.length,5,'上限、折算、低频、汇总与纠正说明');
  assert.equal(joinAffinityRule(parsed),AFFINITY_RULE_TEXT,'拆项拼回必须与原规则逐字一致');
  assert.equal(splitRuleClauses(AFFINITY_RULE_TEXT).length,6);
  for(const term of parsed.terms)assert.ok(term.text.length<=60,'公式单项过长：'+term.text);
@@ -66,7 +66,7 @@ test('评分规则改成逐项卡片，原始数值与措辞逐字保留且可�
    for(const line of lines)assert.ok(line.length<=70,'说明断行过长：'+line);
   }
  }
- for(const rule of ['扣分合计最多 −60','结果限制在 0–100','直接记中性 32 分','与「单方独白 −18」取较大值，不叠加','一两句寒暄撑不起整月','每处扣 30（最多 60）','总分封顶 48'])assert.ok(AFFINITY_RULE_TEXT.includes(rule)||RULE_SECTIONS.some(section=>(section.detail||'').includes(rule)),'规则措辞缺失：'+rule);
+ for(const rule of ['正向四项合计最多 +45','结果限制在 0–100','直接记中性 32 分','解释不升级摩擦','时延、条数失衡与单方连发不直接扣分','不足 6 回合','总分封顶 48','明确边界总分封顶 32','好感概率','历史曲线按新规则重新计算'])assert.ok(AFFINITY_RULE_TEXT.includes(rule)||RULE_SECTIONS.some(section=>(section.detail||'').includes(rule)),'规则措辞缺失：'+rule);
 });
 
 test('评分规则页不再用两列表格，公式单独成等宽块',()=>{
@@ -82,7 +82,7 @@ test('评分规则页不再用两列表格，公式单独成等宽块',()=>{
 
 test('互动投入均分与互动均衡分各带口径说明，并声明不是同一标尺',()=>{
  assert.match(source,/'口径：只比较双方发言条数是否接近，100 表示条数持平。'/);
- assert.match(source,/'口径：按回应、提问、分享及回合计算投入，38 分起算，明确正向表达另列证据。'/);
+ assert.match(source,/'口径：按回应、提问、分享及回合计算投入，38 分起算，正向表达按礼貌、支持与亲近分层列出证据。'/);
  assert.match(source,/互动均衡分与互动投入均分不是同一标尺，不可直接相比/);
  const why=source.indexOf("className:'rn-metric-why'");
  const note=source.indexOf('互动均衡分按双方发言条数计算；投入分结合上下文');
