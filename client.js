@@ -34861,7 +34861,6 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/workspace.js
-  var autoSummaryTried = /* @__PURE__ */ new Set();
   var autoProfileTried = /* @__PURE__ */ new Set();
   var channelOf = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
   function formatChatDayKey(value) {
@@ -35763,15 +35762,6 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
         }, [contact?.id, lastDate, s.behaviorDate]);
         const a = React2.useMemo(() => contact ? E.analyzeConversation(contact.messages, contact.self, contact.target) : null, [contact?.messages, contact?.self, contact?.target]);
-        React2.useEffect(() => {
-          if (!contact || s.timelineAnalysisContact === contact.id) return;
-          const dayMessages = timeline?.days.find((day) => day.date === selectedDate)?.messages || [], channels = [...new Set(dayMessages.map(channelOf))], missing = channels.filter((channel) => contact.timelineAnalysis?.[selectedDate + "#" + channel]?.version !== 4);
-          if (!missing.length) return;
-          const key = contact.id + "#" + selectedDate;
-          if (autoSummaryTried.has(key)) return;
-          autoSummaryTried.add(key);
-          analyzeTimeline(contact.id, { onlyDate: selectedDate });
-        }, [contact?.id, selectedDate, s.timelineAnalysisContact]);
         const media = React2.useMemo(() => contact ? contact.messages.reduce((out, message) => {
           for (const attachment of message.attachments || []) out[attachment.kind] = (out[attachment.kind] || 0) + 1;
           return out;
