@@ -34111,12 +34111,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var labels2 = { "waiting-model": "等待配置模型", queued: "等待自动分析", summarizing: "正在归纳历史文本", interpreting: "正在生成近期可能解释", complete: "自动分析已完成", paused: "自动分析已暂停", "retry-wait": "失败后等待重试", error: "自动分析遇到错误", empty: "暂无可分析文本" };
   function createAutoAnalysisStatusView(React2) {
     const h = React2.createElement;
-    return function AutoAnalysisStatusView({ contacts, onPause, onResume }) {
+    return function AutoAnalysisStatusView({ contacts, timeline, onPause, onResume }) {
+      const bar = (done, total, label) => {
+        const percent = total ? Math.max(0, Math.min(100, Math.round((Number(done) || 0) / (Number(total) || 1) * 100))) : 0;
+        return h("div", { className: "rn-progress" }, h("div", { className: "rn-progress-track", role: "progressbar", "aria-label": label || "分析进度", "aria-valuenow": percent, "aria-valuemin": 0, "aria-valuemax": 100 }, h("div", { className: "rn-progress-fill", style: { width: percent + "%" } })), h("span", { className: "rn-progress-value" }, percent + "%"));
+      };
       const real = (contacts || []).filter((c) => !c.isSample && c.messages?.length);
       if (!real.length) return null;
-      return h("details", null, h("summary", null, "自动分析进度 · " + real.length + " 位联系人"), h("p", null, "首次自动分批归纳全部导入文本；追加消息只处理新增部分。图片、语音只按已有文字占位处理，不进行媒体识别。模型未配置时等待，可随时暂停。"), ...real.map((contact) => {
+      return h("details", null, h("summary", null, "自动分析进度 · " + real.length + " 位联系人"), h("p", null, "首次自动分批归纳全部导入文本；追加消息只处理新增部分。图片、语音只按已有文字占位处理，不进行媒体识别。模型未配置时等待，可随时暂停。"), timeline?.total ? h("div", { className: "rn-progress-row" }, h("strong", null, "聊天时间线分析"), h("span", null, " · " + (timeline.progress || "正在进行")), bar(timeline.done, timeline.total, "聊天日期分析进度")) : null, ...real.map((contact) => {
         const cache = contact.autoAnalysis || {}, total = cache.totalMessages ?? buildAutoAnalysisPlan(contact).totalMessages;
-        return h("div", { key: contact.id }, h("strong", null, contact.target), h("span", null, " · " + (labels2[cache.status] || "等待自动分析") + " · " + (cache.coveredMessages || 0) + " / " + total + " 条"), cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停"));
+        return h("div", { key: contact.id }, h("strong", null, contact.target), h("span", null, " · " + (labels2[cache.status] || "等待自动分析") + " · " + (cache.coveredMessages || 0) + " / " + total + " 条"), bar(cache.coveredMessages || 0, total, contact.target + " 自动分析进度"), cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停"));
       }));
     };
   }
@@ -34987,7 +34991,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
 .rn-history-toolbar{display:flex;gap:6px;flex:0 0 auto}.rn-history-toolbar button{flex:0 0 54px;white-space:nowrap;padding:6px!important}.rn-history-toolbar input{min-width:0;width:100%;padding:6px!important}.rn-history-toolbar input[type=date]{max-width:136px}.rnw #rn-panel .rn-session{grid-template-columns:160px minmax(0,1fr) 240px!important;min-height:0;height:clamp(480px,calc(100dvh - 225px),880px)}.rn-session-main{height:100%!important;max-height:none!important;min-height:0!important;gap:8px!important}.rn-session-header{flex:0 0 auto;padding:10px 12px}.rn-session-draft{flex:0 0 auto;max-height:150px;overflow:auto;padding:9px 12px}.rn-session-draft p{margin:6px 0}.rn-session-compose{padding:10px 12px}.rn-session-compose textarea{min-height:42px}.rn-session-compose-tools{gap:6px;margin-top:6px}.rn-session-compose-tools select{min-width:100px}.rn-session-right{grid-template-rows:minmax(180px,42%) minmax(0,1fr);height:100%;overflow:hidden}.rn-session-photo{height:100%!important}.rn-session-tools{overflow:auto}.rn-session-list-pane{height:100%}.rn-head{margin-bottom:12px!important}.rn-context-tabs,.rn-feature-tabs{margin-top:10px!important;margin-bottom:12px!important}@container rn-session-shell (max-width:900px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr) 220px!important;grid-template-areas:"main right"!important}.rnw #rn-panel .rn-session-list-pane{display:none!important}}@container rn-session-shell (max-width:620px){.rnw #rn-panel .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main"!important}.rnw #rn-panel .rn-session-right{display:none!important}}
 
-.rnw{padding-top:14px}.rn-breadcrumb{display:none}.rn-head h1{font-size:24px;margin:0}.rn-head label{font-size:12px}.rn-head{gap:12px}.rn-group-tabs{margin-bottom:12px}.rn-history-toolbar{display:grid;grid-template-columns:76px minmax(80px,1fr) 132px 54px;align-items:end;gap:6px}.rn-history-toolbar label{font-size:12px;gap:2px}.rn-history-toolbar select{min-height:44px;padding:5px!important}.rn-history-toolbar input,.rn-history-toolbar button{height:44px}.rn-session-draft .rn-actions{margin-top:5px;gap:5px}.rn-session-draft .rn-actions button{font-size:12px;padding:4px 7px}.rn-session-draft-empty{font-size:12px;margin:4px 0!important}.rn-session-compose-tools button{font-size:12px;padding:6px}.rn-session-compose-tools select{padding:5px!important}.rn-session-history{overscroll-behavior:contain}.rn-session-history .rn-session-media{display:block;width:min(100%,420px);height:220px;object-fit:contain;background:var(--muted,#f2f5f3);border-radius:8px;margin-top:6px}.rn-session-history .rn-session-media.audio{height:44px}.rn-channel-block{margin-top:10px}.rn-channel-block h4{margin:0 0 4px;font-size:12px;color:#556659}.rn-session-status{grid-column:1/-1}@container rn-session-shell (max-width:620px){.rn-history-toolbar{grid-template-columns:70px minmax(80px,1fr) 54px}.rn-history-toolbar input[type=date]{grid-column:1/-1;max-width:none!important}.rn-session{height:700px!important}}
+.rnw{padding-top:14px}.rn-breadcrumb{display:none}.rn-head h1{font-size:24px;margin:0}.rn-head label{font-size:12px}.rn-head{gap:12px}.rn-group-tabs{margin-bottom:12px}.rn-history-toolbar{display:grid;grid-template-columns:76px minmax(80px,1fr) 132px 54px;align-items:end;gap:6px}.rn-history-toolbar label{font-size:12px;gap:2px}.rn-history-toolbar select{min-height:44px;padding:5px!important}.rn-history-toolbar input,.rn-history-toolbar button{height:44px}.rn-session-draft .rn-actions{margin-top:5px;gap:5px}.rn-session-draft .rn-actions button{font-size:12px;padding:4px 7px}.rn-session-draft-empty{font-size:12px;margin:4px 0!important}.rn-session-compose-tools button{font-size:12px;padding:6px}.rn-session-compose-tools select{padding:5px!important}.rn-session-history{overscroll-behavior:contain}.rn-session-history .rn-session-media{display:block;width:min(100%,420px);height:220px;object-fit:contain;background:var(--muted,#f2f5f3);border-radius:8px;margin-top:6px}.rn-session-history .rn-session-media.audio{height:44px}.rn-channel-block{margin-top:10px}.rn-channel-block h4{margin:0 0 4px;font-size:12px;color:#556659}.rn-progress-row{margin:8px 0}.rn-progress{display:flex;align-items:center;gap:8px;margin:4px 0}.rn-progress-track{flex:1 1 auto;height:8px;border-radius:999px;background:var(--muted,#e6ece6);overflow:hidden}.rn-progress-fill{height:100%;border-radius:999px;background:#4a7a58;transition:width .3s ease}.rn-progress-value{flex:0 0 auto;font-size:12px;color:#556659;font-variant-numeric:tabular-nums}.rn-session-status{grid-column:1/-1}@container rn-session-shell (max-width:620px){.rn-history-toolbar{grid-template-columns:70px minmax(80px,1fr) 54px}.rn-history-toolbar input[type=date]{grid-column:1/-1;max-width:none!important}.rn-session{height:700px!important}}
 
 .rn-calendar-detail-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:16px;align-items:start;margin-top:16px}.rn-calendar-detail-panel{max-height:760px;overflow:auto;position:sticky;top:10px}.rn-calendar-detail-panel .rn-day-detail{margin-top:0}@media(max-width:1100px){.rn-calendar-detail-layout{grid-template-columns:1fr}.rn-calendar-detail-panel{position:static;max-height:none}}
 
@@ -35225,6 +35229,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const button = (label, onClick, props = {}) => h("button", { type: "button", onClick, ...props }, label);
       const box = (title, ...children) => h("section", { className: "rn-box" }, h("h2", null, title), ...children);
       const muted = (text) => h("p", { className: "rn-muted" }, text);
+      const progressBar = (done, total, label) => {
+        const percent = total ? Math.max(0, Math.min(100, Math.round((Number(done) || 0) / (Number(total) || 1) * 100))) : 0;
+        return h("div", { className: "rn-progress" }, h("div", { className: "rn-progress-track", role: "progressbar", "aria-label": label || "分析进度", "aria-valuenow": percent, "aria-valuemin": 0, "aria-valuemax": 100 }, h("div", { className: "rn-progress-fill", style: { width: percent + "%" } })), h("span", { className: "rn-progress-value" }, percent + "%" + (total ? ` · ${Number(done) || 0}/${total} 个日期` : "")));
+      };
       const updateContact = (contactId, transform) => {
         const current = store.getSnapshot();
         set({ contacts: current.contacts.map((c) => c.id === contactId ? transform(c) : c) });
@@ -35516,7 +35524,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           return;
         }
         const controllerForRun = timelineController;
-        set({ timelineAnalysisContact: contactId, timelineAnalysisProgress: `准备分析 ${days.length} 个日期`, status: "正在使用 DSH 默认模型分析聊天时间线…" });
+        set({ timelineAnalysisContact: contactId, timelineAnalysisProgress: `准备分析 ${days.length} 个日期`, timelineAnalysisDone: 0, timelineAnalysisTotal: days.length, status: "正在使用 DSH 默认模型分析聊天时间线…" });
         try {
           const requestDays = days.map((day) => ({ date: day.date, channel: day.channel, key: day.key, messageCount: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages, turns: day.turns, activityScore: day.activityScore, affinityScore: day.affinityScore, affinityChange: day.affinityChange, transcript: day.messages.map((message) => {
             const body = String(message.text || "").trim(), kind = messageMediaKind(message);
@@ -35562,7 +35570,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           };
           for (const batch of batches) {
             stopIfAborted();
-            set({ timelineAnalysisProgress: `正在分析 ${completed} / ${days.length} 个日期` });
+            set({ timelineAnalysisProgress: `正在分析 ${completed} / ${days.length} 个日期`, timelineAnalysisDone: completed, timelineAnalysisTotal: days.length });
             try {
               const result = await saveBatch(batch);
               completed += result.saved;
@@ -35581,7 +35589,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
               if (error.name === "AbortError") throw error;
               for (const day of batch) {
                 stopIfAborted();
-                set({ timelineAnalysisProgress: `正在逐日重试 ${completed} / ${days.length} 个日期` });
+                set({ timelineAnalysisProgress: `正在逐日重试 ${completed} / ${days.length} 个日期`, timelineAnalysisDone: completed, timelineAnalysisTotal: days.length });
                 try {
                   const result = await saveBatch([day]);
                   completed += result.saved;
@@ -35592,7 +35600,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
                 }
               }
             }
-            set({ timelineAnalysisProgress: `已分析 ${completed} / ${days.length} 个日期` });
+            set({ timelineAnalysisProgress: `已分析 ${completed} / ${days.length} 个日期`, timelineAnalysisDone: completed, timelineAnalysisTotal: days.length });
           }
           if (ticket === timelineRequest) set({ timelineAnalysisContact: "", timelineAnalysisProgress: "", status: failedDates.length ? `已分析 ${completed} / ${days.length} 个日期，${failedDates.length} 个日期未能分析（${failedDates.slice(0, 2).join("；")}），可再次点击继续分析重试。` : `已完成 ${days.length} 个日期的 AI 分析。` });
         } catch (error) {
@@ -35635,7 +35643,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       }
       function timelineAnalysisCard(s, contact) {
         const total = E.analyzeDailyTimeline(contact.messages.filter((message) => channelOf(message) === "qq"), contact.self, contact.target, contact.interactionCorrections || []).days.length + E.analyzeDailyTimeline(contact.messages.filter((message) => channelOf(message) !== "qq"), contact.self, contact.target, contact.interactionCorrections || []).days.length, count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
-        return box("AI 聊天分析", muted(busy ? s.timelineAnalysisProgress || "正在分析…" : count ? `已分析 ${count} / ${total} 个有记录日期。` : "分析全部有记录日期。"), button(busy ? "正在分析…" : count >= total ? "重新生成全部日期总结" : count ? "继续分析日期" : "开始 AI 分析", () => analyzeTimeline(contact.id, { force: count >= total }), { className: "primary", disabled: busy }));
+        return box("AI 聊天分析", muted(busy ? s.timelineAnalysisProgress || "正在分析…" : count ? `已分析 ${count} / ${total} 个有记录日期。` : "分析全部有记录日期。"), busy && progressBar(s.timelineAnalysisDone, s.timelineAnalysisTotal, "日期分析进度"), button(busy ? "正在分析…" : count >= total ? "重新生成全部日期总结" : count ? "继续分析日期" : "开始 AI 分析", () => analyzeTimeline(contact.id, { force: count >= total }), { className: "primary", disabled: busy }));
       }
       const messageChannel = (m) => /QQ/i.test((m.file || "") + " " + (m.source || "")) ? "qq" : "wechat";
       function markProfileSettled(contact) {
@@ -36632,7 +36640,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           const [feature, tab] = key.split("__");
           focusMode.current = fromKeyboard ? "context" : "none";
           nav(feature, tab);
-        }, className: "rn-context-tabs" }), h("div", { id: "rn-panel", ref: panelRef, tabIndex: -1, style: { width: "100%", minWidth: 0, maxWidth: "none" }, role: "tabpanel", "aria-label": n.label }, !s.contacts.length && route.item.id === "profile" && route.tab === "basic" && h(StartGuide, {}), sourceEnabled && contact && h("div", { className: "rn-actions", style: { marginBottom: 16 } }, ...["all", "wechat", "qq"].map((key) => button(key === "all" ? `全部 ${contact.messages.length} 条` : key === "qq" ? `QQ ${sourceCounts.qq} 条` : `微信 ${sourceCounts.wechat} 条`, () => set({ recordSource: key }), { "aria-pressed": sourceChoice === key, className: sourceChoice === key ? "primary" : "" }))), content), h(AutoAnalysisStatusView, { contacts: s.contacts, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2) }), s.evidenceContext && h(EvidenceContextView, { contact: s.contacts.find((c) => c.id === s.evidenceContext.contactId), reference: s.evidenceContext.reference, onClose: () => set({ evidenceContext: null }) }), s.status && h("p", { className: "rn-status", role: "status" }, s.status));
+        }, className: "rn-context-tabs" }), h("div", { id: "rn-panel", ref: panelRef, tabIndex: -1, style: { width: "100%", minWidth: 0, maxWidth: "none" }, role: "tabpanel", "aria-label": n.label }, !s.contacts.length && route.item.id === "profile" && route.tab === "basic" && h(StartGuide, {}), sourceEnabled && contact && h("div", { className: "rn-actions", style: { marginBottom: 16 } }, ...["all", "wechat", "qq"].map((key) => button(key === "all" ? `全部 ${contact.messages.length} 条` : key === "qq" ? `QQ ${sourceCounts.qq} 条` : `微信 ${sourceCounts.wechat} 条`, () => set({ recordSource: key }), { "aria-pressed": sourceChoice === key, className: sourceChoice === key ? "primary" : "" }))), content), h(AutoAnalysisStatusView, { contacts: s.contacts, timeline: { contactId: s.timelineAnalysisContact, progress: s.timelineAnalysisProgress, done: s.timelineAnalysisDone, total: s.timelineAnalysisTotal }, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2) }), s.evidenceContext && h(EvidenceContextView, { contact: s.contacts.find((c) => c.id === s.evidenceContext.contactId), reference: s.evidenceContext.reference, onClose: () => set({ evidenceContext: null }) }), s.status && h("p", { className: "rn-status", role: "status" }, s.status));
       }
       ctx.effect(() => ctx.subdsh.register({ id: "relationship-notes", label: t("nav"), order: 20, description: "联系人档案、行为记录与个性化回复", render: Page }), "local-relationship-notes: module");
     } };
