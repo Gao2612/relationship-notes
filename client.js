@@ -34862,6 +34862,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
   // src/workspace.js
   var autoSummaryTried = /* @__PURE__ */ new Set();
+  var autoProfileTried = /* @__PURE__ */ new Set();
   var channelOf = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
   function formatChatDayKey(value) {
     const timezone = "Asia/Shanghai";
@@ -35657,6 +35658,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }
       }
       function Profile({ contact, tab, s }) {
+        React2.useEffect(() => {
+          if (!contact || !contact.profileNeedsRefresh || s.profileBusy) return;
+          const key = contact.id + "#" + (contact.messages?.length || 0);
+          if (autoProfileTried.has(key)) return;
+          autoProfileTried.add(key);
+          analyzeProfile(contact);
+        }, [contact?.id, contact?.profileNeedsRefresh, s.profileBusy]);
         const [editing, setEditing] = React2.useState(null), [editValue, setEditValue] = React2.useState(""), [addField, setAddField] = React2.useState("daily"), [editMode, setEditMode] = React2.useState("edit"), [effectiveAt, setEffectiveAt] = React2.useState(""), [view, setView] = React2.useState("active"), [undo, setUndo] = React2.useState(null);
         React2.useEffect(() => {
           setEditing(null);
@@ -35683,7 +35691,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         };
         const editor = h("div", { className: "rn-profile-editor" }, editing === "new" && select("资料分类", addField, fields, setAddField), h("label", null, editMode === "update" ? "现在的情况" : "资料内容", h("textarea", { value: editValue, onChange: (e) => setEditValue(e.target.value), maxLength: 600, rows: 3, "aria-label": "资料内容", placeholder: "填写准确的资料内容" })), (editMode === "update" || editing === "new") && h("label", null, "生效时间", h("input", { type: "datetime-local", value: effectiveAt, onChange: (e) => setEffectiveAt(e.target.value) })), h("div", { className: "rn-actions" }, button("保存", save, { className: "primary", disabled: !editValue.trim() }), button("取消", () => setEditing(null))));
         const statusLabels = { active: "当前", archived: "已归档", superseded: "历史情况", pending: "待确认" };
-        return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(ProfileLifecycleView, { contact, onAction: act, onEvidence: (ref) => showEvidence(contact.id, ref) }), h("div", { className: "rn-actions" }, button(s.profileBusy ? "正在更新…" : "更新档案", () => contact.profileNeedsRefresh || !contact.facts?.length ? analyzeProfile(contact) : summarizeProfile(contact), { className: "primary", disabled: s.profileBusy }), button("添加资料", () => open(null, "add"))), contact.profileNeedsRefresh && h("div", { className: "rn-profile-undo" }, "新增聊天待整理", button("分析新增资料", () => analyzeProfile(contact), { disabled: s.profileBusy }), button("标记为已整理", () => markProfileSettled(contact), { disabled: s.profileBusy })), h("div", { className: "rn-profile-filters" }, ...["active", "pending", "history"].map((key) => button(key === "active" ? "当前资料" : key === "pending" ? "待确认 " + all.filter((f) => f.status === "pending").length : "历史资料", () => {
+        return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(ProfileLifecycleView, { contact, onAction: act, onEvidence: (ref) => showEvidence(contact.id, ref) }), contact.profileNeedsRefresh && h("div", { className: "rn-profile-undo" }, "新增聊天待整理", button("分析新增资料", () => analyzeProfile(contact), { disabled: s.profileBusy }), button("标记为已整理", () => markProfileSettled(contact), { disabled: s.profileBusy })), h("div", { className: "rn-profile-filters" }, ...["active", "pending", "history"].map((key) => button(key === "active" ? "当前资料" : key === "pending" ? "待确认 " + all.filter((f) => f.status === "pending").length : "历史资料", () => {
           setView(key);
           setEditing(null);
         }, { "aria-pressed": view === key }))), undo && h("div", { className: "rn-profile-undo" }, h("span", null, "资料已删除"), button("撤销", () => {
