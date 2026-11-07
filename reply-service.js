@@ -258,7 +258,7 @@ function createTimelineAnalysisHandler(llm, { timeoutMs = 9e4, defaultSelection 
       text(body.target, 100, true);
       if (body.self === body.target || !Array.isArray(body.days) || !body.days.length || body.days.length > 20) throw new RequestError("日期批次无效。");
       for (const day of body.days) {
-        record(day, ["date", "messageCount", "selfMessages", "targetMessages", "turns", "activityScore", "affinityScore", "affinityChange", "transcript"]);
+        record(day, ["date", "channel", "key", "messageCount", "selfMessages", "targetMessages", "turns", "activityScore", "affinityScore", "affinityChange", "transcript"], ["channel", "key"]);
         text(day.date, 10, true);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) throw new RequestError("日历日期无效。");
         for (const key of ["messageCount", "selfMessages", "targetMessages", "turns"]) if (!Number.isInteger(day[key]) || day[key] < 0 || day[key] > 1e4) throw new RequestError("日历统计无效。");
