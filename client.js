@@ -32673,7 +32673,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const goodNews = /我[^。！？!?]{0,24}(?:通过.{0,6}考试|考上|录取|升职|获奖|拿到.{0,6}offer|考过|成功了|毕业了)/i.test(previous);
     const supportive = emotionalDisclosure && /我(?:能)?理解你|我(?:会|愿意)?(?:陪着你|陪你|听你说)|你(?:可以|愿意).{0,6}(?:跟我说|找我)|别怕|抱抱你/.test(body) || goodNews && /(?:恭喜|祝贺)你|(?:为你|替你)(?:高兴|开心)|你的努力.{0,6}(?:回报|值得)|你(?:一直|真的|那么).{0,6}努力/.test(body);
     const dismissive = /别再.{0,8}(?:说|提)|不想听|谁在乎|关我什么事|别说了/.test(body);
-    const continuation = !dismissive && ([...current].some((term) => prior.has(term)) || topics2.some((topic) => topic.test(previous) && topic.test(body)) || supportive);
+    const normalize = (value) => value.replace(/[\p{P}\s]/gu, "");
+    const previousContent = normalize(previous), replyContent = normalize(body);
+    const echoesPrevious = replyContent.length > 0 && previousContent.includes(replyContent);
+    const overlaps = [...current].some((term) => prior.has(term));
+    const addsInformation = [...current].some((term) => !prior.has(term));
+    const sameTopic = topics2.some((topic) => topic.test(previous) && topic.test(body));
+    const continuation = !dismissive && (supportive || !echoesPrevious && relatedEvent && addsInformation && (overlaps || sameTopic));
     let answer = false;
     if (previousQuestion) {
       if (/几点|什么时候|啥时候|何时/.test(previous)) answer = /[0-9零一二三四五六七八九十两半]+\s*(?:点|时|天|号|月)|\d{1,2}:\d{2}|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
@@ -33000,11 +33006,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const context = { answer: rawContext.answer && !excludeAnswer, affirmative: rawContext.affirmative && !excludeAnswer, continuation: rawContext.continuation && !excludeContinuation };
         if (context.answer || context.affirmative) answeredTurns++;
         if (context.continuation) continuedTurns++;
-        const detectedConflict = conflict(joined), detectedAppeasement = appeasement(joined);
+        const delegatesChoice = previousWasSelf && !newSession && /(?:还是|选哪个|选哪家|你选|你决定|哪个好)/.test(previousText) && /^(?:随便你|都行看你|你看着办)[。！!，,\s]*$/.test(joined);
+        const needsReview = !delegatesChoice && /^(?:随便你|都行看你|你看着办)[。！!，,\s]*$/.test(joined);
+        const detectedConflict = !delegatesChoice && !needsReview && conflict(joined);
+        const detectedAppeasement = appeasement(joined);
         const hasSpecificNegative = detectedConflict || detectedAppeasement || negative(joined);
         const laughter = /^(?:哈+|嘿嘿)[。！!\s]*$/.test(joined);
         const ordinaryPause = /^(?:我(?:现在)?(?:在|有点)?|今天)?(?:在忙|忙|有点忙|很忙|加班|开会|没空|没时间|困了|睡了|先睡了|准备睡了|要睡了|休息了|晚安|回头再说|晚点再说|先这样|改天再聊|明天聊|晚点聊|回头聊|先忙了|稍后聊|晚点再聊|回头再聊|不聊了|再说吧)[。！!，,~～…\s]*$/.test(joined);
-        const generic = !ordinaryPause && (perfunctory(joined) || lowContent(joined));
+        const generic = !ordinaryPause && !delegatesChoice && !needsReview && (perfunctory(joined) || lowContent(joined));
         emptyStreak = generic && !context.answer && !context.affirmative && !context.continuation && !laughter ? emptyStreak + 1 : 0;
         const detectedPerfunctory = !ordinaryPause && !hasSpecificNegative && !laughter && !context.answer && !context.affirmative && emptyStreak >= 3 && perfunctory(joined);
         const detectedLowContent = !hasSpecificNegative && !detectedPerfunctory && emptyStreak >= 3 && !context.answer && !context.continuation && lowContent(joined);
@@ -33023,7 +33032,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (hasSignal("sharing", sharing)) sharingTurns++;
         if (hasSignal("sharing", emotionalSharing)) emotionalSharingTurns++;
         if (!hasBoundary && !applied.includes("conflict") && (applied.includes("answer") || applied.includes("continuation"))) responsiveTurns++;
-        turnEvidence.push({ message, messages: turn.messages, quote: joined, kinds, applied, scene, context });
+        turnEvidence.push({ message, messages: turn.messages, quote: joined, kinds, applied, scene, context, needsReview });
         if (applied.includes("perfunctory")) perfunctoryReplies++;
         if (applied.includes("lowContent")) lowContentReplies++;
         if (applied.includes("conflict")) {
@@ -35708,6 +35717,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           h("p", null, "对方回合场景：" + sceneSummary),
           h("p", null, "主动发起场景：" + initiativeSummary),
           ...sceneRows,
+          analysis.turnEvidence.some((row) => row.needsReview) && h("details", null, h("summary", null, "待核对的含糊回复"), ...analysis.turnEvidence.filter((row) => row.needsReview).map((row, index) => h("article", { key: index }, h("blockquote", null, row.quote), source(row.message), muted("上下文不足，未计入摩擦分")))),
           analysis.ambiguousCorrectionCount > 0 && h("p", { role: "status" }, "有 " + analysis.ambiguousCorrectionCount + " 条旧纠正无法唯一定位，请重新核对原文。"),
           ...analysis.indicators.map((indicator) => h("details", { key: indicator.kind }, h("summary", null, indicator.label + " · " + indicator.count + " 条"), ...indicator.evidence.map((row, index) => h("article", { className: "rn-message", key: row.key + index }, h("blockquote", null, row.quote), row.signal && h("small", { className: "rn-muted" }, row.signal.label + " · 同轮取最高层级"), source(row.message), h("small", null, row.excluded ? "已排除此项识别" : "计入指标"), button(row.excluded ? "恢复识别" : "标记误识别", () => correct(row, !row.excluded)))))),
           h("details", null, h("summary", null, "纠正历史"), ...(contact.interactionCorrections || []).map((item, index) => h("p", { key: index }, formatChatTimestamp(item.at || item.createdAt) + " · " + item.kind + " · " + (item.excluded ? "排除" : "恢复") + " · " + (item.note || ""))))

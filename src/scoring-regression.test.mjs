@@ -44,11 +44,11 @@ test('道谢不遮挡独立问题，反问与纯道谢仍被排除',()=>{
 
 test('较强摩擦要求同段重复，解释不升级冲突',()=>{
  const paired=(first,second,lastTime)=>[message('对方',first,'09:00'),message('我','我明白你说的事情了','09:01'),message('对方',second,lastTime)];
- assert.equal(engagementSignals(paired('随便你','无语','09:02'),'我').strongConflict,true);
- assert.equal(engagementSignals(paired('随便你','没别的意思','09:02'),'我').strongConflict,false);
- assert.equal(engagementSignals(paired('没别的意思','随便你','09:02'),'我').strongConflict,false);
- assert.equal(engagementSignals(paired('随便你','无语','12:00'),'我').strongConflict,false);
- assert.equal(engagementSignals(paired('随便你','没别的意思','12:00'),'我').strongConflict,false);
+ assert.equal(engagementSignals(paired('你什么意思','无语','09:02'),'我').strongConflict,true);
+ assert.equal(engagementSignals(paired('你什么意思','没别的意思','09:02'),'我').strongConflict,false);
+ assert.equal(engagementSignals(paired('没别的意思','你什么意思','09:02'),'我').strongConflict,false);
+ assert.equal(engagementSignals(paired('你什么意思','无语','12:00'),'我').strongConflict,false);
+ assert.equal(engagementSignals(paired('你什么意思','没别的意思','12:00'),'我').strongConflict,false);
 });
 
 test('时延仅展示，不直接处罚异步沟通',()=>{
@@ -62,7 +62,7 @@ test('时延仅展示，不直接处罚异步沟通',()=>{
 });
 
 test('明确负向、摩擦和解释不重复计入低信息量',()=>{
- for(const text of ['呵呵','随便你','不喜欢你','没啥啊']){
+ for(const text of ['呵呵','你什么意思','不喜欢你','没啥啊']){
   const result=engagementSignals([message('对方',text,'09:00')],'我');
   assert.equal(result.perfunctoryReplies,0,text);
   assert.equal(result.lowContentReplies,0,text);
@@ -70,7 +70,7 @@ test('明确负向、摩擦和解释不重复计入低信息量',()=>{
 });
 
 test('新增四类回合信号支持纠正恢复且每日总体一致',()=>{
- for(const [kind,text] of [['perfunctory','收到'],['lowContent','就那样'],['conflict','随便你'],['appeasement','没别的意思']]){
+ for(const [kind,text] of [['perfunctory','收到'],['lowContent','就那样'],['conflict','你什么意思'],['appeasement','没别的意思']]){
   const messages=['perfunctory','lowContent'].includes(kind)?[message('我','补充资料','09:00'),message('对方',text,'09:01'),message('我','补充资料','09:02'),message('对方',text,'09:03'),message('我','补充资料','09:04'),message('对方',text,'09:05')]:[message('我','你好','09:00'),message('对方',text,'09:01')];
   const contact={self:'我',target:'对方',messages};
   const indicator=analyzeInteractionMetrics(contact).indicators.find(item=>item.kind===kind);
@@ -86,7 +86,7 @@ test('新增四类回合信号支持纠正恢复且每日总体一致',()=>{
 });
 
 test('跨消息合并回合的纠正绑定首消息，保留其他回合',()=>{
- const contact={self:'我',target:'对方',messages:[message('对方','随便你','09:00'),message('对方','无语','09:01'),message('我','明白了','09:02'),message('对方','你看着办','09:03')]};
+ const contact={self:'我',target:'对方',messages:[message('对方','你什么意思','09:00'),message('对方','无语','09:01'),message('我','明白了','09:02'),message('对方','关你什么事','09:03')]};
  const before=analyzeInteractionMetrics(contact);
  const rows=before.indicators.find(item=>item.kind==='conflict').evidence;
  assert.equal(rows.length,2);
@@ -94,5 +94,5 @@ test('跨消息合并回合的纠正绑定首消息，保留其他回合',()=>{
  const after=analyzeInteractionMetrics(correctInteraction(contact,{kind:'conflict',key:rows[0].key,excluded:true},0));
  assert.equal(after.conflictReplies,1);
  assert.equal(after.strongConflict,false);
- assert.equal(after.indicators.find(item=>item.kind==='conflict').evidence[0].quote,'随便你 无语');
+ assert.equal(after.indicators.find(item=>item.kind==='conflict').evidence[0].quote,'你什么意思 无语');
 });

@@ -169,11 +169,18 @@ export function engagementSignals(messages,self,isExcluded){
    const context={answer:rawContext.answer&&!excludeAnswer,affirmative:rawContext.affirmative&&!excludeAnswer,continuation:rawContext.continuation&&!excludeContinuation};
    if(context.answer||context.affirmative)answeredTurns++;
    if(context.continuation)continuedTurns++;
-   const detectedConflict=conflict(joined),detectedAppeasement=appeasement(joined);
+   // A short delegation after a choice question does not establish hostility.
+   const delegatesChoice=previousWasSelf&&!newSession&&
+    /(?:还是|选哪个|选哪家|你选|你决定|哪个好)/.test(previousText)&&
+    /^(?:随便你|都行看你|你看着办)[。！!，,\s]*$/.test(joined);
+   const needsReview=!delegatesChoice&&
+    /^(?:随便你|都行看你|你看着办)[。！!，,\s]*$/.test(joined);
+   const detectedConflict=!delegatesChoice&&!needsReview&&conflict(joined);
+   const detectedAppeasement=appeasement(joined);
    const hasSpecificNegative=detectedConflict||detectedAppeasement||negative(joined);
    const laughter=/^(?:哈+|嘿嘿)[。！!\s]*$/.test(joined);
    const ordinaryPause=/^(?:我(?:现在)?(?:在|有点)?|今天)?(?:在忙|忙|有点忙|很忙|加班|开会|没空|没时间|困了|睡了|先睡了|准备睡了|要睡了|休息了|晚安|回头再说|晚点再说|先这样|改天再聊|明天聊|晚点聊|回头聊|先忙了|稍后聊|晚点再聊|回头再聊|不聊了|再说吧)[。！!，,~～…\s]*$/.test(joined);
-   const generic=!ordinaryPause&&(perfunctory(joined)||lowContent(joined));
+   const generic=!ordinaryPause&&!delegatesChoice&&!needsReview&&(perfunctory(joined)||lowContent(joined));
    emptyStreak=generic&&!context.answer&&!context.affirmative&&!context.continuation&&!laughter?emptyStreak+1:0;
    const detectedPerfunctory=!ordinaryPause&&!hasSpecificNegative&&!laughter&&!context.answer&&!context.affirmative&&emptyStreak>=3&&perfunctory(joined);
    const detectedLowContent=!hasSpecificNegative&&!detectedPerfunctory&&emptyStreak>=3&&!context.answer&&!context.continuation&&lowContent(joined);
@@ -190,7 +197,7 @@ export function engagementSignals(messages,self,isExcluded){
    if(hasSignal('sharing',emotionalSharing))emotionalSharingTurns++;
    // 同一回合回答并承接只计一次；拒绝和摩擦不再赚取回应奖励。
    if(!hasBoundary&&!applied.includes('conflict')&&(applied.includes('answer')||applied.includes('continuation')))responsiveTurns++;
-   turnEvidence.push({message,messages:turn.messages,quote:joined,kinds,applied,scene,context});
+   turnEvidence.push({message,messages:turn.messages,quote:joined,kinds,applied,scene,context,needsReview});
    if(applied.includes('perfunctory'))perfunctoryReplies++;
    if(applied.includes('lowContent'))lowContentReplies++;
    if(applied.includes('conflict')){conflictReplies++;sessionConflicts++;}

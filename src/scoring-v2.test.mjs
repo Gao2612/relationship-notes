@@ -48,7 +48,7 @@ test('固定互动证据时快慢回复和消息条数失衡不改变分数',()=
 test('解释不会加重一次摩擦，也不会把一次摩擦升级为较强摩擦',()=>{
  const before=interactionScore({...base,conflictReplies:1,strongConflict:false});
  assert.equal(interactionScore({...base,conflictReplies:1,appeasementReplies:3,strongConflict:false}),before);
- const messages=[message('对方','随便你',0),message('我','我想听听你的意思',1),message('对方','没别的意思',2)];
+ const messages=[message('对方','你什么意思',0),message('我','我想听听你的意思',1),message('对方','没别的意思',2)];
  const result=engagementSignals(messages,'我');
  assert.equal(result.conflictReplies,1);
  assert.equal(result.appeasementReplies,1);

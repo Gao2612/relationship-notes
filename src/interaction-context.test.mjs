@@ -112,3 +112,37 @@ test('工作请求排除分享，自己的打算与同条独立分享保留',()=
  for(const text of ['我想你早点把合同签了','我希望你把资料发给我','我让你去问同事'])assert.equal(sharing(text),false,text);
  for(const text of ['我想去看电影','我想和你去爬山','我希望你把资料发来，我今天买了本书'])assert.equal(sharing(text),true,text);
 });
+
+test('复述和切换事件不算承接，相关补充保留',()=>{
+ assert.equal(replyContext('晚饭加了辣椒','晚饭加了辣椒。',false).continuation,false);
+ assert.equal(replyContext('明天要出门','出门前我先买手机',false).continuation,true);
+ assert.equal(replyContext('明天要出门','明天买手机',false).continuation,false);
+ assert.equal(replyContext('晚饭加了辣椒','看着都很香',false).continuation,true);
+});
+
+test('选择题后的简短让选保持中性，明确指责仍计摩擦',()=>{
+ const run=reply=>engagementSignals([message('我','吃面还是吃饭？','09:00'),message('对方',reply,'09:01')],'我');
+ assert.equal(run('随便你').conflictReplies,0);
+ assert.equal(run('随便你，关你什么事').conflictReplies,1);
+});
+
+test('含糊让选保留原文待核对，不计摩擦',()=>{
+ const rows=[message('我','我在整理资料','09:00'),message('对方','你看着办','09:01')];
+ const result=engagementSignals(rows,'我');
+ assert.equal(result.conflictReplies,0);
+ assert.equal(result.turnEvidence[0].needsReview,true);
+ assert.equal(result.turnEvidence[0].quote,'你看着办');
+});
+
+test('不靠时间间隔推断敌意，并保留明确边界',()=>{
+ for(const text of ['随便你','都行看你','你看着办']){
+  for(const time of ['09:01','12:00']){
+   const report=analyzeInteractionMetrics({self:'我',target:'对方',messages:[message('我','资料已经整理好了','09:00'),message('对方',text,time)]});
+   assert.equal(report.conflictReplies,0);
+   assert.equal(report.turnEvidence[0].needsReview,true);
+  }
+ }
+ const report=analyzeInteractionMetrics({self:'我',target:'对方',messages:[message('对方','你看着办。请不要再联系我。','12:00')]});
+ assert.equal(report.boundaryTurns,1);
+ assert.ok(report.score<=32);
+});

@@ -11,7 +11,7 @@ const message=(id,sender,text,time)=>({messageId:id,sender,text,timestamp:time})
 
 test('更早消息插入同轮后保留纠正，新增独立摩擦仍计数',()=>{
  const self=message('self','我','聊聊今天的事情','2026-11-06 09:00');
- const original=message('old','对方','随便你','2026-11-06 09:02');
+ const original=message('old','对方','你什么意思','2026-11-06 09:02');
  const contact={self:'我',target:'对方',messages:[self,original]};
  const row=analyzeInteractionMetrics(contact).indicators.find(i=>i.kind==='conflict').evidence[0];
  const corrected=correctInteraction(contact,{kind:'conflict',key:row.key,excluded:true},0);
@@ -27,7 +27,7 @@ test('更早消息插入同轮后保留纠正，新增独立摩擦仍计数',()=
 });
 
 test('来源文本变化后不套用旧纠正',()=>{
- const original=message('old','对方','随便你','2026-11-06 09:02');
+ const original=message('old','对方','你什么意思','2026-11-06 09:02');
  const contact={self:'我',target:'对方',messages:[original]};
  const row=analyzeInteractionMetrics(contact).indicators.find(i=>i.kind==='conflict').evidence[0];
  const corrected=correctInteraction(contact,{kind:'conflict',key:row.key,excluded:true},0);

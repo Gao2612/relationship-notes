@@ -71,7 +71,15 @@ export function replyContext(previous,text,previousQuestion){
  const goodNews=/我[^。！？!?]{0,24}(?:通过.{0,6}考试|考上|录取|升职|获奖|拿到.{0,6}offer|考过|成功了|毕业了)/i.test(previous);
  const supportive=(emotionalDisclosure&&/我(?:能)?理解你|我(?:会|愿意)?(?:陪着你|陪你|听你说)|你(?:可以|愿意).{0,6}(?:跟我说|找我)|别怕|抱抱你/.test(body))||(goodNews&&/(?:恭喜|祝贺)你|(?:为你|替你)(?:高兴|开心)|你的努力.{0,6}(?:回报|值得)|你(?:一直|真的|那么).{0,6}努力/.test(body));
  const dismissive=/别再.{0,8}(?:说|提)|不想听|谁在乎|关我什么事|别说了/.test(body);
- const continuation=!dismissive&&([...current].some(term=>prior.has(term))||topics.some(topic=>topic.test(previous)&&topic.test(body))||supportive);
+ const normalize=value=>value.replace(/[\p{P}\s]/gu,'');
+ const previousContent=normalize(previous),replyContent=normalize(body);
+ const echoesPrevious=replyContent.length>0&&previousContent.includes(replyContent);
+ const overlaps=[...current].some(term=>prior.has(term));
+ const addsInformation=[...current].some(term=>!prior.has(term));
+ const sameTopic=topics.some(topic=>topic.test(previous)&&topic.test(body));
+ const continuation=!dismissive&&(supportive||(
+  !echoesPrevious&&relatedEvent&&addsInformation&&(overlaps||sameTopic)
+ ));
  let answer=false;
  if(previousQuestion){
   if(/几点|什么时候|啥时候|何时/.test(previous))answer=/[0-9零一二三四五六七八九十两半]+\s*(?:点|时|天|号|月)|\d{1,2}:\d{2}|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);

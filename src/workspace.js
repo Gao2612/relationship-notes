@@ -473,6 +473,7 @@ for(const batch of batches){
     h('p',null,'对方回合场景：'+sceneSummary),
     h('p',null,'主动发起场景：'+initiativeSummary),
     ...sceneRows,
+    analysis.turnEvidence.some(row=>row.needsReview)&&h('details',null,h('summary',null,'待核对的含糊回复'),...analysis.turnEvidence.filter(row=>row.needsReview).map((row,index)=>h('article',{key:index},h('blockquote',null,row.quote),source(row.message),muted('上下文不足，未计入摩擦分')))),
     analysis.ambiguousCorrectionCount>0&&h('p',{role:'status'},'有 '+analysis.ambiguousCorrectionCount+' 条旧纠正无法唯一定位，请重新核对原文。'),...analysis.indicators.map(indicator=>h('details',{key:indicator.kind},h('summary',null,indicator.label+' · '+indicator.count+' 条'),...indicator.evidence.map((row,index)=>h('article',{className:'rn-message',key:row.key+index},h('blockquote',null,row.quote),row.signal&&h('small',{className:'rn-muted'},row.signal.label+' · 同轮取最高层级'),source(row.message),h('small',null,row.excluded?'已排除此项识别':'计入指标'),button(row.excluded?'恢复识别':'标记误识别',()=>correct(row,!row.excluded)))))),h('details',null,h('summary',null,'纠正历史'),...(contact.interactionCorrections||[]).map((item,index)=>h('p',{key:index},formatChatTimestamp(item.at||item.createdAt)+' · '+item.kind+' · '+(item.excluded?'排除':'恢复')+' · '+(item.note||'')))));
   }
   function Behavior({contact,tab,s}){
