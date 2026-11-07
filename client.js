@@ -36106,19 +36106,38 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (!pane) return;
           if (restoredHistory.current !== contact?.id + ":" + chatSource) {
             restoredHistory.current = contact?.id + ":" + chatSource;
+            let stopped = false, ro = null, pinTimer = null;
             const pin = () => {
               const el = historyRef.current;
-              if (el) el.scrollTop = el.scrollHeight;
+              if (!el || stopped) return;
+              el.scrollTop = el.scrollHeight;
+            };
+            const stop = () => {
+              if (stopped) return;
+              stopped = true;
+              if (ro) ro.disconnect();
+              if (pinTimer) clearTimeout(pinTimer);
+              pane.removeEventListener("scroll", onUserScroll);
+            };
+            const onUserScroll = () => {
+              const el = historyRef.current;
+              if (el && el.scrollHeight - el.scrollTop - el.clientHeight > 4) stop();
             };
             pin();
             requestAnimationFrame(pin);
             setTimeout(pin, 60);
             setTimeout(pin, 200);
             setTimeout(pin, 450);
+            if (typeof ResizeObserver === "function") {
+              ro = new ResizeObserver(pin);
+              ro.observe(pane);
+              pinTimer = setTimeout(stop, 3e3);
+            }
             for (const img of pane.querySelectorAll("img")) {
               if (!img.complete) img.addEventListener("load", pin, { once: true });
             }
-            return;
+            pane.addEventListener("scroll", onUserScroll, { passive: true });
+            return () => stop();
           }
           const anchor = historyAnchor.current;
           if (anchor) {
