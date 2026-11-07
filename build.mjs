@@ -18,7 +18,7 @@ const result=await build({
   api.onResolve({filter:/^rn:pdf-runtime$/},()=>({path:'pdf-runtime',namespace:'rn'}));
   api.onLoad({filter:/.*/,namespace:'rn'},()=>({contents:`export * as PDFJS from 'pdfjs-dist/legacy/build/pdf.mjs';export const PDF_WORKER_SOURCE=${JSON.stringify(worker)};`,resolveDir:root,loader:'js'}));
  }}],
- banner:{js:"window.__ModuleLoader__.load({id:'@local/relationship-notes',factory(require){"},
+ banner:{js:"window.__ModuleLoader__.load({id:'dsh-relationship-notes',factory(require){"},
  footer:{js:'return RelationshipNotesPlugin.default;}});'},
 });
 const client=result.outputFiles[0].text;

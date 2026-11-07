@@ -12,7 +12,7 @@ test('built client factory executes and mounts a renderable DSH module',()=>{
  const sandbox={console,URL,URLSearchParams,TextEncoder,TextDecoder,AbortController,DOMException,Blob,Response,Request,Headers,ReadableStream,setTimeout,clearTimeout,DOMMatrix:class DOMMatrix{},performance,window:{__ModuleLoader__:{load:entry=>entries.push(entry)}}};
  vm.runInNewContext(readFileSync(new URL('./client.js',import.meta.url),'utf8'),sandbox,{timeout:10000,filename:'client.js'});
  assert.equal(entries.length,1);
- assert.equal(entries[0].id,'@local/relationship-notes');
+ assert.equal(entries[0].id,'dsh-relationship-notes');
  const required=[];
  const plugin=entries[0].factory(name=>{required.push(name);assert.equal(name,'react');return React;});
  assert.deepEqual(required,['react']);

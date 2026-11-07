@@ -1,9 +1,25 @@
 {
-  "name": "@local/relationship-notes",
+  "name": "dsh-relationship-notes",
   "version": "3.3.0",
-  "private": true,
   "type": "module",
-  "description": "A full-screen relationship workspace module inside DSH's 定制模块 container, with chat import, evidence-based analytics and editable replies.",
+  "description": "Relationship notebook for DeepSeek Harness: import chats, score every day from message-level evidence, and track how a relationship develops. All data stays on the local device.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "relationship",
+    "memory",
+    "chat-analytics"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gao2612/relationship-notes.git"
+  },
+  "homepage": "https://github.com/Gao2612/relationship-notes#readme",
+  "bugs": {
+    "url": "https://github.com/Gao2612/relationship-notes/issues"
+  },
+  "license": "MIT",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -21,11 +37,15 @@
     "PDFJS-LICENSE.md",
     "cordis.patch.yml",
     "locale/*.json",
-    "icon.svg"
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "node build.mjs",
-    "test": "node verify-v3.mjs"
+    "test": "node verify-v3.mjs",
+    "prepublishOnly": "node verify-v3.mjs"
   },
   "dsh": {
     "bundle": {
@@ -38,6 +58,9 @@
         "@deepseek-ai/dsh-client-locale"
       ]
     }
+  },
+  "engines": {
+    "dsh": ">=0.2.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

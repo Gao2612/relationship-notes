@@ -1,4 +1,4 @@
-window.__ModuleLoader__.load({id:'@local/relationship-notes',factory(require){
+window.__ModuleLoader__.load({id:'dsh-relationship-notes',factory(require){
 var RelationshipNotesPlugin = (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
