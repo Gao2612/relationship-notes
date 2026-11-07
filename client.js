@@ -35497,6 +35497,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const response = await hostPost("timeline-analysis", { self: contact.self, target: contact.target, days: batch }, { signal: controllerForRun.signal }), data = await response.json();
             stopIfAborted();
             if (!response.ok || data.ok === false || !Array.isArray(data.days)) throw new Error(data.error || "未收到有效的日期分析");
+            if (Array.isArray(data.missing) && data.missing.length) throw new Error("模型没有返回这些日期的可解析结果：" + data.missing.join("、"));
             const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
             if (!updatedContact) throw new Error("联系人已不存在。");
             const timelineAnalysis = { ...updatedContact.timelineAnalysis || {}, ...Object.fromEntries(data.days.map((day, index) => {
@@ -35563,6 +35564,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const merged = E.mergeContactImport(s.contacts, contact);
         set({ undoImportContacts: s.contacts, importHistory: [...s.importHistory || [], { name: s.importName || "聊天记录", at: Date.now(), added: merged.added || 0 }].slice(-20), lastImportResult: { added: merged.added || 0, dates: [...new Set(messages.map((m) => formatChatDayKey(m.timestamp)))].filter((d) => d !== "日期未知").sort(), name: s.importName }, contacts: merged.contacts, selectedId: merged.contact.id, drafts: { ...s.drafts || {}, ...s.selectedId ? { [s.selectedId]: savedDraft(s) } : {} }, pending: null, ...resetDraft(), status: "" });
         nav("import", "result");
+        analyzeProfile(merged.contact);
+        analyzeTimeline(merged.contact.id, {});
       }
       function ImportView({ s, contact, tab }) {
         const senders = s.pending ? [...new Set(s.pending.messages.map((m) => m.sender))] : [];
