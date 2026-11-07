@@ -33217,12 +33217,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var positiveCue = { test: positive };
   var negativeCue = { test: negative };
   var topics = [["工作", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/], ["日常", /(今天|最近|吃饭|睡觉|下班|天气|回家)/], ["周末计划", /(周末|休息日|下周|明天|约吗|有空|见面|一起去)/], ["兴趣活动", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]];
-  var dayKey2 = shanghaiDateKey;
+  var dayKey = shanghaiDateKey;
   function analyzeDailyTimeline(messages, self2, target, corrections = []) {
     const list = selected(messages, self2, target), groups = /* @__PURE__ */ new Map();
     corrections = interactionCorrectionIndex(corrections, list);
     for (const message of list) {
-      const date = dayKey2(message.timestamp);
+      const date = dayKey(message.timestamp);
       if (!date) continue;
       let day = groups.get(date);
       if (!day) {
@@ -35920,7 +35920,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const metricCards = metrics.map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value)));
             const messages = shown.messages.map((message, i) => h("article", { className: "rn-message", key: i }, source(message), h("p", { style: { whiteSpace: "pre-wrap" } }, message.text || "[" + (message.typeName || "媒体消息") + "]"), message.attachments?.length ? muted(`媒体附件 ${message.attachments.length} 项`) : null));
             const isTimelineBusy = s.timelineAnalysisContact === contact.id;
-            const channelToday = [["qq", "QQ"], ["wechat", "微信"]].filter(([channel]) => contact.messages.some((message) => dayKey(message.timestamp) === selectedDate && channelOf(message) === channel)), cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
+            const channelToday = [["qq", "QQ"], ["wechat", "微信"]].filter(([channel]) => (shown?.messages || []).some((message) => channelOf(message) === channel)), cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
             const aiDetails = box("当天内容总结", channelToday.length ? h("div", null, ...channelToday.map(([channel, label]) => {
               const entry = contact.timelineAnalysis?.[selectedDate + "#" + channel], summary = entry?.version === 4 ? cleanTimelineDisplayText(entry.summary) : "";
               return h("section", { key: channel, className: "rn-channel-block" }, h("h4", null, label + " 渠道"), summary ? h("p", { style: { whiteSpace: "pre-wrap" } }, summary) : muted(isTimelineBusy ? s.timelineAnalysisProgress || "正在生成…" : "这个渠道当天还没有总结，可用下方按钮生成。"));
@@ -36138,7 +36138,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           return typeof id2 === "string" && id2.trim() ? [id2.trim(), typeof m === "string" ? m : m.displayName || m.name || id2.trim()] : null;
         }).filter(Boolean), lastDay = daily.days.at(-1), latestAffinity = [...daily.days].reverse().find((day) => day.affinityScore !== null);
         const stamp = (message) => formatTimestamp(message.timestamp);
-        const dayKey3 = (message) => formatChatDayKey(message.timestamp);
+        const dayKey2 = (message) => formatChatDayKey(message.timestamp);
         const fileAvatar = (file, name) => {
           const src = typeof file === "string" ? file : file ? localFileUrl(file) : "";
           return h("span", { className: "rn-session-avatar" }, src ? h("img", { src, alt: name + " 头像" }) : Array.from(name || "?")[0]);
@@ -36192,14 +36192,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setJumpDate(value);
           if (!value) return;
           setSearch("");
-          const index = latestMessages.findIndex((m) => dayKey3(m) >= value);
+          const index = latestMessages.findIndex((m) => dayKey2(m) >= value);
           if (index < 0) {
             set({ status: "该日期之后没有记录。" });
             return;
           }
           historyAnchor.current = null;
           setHistoryStart(Math.max(0, index - 20));
-          requestAnimationFrame(() => requestAnimationFrame(() => historyRef.current?.querySelector('[data-date="' + dayKey3(latestMessages[index]) + '"]')?.scrollIntoView({ block: "start" })));
+          requestAnimationFrame(() => requestAnimationFrame(() => historyRef.current?.querySelector('[data-date="' + dayKey2(latestMessages[index]) + '"]')?.scrollIntoView({ block: "start" })));
         };
         const addMessage = () => {
           if (!messageText.trim()) return;
@@ -36221,7 +36221,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const history = [];
         let prior = "";
         visibleMessages.slice(search.trim() ? 0 : historyStart, search.trim() ? void 0 : historyStart + 360).forEach((message, visibleIndex) => {
-          const index = historyStart + visibleIndex, date = dayKey3(message);
+          const index = historyStart + visibleIndex, date = dayKey2(message);
           if (date !== prior) {
             history.push(h("div", { className: "rn-session-day", "data-date": date, key: "day-" + index }, date));
             prior = date;
@@ -36552,7 +36552,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (tab && typeof tab.focus === "function") tab.focus({ preventScroll: true });
           else if (mode === "panel") panelRef.current?.focus?.({ preventScroll: true });
         }, [route.group.id, n.id, route.tab]);
-        const sourceEnabled = n.id === "behavior", sourceChoice = s.recordSource || "all", sourceCounts = contact ? { qq: contact.messages.filter((m) => messageChannel(m) === "qq").length, wechat: contact.messages.filter((m) => messageChannel(m) === "wechat").length } : { qq: 0, wechat: 0 }, shownContact = contact && sourceEnabled && sourceChoice !== "all" ? { ...contact, messages: contact.messages.filter((m) => messageChannel(m) === sourceChoice), pairCount: contact.messages.filter((m) => messageChannel(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)).length, timelineAnalysis: {} } : contact;
+        const sourceEnabled = n.id === "behavior", sourceChoice = s.recordSource || "all", sourceCounts = contact ? { qq: contact.messages.filter((m) => channelOf(m) === "qq").length, wechat: contact.messages.filter((m) => channelOf(m) !== "qq").length } : { qq: 0, wechat: 0 }, shownContact = contact && sourceEnabled && sourceChoice !== "all" ? { ...contact, messages: contact.messages.filter((m) => channelOf(m) === sourceChoice), pairCount: contact.messages.filter((m) => channelOf(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)).length, timelineAnalysis: {} } : contact;
         let content;
         if (n.id === "import") content = h(ImportView, { s, contact, tab: route.tab });
         if (n.id === "profile") content = h(Profile, { s, contact: shownContact, tab: route.tab });
