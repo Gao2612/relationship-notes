@@ -36107,6 +36107,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (restoredHistory.current !== contact?.id + ":" + chatSource) {
             restoredHistory.current = contact?.id + ":" + chatSource;
             pane.scrollTop = pane.scrollHeight;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const el = historyRef.current;
+              if (el) el.scrollTop = el.scrollHeight;
+            }));
             return;
           }
           const anchor = historyAnchor.current;
@@ -36291,7 +36295,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const file = e.target.files?.[0];
             e.target.value = "";
             choosePhoto(file);
-          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref) => showEvidence(contact.id, ref) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref) => showEvidence(contact.id, ref) }), h("div", { className: "rn-session-stat" }, h("strong", null, `${lastCount} 条消息`), h("small", null, [lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录", latestScore === null ? "好感 —" : `好感 ${latestScore}/100`].join(" · "))), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)), button("模型设置", () => nav("settings", "general"))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
+          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref) => showEvidence(contact.id, ref) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref) => showEvidence(contact.id, ref) }), h("div", { className: "rn-session-stat" }, h("strong", null, `${lastCount} 条消息`), h("small", null, [lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录", latestScore === null ? "好感 —" : `好感 ${latestScore}/100`].join(" · "))), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)), button(s.timelineAnalysisContact === contact.id ? "正在重算…" : "重算评分", () => analyzeTimeline(contact.id, { force: true }), { disabled: s.timelineAnalysisContact === contact.id }), button("模型设置", () => nav("settings", "general"))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
             chooseAvatar(file, "self");
