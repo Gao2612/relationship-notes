@@ -34861,6 +34861,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/workspace.js
+  var autoSummaryTried = /* @__PURE__ */ new Set();
   var autoProfileTried = /* @__PURE__ */ new Set();
   var channelOf = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
   function formatChatDayKey(value) {
@@ -35247,7 +35248,45 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         };
       });
       ctx.effect(() => {
-        void models();
+        let cancelled = false, tries = 0, timer = null;
+        const attempt = async () => {
+          await models();
+          if (cancelled) return;
+          const s = store.getSnapshot();
+          if ((!s.provider || !s.model) && tries < 5) {
+            const delay = [400, 1200, 3e3, 8e3, 2e4][tries++] || 2e4;
+            timer = setTimeout(() => {
+              timer = null;
+              void attempt();
+            }, delay);
+          }
+        };
+        void attempt();
+        return () => {
+          cancelled = true;
+          if (timer) clearTimeout(timer);
+        };
+      });
+      ctx.effect(() => {
+        let cancelled = false;
+        const sweep = async () => {
+          await new Promise((done) => setTimeout(done, 2500));
+          if (cancelled) return;
+          const s = store.getSnapshot();
+          if (!s.persistenceReady || s.persistenceReadOnly) return;
+          for (const contact of s.contacts) {
+            if (cancelled) return;
+            if (contact.isSample || !contact.messages?.length) continue;
+            const key = contact.id + "#" + contact.messages.length;
+            if (autoSummaryTried.has(key)) continue;
+            autoSummaryTried.add(key);
+            await analyzeTimeline(contact.id, {});
+          }
+        };
+        void sweep();
+        return () => {
+          cancelled = true;
+        };
       });
       const source = (m) => h("div", { className: "rn-muted" }, [m?.sender, m?.timestamp !== void 0 ? formatChatTimestamp(m.timestamp) : "", m?.file, m?.messageIndex ? `第 ${m.messageIndex} 条` : m?.line ? `第 ${m.line}${m.endLine && m.endLine !== m.line ? "–" + m.endLine : ""} 行` : ""].filter(Boolean).join(" · "), m?.text && button("查看原文上下文", () => showEvidence(store.getSnapshot().selectedId, { messageId: E.profileMessageId(m), message: m, quote: m.text })));
       const select = (label, value, options, onChange, props = {}) => h("label", null, label, h("select", { value, onChange: (e) => onChange(e.target.value), ...props }, ...options.map(([value2, label2]) => h("option", { key: value2, value: value2 }, label2))));
@@ -36021,8 +36060,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           const modelId = (value) => typeof value === "string" ? value : typeof value?.id === "string" ? value.id : typeof value?.modelId === "string" ? value.modelId : typeof value?.model_id === "string" ? value.model_id : typeof value?.model === "string" ? value.model : typeof value?.name === "string" ? value.name : "";
           const hasProvider = (provider2) => providers.some((item) => item.id === provider2), hasModel = (provider2, model2) => providers.some((item) => item.id === provider2 && Array.isArray(item.models) && item.models.some((value) => modelId(value) === model2));
           const validDefault = def && typeof def.provider === "string" && !!def.provider && typeof def.model === "string" && !!def.model, defaultAvailable = validDefault && hasProvider(def.provider), current = store.getSnapshot();
-          const preserveProvider = current.modelOverride && hasProvider(current.provider), provider = preserveProvider ? current.provider : defaultAvailable ? def.provider : providers[0]?.id || "", preserveModel = preserveProvider && hasModel(provider, current.model), model = preserveModel ? current.model : defaultAvailable && provider === def.provider ? def.model : "";
-          const selectedCatalog = providers.find((item) => item.id === provider), modelError = !providers.length ? "DSH 没有返回可用服务商。" : !selectedCatalog ? "请选择服务商。" : selectedCatalog.modelsError || (!selectedCatalog.models?.length ? "DSH 未返回该服务商的模型列表；可输入已配置的模型 ID。" : !defaultAvailable ? "DSH 默认模型不可用，可从列表中选择模型。" : "");
+          const preserveProvider = current.modelOverride && hasProvider(current.provider), provider = preserveProvider ? current.provider : defaultAvailable ? def.provider : providers[0]?.id || "", preserveModel = preserveProvider && hasModel(provider, current.model), catalog = providers.find((item) => item.id === provider), fallbackModel = (Array.isArray(catalog?.models) ? catalog.models : []).map(modelId).find((value) => !!value) || "", model = preserveModel ? current.model : defaultAvailable && provider === def.provider ? def.model : fallbackModel;
+          const modelError = !providers.length ? "DSH 没有返回可用服务商。" : !catalog ? "请选择服务商。" : catalog.modelsError || (!catalog.models?.length && !model ? "DSH 未返回该服务商的模型列表；可输入已配置的模型 ID。" : !model ? "未找到可用模型，可输入已配置的模型 ID。" : "");
           set({ models: providers, modelCatalogRevision: Date.now(), modelBusy: false, modelDefault: defaultAvailable ? def : null, provider, model, modelError });
         } catch (error) {
           if (ticket === modelRequest) set({ modelBusy: false, modelError: error.message || "无法读取模型列表" });
