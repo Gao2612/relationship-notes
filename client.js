@@ -35496,7 +35496,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const response = await hostPost("timeline-analysis", { self: contact.self, target: contact.target, days: batch }, { signal: controllerForRun.signal }), data = await response.json();
             stopIfAborted();
             if (!response.ok || data.ok === false || !Array.isArray(data.days)) throw new Error(data.error || "未收到有效的日期分析");
-            if (Array.isArray(data.missing) && data.missing.length) throw new Error("模型没有返回这些日期的可解析结果：" + data.missing.join("、"));
+            if (Array.isArray(data.missing) && data.missing.length) throw new Error("模型没有返回这些日期的可解析结果：" + ((data.missingDetails || []).length ? data.missingDetails.map((item) => item.date + "（" + (item.reason || "未知") + "）").join("；") : data.missing.join("、")));
             const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
             if (!updatedContact) throw new Error("联系人已不存在。");
             const timelineAnalysis = { ...updatedContact.timelineAnalysis || {}, ...Object.fromEntries(data.days.map((day, index) => {
