@@ -35929,7 +35929,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           set({ behaviorDate: value });
           nav("behavior", "daily");
         }, onOpenRules: () => nav("behavior", "rules") });
-        if (tab === "rules") return box("评分与识别规则", muted("评分 v2.1 使用可核对的回合证据，支持人工纠正。权重是工程启发式，不表示真实好感概率；历史曲线按新规则重新计算。"), h("div", { className: "rn-rules" }, ...RULE_SECTIONS.map((section) => {
+        if (tab === "rules") return box("评分与识别规则", muted("评分 v2.1 使用可核对的回合证据，支持人工纠正。权重是工程启发式，不表示真实好感概率；历史曲线按新规则重新计算。"), h("div", { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", margin: "10px 0 12px" } }, button("按当前规则重算全部评分", () => analyzeTimeline(contact.id, { force: true }), { className: "primary" }), muted("忽略已有缓存，把所有有记录的日期重新分析一遍。")), h("div", { className: "rn-rules" }, ...RULE_SECTIONS.map((section) => {
           if (section.id === "affinity") {
             const rule = parseAffinityRule();
             return h("article", { className: "rn-rule-card", key: section.id }, h("h3", null, section.title, h("code", { className: "rn-rule-value" }, "38 分起算 · 逐项加减 · 结果限制 0–100")), h("ol", { className: "rn-rule-formula" }, ...rule.terms.map((term, index) => h("li", { key: "affinity-term-" + index }, h("b", null, index === 0 ? "基准" : term.sign), " ", term.text))), h("ul", { className: "rn-rule-notes" }, ...rule.notes.flatMap((note, noteIndex) => splitRuleLines(note).map((line, lineIndex) => h("li", { key: "affinity-note-" + noteIndex + "-" + lineIndex }, line)))));
@@ -36106,11 +36106,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (!pane) return;
           if (restoredHistory.current !== contact?.id + ":" + chatSource) {
             restoredHistory.current = contact?.id + ":" + chatSource;
-            pane.scrollTop = pane.scrollHeight;
-            requestAnimationFrame(() => requestAnimationFrame(() => {
+            const pin = () => {
               const el = historyRef.current;
               if (el) el.scrollTop = el.scrollHeight;
-            }));
+            };
+            pin();
+            requestAnimationFrame(pin);
+            setTimeout(pin, 60);
+            setTimeout(pin, 200);
+            setTimeout(pin, 450);
+            for (const img of pane.querySelectorAll("img")) {
+              if (!img.complete) img.addEventListener("load", pin, { once: true });
+            }
             return;
           }
           const anchor = historyAnchor.current;
