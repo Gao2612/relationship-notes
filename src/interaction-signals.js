@@ -232,7 +232,7 @@ export function interactionScoreBreakdown(counts={}){
  if(!totalMessages&&!targetTurns&&!selfTurns)return null;
  const positivePoints=Number.isFinite(counts.positivePoints)?Math.min(6*positive,num(counts.positivePoints)):6*positive;
  const emotionalSharingTurns=Math.min(sharing,num(counts.emotionalSharingTurns));
- const positiveBonus=Math.min(18,positivePoints),questionBonus=Math.min(8,2*question),sharingBonus=Math.min(10,2.5*sharing+1.5*emotionalSharingTurns);
+ const positiveBonus=Math.min(18,positivePoints),questionBonus=Math.min(8,2*question),sharingBonus=Math.min(12,2.5*sharing+1.5*emotionalSharingTurns);
  const responseBonus=Math.min(12,12*responsiveTurns/Math.max(4,targetTurns));
  const rawWarm=positiveBonus+questionBonus+sharingBonus+responseBonus,warm=Math.min(45,rawWarm);
  const initiative=selfTurns>0&&targetTurns>0?4*targetStarts/(selfStarts+targetStarts+4):0;
@@ -240,7 +240,9 @@ export function interactionScoreBreakdown(counts={}){
  const emptyPenalty=Math.round(16*emptyRate),rawCold=24*boundary+emptyPenalty,cold=Math.min(60,rawCold);
  const strong=typeof counts.strongConflict==='boolean'?counts.strongConflict:conflictCount>=2;
  const rawTension=(strong?12:8)*conflictCount,tension=Math.min(strong?24:8,rawTension);
- const rawTotal=38+warm+initiative-cold-tension;
+ // 摩擦后由对方主动解释或和解，会提升感知回应性并修复亲近感（Imai, 2024, Communication Studies）。
+ const repairBonus=Math.min(4,2*appeasementCount);
+ const rawTotal=38+warm+initiative-cold-tension+repairBonus;
  const computed=Math.max(0,Math.min(100,Math.round(rawTotal)));
  const quiet=totalMessages>0&&(targetTurns===0||selfTurns+targetTurns<4)&&!positive&&!question&&!sharing&&!responsiveTurns&&!boundary&&!conflictCount&&!perfunctoryCount&&!lowContentCount;
  const picked=quiet?32:computed,evidenceWeight=Math.min(1,targetTurns/6);
@@ -253,7 +255,7 @@ export function interactionScoreBreakdown(counts={}){
  add('base','基础分','沿用 38 起算；小样本向 32 折算',38,'38');
  add('positive','正向措辞','每回合取最强一项：礼貌 +1、关心支持或具体感谢 +4、明确亲近 +6；合计最多 +18',positiveBonus,'对方正向措辞 '+positive+' 回合，原始加分 '+positivePoints,'positive');
  add('question','对方提问','每个命中回合 +2，最多 +8',questionBonus,'对方提问 '+question+' 回合','question');
- add('sharing','对方自我分享','普通分享每回合 +2.5；其中第一人称感受分享再 +1.5；合计最多 +10',sharingBonus,'对方分享 '+sharing+' 回合，其中感受分享 '+emotionalSharingTurns+' 回合','sharing');
+ add('sharing','对方自我分享','普通分享每回合 +2.5；其中第一人称感受分享再 +1.5；合计最多 +12',sharingBonus,'对方分享 '+sharing+' 回合，其中感受分享 '+emotionalSharingTurns+' 回合','sharing');
  add('response','有效回应','回答或承接取并集，12 × 有效回应回合 ÷ max(4,对方回合)，最多 +12',responseBonus,'有效回应 '+responsiveTurns+' / '+targetTurns+' 回合');
  add('warmCap','正向合计上限 +45','四项加分总计最多 45',warm-rawWarm,'原正向合计 '+Number(rawWarm.toFixed(2)));
  add('initiative','主动开口','双方均有发言时，4 × 对方开口次数 ÷ (双方开口次数 + 4)',initiative,'对方主动 '+targetStarts+' 次 / 我方 '+selfStarts+' 次');
@@ -261,13 +263,14 @@ export function interactionScoreBreakdown(counts={}){
  add('empty','连续缺少有效回应','已识别敷衍或低信息量回合占比 × −16，同轮不重复',-emptyPenalty,'敷衍 '+perfunctoryCount+' 轮，低信息量 '+lowContentCount+' 轮');
  add('coldCap','负向组上限 −60','边界与短回复组最多扣 60',rawCold-cold,'原扣分 '+rawCold);
  add('tension','摩擦','普通摩擦最多 −8；同段重复摩擦每轮 −12，最多 −24；解释不扣分',-tension,'摩擦 '+conflictCount+' 轮，解释 '+appeasementCount+' 轮');
+ add('repair','摩擦后解释或和解','每次解释 +2，最多 +4；感知回应性提升会修复亲近感',repairBonus,'解释 '+appeasementCount+' 轮','positive');
  add('latency','回复间隔（仅展示）','时延不直接加减分',0,medianMinutes===null?'无可用样本':'中位间隔 '+medianMinutes+' 分钟');
  add('clamp','取整与范围限制','四舍五入，限制 0–100',computed-rawTotal,'未取整合计 '+Number(rawTotal.toFixed(2)));
  add('quiet','低频日','少量记录且无可评分信号时记 32',picked-computed,quiet?'低频日按 32 记':'未触发低频覆盖');
  add('sampleAdjustment','小样本折算','超过 32 的部分乘以 min(1,对方回合数 ÷ 6)',adjusted-picked,'对方 '+targetTurns+' 回合；折算系数 '+evidenceWeight.toFixed(2));
  add('strongCap','重复摩擦封顶 48','同段至少两个摩擦回合时，最终不超过 48',conflictCapped-adjusted,strong?'触发同段重复摩擦':'未触发');
  add('boundaryCap','明确边界封顶 32','存在未被排除的负向或拒绝证据时，不被正向信号抵消',score-conflictCapped,boundary?'触发边界上限':'未触发');
- return {score,computed,picked,quiet,strong,items,evidenceWeight,formulaVersion:'2.1',counts:{positive,positivePoints,emotionalSharingTurns,boundary,question,sharing,perfunctoryCount,lowContentCount,responsiveTurns,selfStarts,targetStarts,selfMessages,targetMessages,medianMinutes,targetTurns,selfTurns,conflictCount,appeasementCount,totalMessages}};
+ return {score,computed,picked,quiet,strong,items,evidenceWeight,formulaVersion:'2.2',counts:{positive,positivePoints,emotionalSharingTurns,boundary,question,sharing,perfunctoryCount,lowContentCount,responsiveTurns,selfStarts,targetStarts,selfMessages,targetMessages,medianMinutes,targetTurns,selfTurns,conflictCount,appeasementCount,totalMessages}};
 }
 export function interactionScore(counts={}){
  const result=interactionScoreBreakdown(counts);

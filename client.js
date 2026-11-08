@@ -33075,7 +33075,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!totalMessages && !targetTurns && !selfTurns) return null;
     const positivePoints = Number.isFinite(counts.positivePoints) ? Math.min(6 * positive2, num(counts.positivePoints)) : 6 * positive2;
     const emotionalSharingTurns = Math.min(sharing2, num(counts.emotionalSharingTurns));
-    const positiveBonus = Math.min(18, positivePoints), questionBonus = Math.min(8, 2 * question2), sharingBonus = Math.min(10, 2.5 * sharing2 + 1.5 * emotionalSharingTurns);
+    const positiveBonus = Math.min(18, positivePoints), questionBonus = Math.min(8, 2 * question2), sharingBonus = Math.min(12, 2.5 * sharing2 + 1.5 * emotionalSharingTurns);
     const responseBonus = Math.min(12, 12 * responsiveTurns / Math.max(4, targetTurns));
     const rawWarm = positiveBonus + questionBonus + sharingBonus + responseBonus, warm = Math.min(45, rawWarm);
     const initiative = selfTurns > 0 && targetTurns > 0 ? 4 * targetStarts / (selfStarts + targetStarts + 4) : 0;
@@ -33083,7 +33083,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const emptyPenalty = Math.round(16 * emptyRate), rawCold = 24 * boundary2 + emptyPenalty, cold = Math.min(60, rawCold);
     const strong = typeof counts.strongConflict === "boolean" ? counts.strongConflict : conflictCount >= 2;
     const rawTension = (strong ? 12 : 8) * conflictCount, tension = Math.min(strong ? 24 : 8, rawTension);
-    const rawTotal = 38 + warm + initiative - cold - tension;
+    const repairBonus = Math.min(4, 2 * appeasementCount);
+    const rawTotal = 38 + warm + initiative - cold - tension + repairBonus;
     const computed = Math.max(0, Math.min(100, Math.round(rawTotal)));
     const quiet = totalMessages > 0 && (targetTurns === 0 || selfTurns + targetTurns < 4) && !positive2 && !question2 && !sharing2 && !responsiveTurns && !boundary2 && !conflictCount && !perfunctoryCount && !lowContentCount;
     const picked = quiet ? 32 : computed, evidenceWeight = Math.min(1, targetTurns / 6);
@@ -33096,7 +33097,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     add("base", "基础分", "沿用 38 起算；小样本向 32 折算", 38, "38");
     add("positive", "正向措辞", "每回合取最强一项：礼貌 +1、关心支持或具体感谢 +4、明确亲近 +6；合计最多 +18", positiveBonus, "对方正向措辞 " + positive2 + " 回合，原始加分 " + positivePoints, "positive");
     add("question", "对方提问", "每个命中回合 +2，最多 +8", questionBonus, "对方提问 " + question2 + " 回合", "question");
-    add("sharing", "对方自我分享", "普通分享每回合 +2.5；其中第一人称感受分享再 +1.5；合计最多 +10", sharingBonus, "对方分享 " + sharing2 + " 回合，其中感受分享 " + emotionalSharingTurns + " 回合", "sharing");
+    add("sharing", "对方自我分享", "普通分享每回合 +2.5；其中第一人称感受分享再 +1.5；合计最多 +12", sharingBonus, "对方分享 " + sharing2 + " 回合，其中感受分享 " + emotionalSharingTurns + " 回合", "sharing");
     add("response", "有效回应", "回答或承接取并集，12 × 有效回应回合 ÷ max(4,对方回合)，最多 +12", responseBonus, "有效回应 " + responsiveTurns + " / " + targetTurns + " 回合");
     add("warmCap", "正向合计上限 +45", "四项加分总计最多 45", warm - rawWarm, "原正向合计 " + Number(rawWarm.toFixed(2)));
     add("initiative", "主动开口", "双方均有发言时，4 × 对方开口次数 ÷ (双方开口次数 + 4)", initiative, "对方主动 " + targetStarts + " 次 / 我方 " + selfStarts + " 次");
@@ -33104,13 +33105,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     add("empty", "连续缺少有效回应", "已识别敷衍或低信息量回合占比 × −16，同轮不重复", -emptyPenalty, "敷衍 " + perfunctoryCount + " 轮，低信息量 " + lowContentCount + " 轮");
     add("coldCap", "负向组上限 −60", "边界与短回复组最多扣 60", rawCold - cold, "原扣分 " + rawCold);
     add("tension", "摩擦", "普通摩擦最多 −8；同段重复摩擦每轮 −12，最多 −24；解释不扣分", -tension, "摩擦 " + conflictCount + " 轮，解释 " + appeasementCount + " 轮");
+    add("repair", "摩擦后解释或和解", "每次解释 +2，最多 +4；感知回应性提升会修复亲近感", repairBonus, "解释 " + appeasementCount + " 轮", "positive");
     add("latency", "回复间隔（仅展示）", "时延不直接加减分", 0, medianMinutes === null ? "无可用样本" : "中位间隔 " + medianMinutes + " 分钟");
     add("clamp", "取整与范围限制", "四舍五入，限制 0–100", computed - rawTotal, "未取整合计 " + Number(rawTotal.toFixed(2)));
     add("quiet", "低频日", "少量记录且无可评分信号时记 32", picked - computed, quiet ? "低频日按 32 记" : "未触发低频覆盖");
     add("sampleAdjustment", "小样本折算", "超过 32 的部分乘以 min(1,对方回合数 ÷ 6)", adjusted - picked, "对方 " + targetTurns + " 回合；折算系数 " + evidenceWeight.toFixed(2));
     add("strongCap", "重复摩擦封顶 48", "同段至少两个摩擦回合时，最终不超过 48", conflictCapped - adjusted, strong ? "触发同段重复摩擦" : "未触发");
     add("boundaryCap", "明确边界封顶 32", "存在未被排除的负向或拒绝证据时，不被正向信号抵消", score - conflictCapped, boundary2 ? "触发边界上限" : "未触发");
-    return { score, computed, picked, quiet, strong, items, evidenceWeight, formulaVersion: "2.1", counts: { positive: positive2, positivePoints, emotionalSharingTurns, boundary: boundary2, question: question2, sharing: sharing2, perfunctoryCount, lowContentCount, responsiveTurns, selfStarts, targetStarts, selfMessages, targetMessages, medianMinutes, targetTurns, selfTurns, conflictCount, appeasementCount, totalMessages } };
+    return { score, computed, picked, quiet, strong, items, evidenceWeight, formulaVersion: "2.2", counts: { positive: positive2, positivePoints, emotionalSharingTurns, boundary: boundary2, question: question2, sharing: sharing2, perfunctoryCount, lowContentCount, responsiveTurns, selfStarts, targetStarts, selfMessages, targetMessages, medianMinutes, targetTurns, selfTurns, conflictCount, appeasementCount, totalMessages } };
   }
   function interactionScore(counts = {}) {
     const result = interactionScoreBreakdown(counts);
@@ -34900,7 +34902,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const rejected = /(?:本地规则识别到|形成好感线索分|原文不足以判断|证据不足|无法(?:从聊天记录|由聊天记录|据此)?(?:判断|证明|推断)|不能(?:从聊天记录|据此)?(?:判断|证明|推断)|不等于真实好感|不代表真实好感|真实好感|心理动机|真实原因|其他原因)/u;
     return String(value || "").replace(/\s+/g, " ").split(/(?<=[，,；;。！？!?])/u).filter((part) => !rejected.test(part)).join("").replace(/[，,；;]+([。！？!?])/g, "$1").replace(/^[，,；;]+|[，,；;]+$/g, "").trim();
   }
-  var AFFINITY_RULE_TEXT = "38 + 正向表达（每回合取最强层级：礼貌 1／支持 4／亲近 6，最多 +18）+ 提问（每回合 +2，最多 +8）+ 自我分享（普通分享 +2.5，感受分享 +4，合计最多 +10）+ 有效回应（12×回应回合÷max(4,对方回合)，最多 +12）+ 主动开口（4×对方主动次数÷(双方主动总次数+4)）− 负向组（24×边界回合+round(16×短回复占比)，最多 60）− 摩擦（普通最多 8，较强每回合 12、最多 24）；正向四项合计最多 +45，主动加分要求双方均有发言回合，时延、条数失衡与单方连发不直接扣分，解释不升级摩擦；结果限制在 0–100，对方不足 6 回合时高于 32 的部分乘以回合数/6，较强摩擦总分封顶 48，明确边界总分封顶 32；低频日（对方零回合或双方合计不足 4 回合，且无正向、提问、分享、有效回应、边界、摩擦或短回复证据）直接记中性 32 分，完全无记录留缺口；月/年按 max(1,当天对方回合数)加权，实际总回合不足 20 时高于 32 的部分再乘以实际回合数/20；同类命中按回合计分，礼貌不等同亲近，原文展示分层标签，回答与承接同轮只加一次，人工排除后重算，权重是工程启发式而非好感概率，历史曲线按新规则重新计算";
+  var AFFINITY_RULE_TEXT = "38 + 正向表达（每回合取最强层级：礼貌 1／支持 4／亲近 6，最多 +18）+ 提问（每回合 +2，最多 +8）+ 自我分享（普通分享 +2.5，感受分享 +4，合计最多 +12）+ 有效回应（12×回应回合÷max(4,对方回合)，最多 +12）+ 主动开口（4×对方主动次数÷(双方主动总次数+4)）− 负向组（24×边界回合+round(16×短回复占比)，最多 60）− 摩擦（普通最多 8，较强每回合 12、最多 24）；正向四项合计最多 +45，主动加分要求双方均有发言回合，时延、条数失衡与单方连发不直接扣分，解释不升级摩擦，解释每次 +2、最多 +4；结果限制在 0–100，对方不足 6 回合时高于 32 的部分乘以回合数/6，较强摩擦总分封顶 48，明确边界总分封顶 32；低频日（对方零回合或双方合计不足 4 回合，且无正向、提问、分享、有效回应、边界、摩擦或短回复证据）直接记中性 32 分，完全无记录留缺口；月/年按 max(1,当天对方回合数)加权，实际总回合不足 20 时高于 32 的部分再乘以实际回合数/20；同类命中按回合计分，礼貌不等同亲近，原文展示分层标签，回答与承接同轮只加一次，人工排除后重算，权重是工程启发式而非好感概率，历史曲线按新规则重新计算";
   var RULE_SECTIONS = [
     { id: "affinity", title: "好感线索分" },
     { id: "balance", title: "互动均衡分", value: "round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))" },
@@ -36009,7 +36011,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           set({ behaviorDate: value });
           nav("behavior", "daily");
         }, onOpenRules: () => nav("behavior", "rules") });
-        if (tab === "rules") return box("评分与识别规则", muted("评分 v2.1 使用可核对的回合证据，支持人工纠正。权重是工程启发式，不表示真实好感概率；历史曲线按新规则重新计算。"), h("div", { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", margin: "10px 0 12px" } }, button("按当前规则重算全部评分", () => analyzeTimeline(contact.id, { force: true }), { className: "primary" }), muted("忽略已有缓存，把所有有记录的日期重新分析一遍。")), h("div", { className: "rn-rules" }, ...RULE_SECTIONS.map((section) => {
+        if (tab === "rules") return box("评分与识别规则", muted("评分 v2.2 使用可核对的回合证据，支持人工纠正。权重是工程启发式，不表示真实好感概率；历史曲线按新规则重新计算。"), h("div", { style: { display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", margin: "10px 0 12px" } }, button("按当前规则重算全部评分", () => analyzeTimeline(contact.id, { force: true }), { className: "primary" }), muted("忽略已有缓存，把所有有记录的日期重新分析一遍。")), h("div", { className: "rn-rules" }, ...RULE_SECTIONS.map((section) => {
           if (section.id === "affinity") {
             const rule = parseAffinityRule();
             return h("article", { className: "rn-rule-card", key: section.id }, h("h3", null, section.title, h("code", { className: "rn-rule-value" }, "38 分起算 · 逐项加减 · 结果限制 0–100")), h("ol", { className: "rn-rule-formula" }, ...rule.terms.map((term, index) => h("li", { key: "affinity-term-" + index }, h("b", null, index === 0 ? "基准" : term.sign), " ", term.text))), h("ul", { className: "rn-rule-notes" }, ...rule.notes.flatMap((note, noteIndex) => splitRuleLines(note).map((line, lineIndex) => h("li", { key: "affinity-note-" + noteIndex + "-" + lineIndex }, line)))));

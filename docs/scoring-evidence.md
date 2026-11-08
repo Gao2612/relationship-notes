@@ -15,6 +15,11 @@
 | 对好消息的积极回应（capitalization）独立预测关系质量 | 「支持/庆祝式回应」计入正向表达的最高层级 | Gable, S. L., Gonzaga, G. C., & Strachman, A. (2006). Will you be there for me when things go right? *Journal of Personality and Social Psychology*, 91(5), 904–917. [doi:10.1037/0022-3514.91.5.904](https://doi.org/10.1037/0022-3514.91.5.904) |
 | 冲突中的修复尝试（事后解释、缓冲）预示关系存续 | 「事后解释」作为修复证据，独立于摩擦扣分 | Gottman, J. M., & Levenson, R. W. (1992). Marital processes predictive of later dissolution. *Journal of Personality and Social Psychology*, 63(2), 221–233. [doi:10.1037/0022-3514.63.2.221](https://doi.org/10.1037/0022-3514.63.2.221) |
 | 关系维持依赖持续的小幅互动，而非单次高强度表达 | 「主动开口」加分需双方均有回合，单方连发不计 | Stafford, L., & Canary, D. J. (1991). Maintenance strategies and romantic relationship type. *Journal of Social and Personal Relationships*, 8(2), 145–159. [doi:10.1177/0265407591082001](https://doi.org/10.1177/0265407591082001) |
+| 在纯文本消息里，表情符号会提升**感知回应性**，进而提升关系满意度 | 「有效回应」「正向措辞」在纯文本通道同样成立，不因缺少语音/见面而打折 | Huh, E. (2025). The impact of emojis on perceived responsiveness and relationship satisfaction in text messaging. *PLOS One*. [doi:10.1371/journal.pone.0326189](https://doi.org/10.1371/journal.pone.0326189) |
+| 表达感谢与**道歉**都通过提升感知回应性来提高亲近感 | 摩擦后的解释/和解独立加分：每次 +2，最多 +4 | Imai, T. (2024). Impacts of expressed gratitude and apologies on perceived closeness: Mediating roles of responsiveness and predicted outcome values. *Communication Studies*. [doi:10.1080/10510974.2024.2357359](https://doi.org/10.1080/10510974.2024.2357359) |
+| 感知回应性是**多维**构念（归属、性、探索三类需求各自独立），单一计数会低估质量差异 | 「有效回应」按回合计并设上限，不按消息条数无限累加 | Prekatsounaki, S., & Enzlin, P. (2024). Not all responsiveness is created equal: Three new scales measuring perceived partner responsiveness. *Journal of Couple & Relationship Therapy*. [doi:10.1080/15332691.2024.2368067](https://doi.org/10.1080/15332691.2024.2368067) |
+| 伴侣低头（phubbing）经由关系满意度与信任的链条降低关系质量，其伤害来自「在场却不应答」 | 「连续缺少有效回应」与低频日不因单次正向而解封 | Roberts, J. A., & David, M. E. (2022). Partner phubbing and relationship satisfaction through the lens of social allergy theory. *Personality and Individual Differences*. [doi:10.1016/j.paid.2022.111676](https://doi.org/10.1016/j.paid.2022.111676)；Doğru, M. C., et al. (2025). Trust and romantic relationship quality as serial mediators… *Psychological Reports*. [doi:10.1177/00332941251335603](https://doi.org/10.1177/00332941251335603) |
+| 线上自我表露直接促进亲密感发展，表露量在文本通道同样有效 | 「自我分享」合计上限由 +10 提到 +12 | Lin, Y.-H., & Chu, M. G. (2021). Online communication self-disclosure and intimacy development on Facebook. *Online Information Review*. [doi:10.1108/OIR-08-2020-0329](https://doi.org/10.1108/OIR-08-2020-0329) |
 
 > 上述 DOI 均为出版社注册号，若链接失效可按「作者 + 年份 + 标题」在 [Crossref](https://search.crossref.org/) 核对。
 
@@ -36,7 +41,21 @@
 4. 样本不足（对方回合 < 6）时高于中性值的部分按比例折减。
 5. 任何权重调整必须把缓存版本号 +1，使历史日期重新计算，并在本文件记录调整理由。
 
-## 四、明确排除
+## 四、v2.2 调整记录（2026-11）
+
+由近年文献（2021–2025）驱动的两处改动，其余权重与上限保持不变：
+
+1. **自我分享上限 +10 → +12**：依据 Lin & Chu (2021)——线上自我表露本身即促进亲密感，原上限在长期高频联系人上过早起效，压平了表露量的差异。
+2. **摩擦后解释独立加分 +2/次、最多 +4**：依据 Imai (2024)——道歉经由提升感知回应性提高亲近感，此前「解释不扣分」相当于把修复价值记成 0。该加分与摩擦扣分分开结算，不抵消、不升级摩擦。
+
+刻意**未**改动的部分及原因：
+
+- 「回答与承接同轮只计一次」保持不变：Prekatsounaki & Enzlin (2024) 指出回应性是多维质量构念，重复计数只会放大数量而非质量，与证据方向相反。
+- 「有效回应」上限 +12 与 `max(4, 对方回合)` 分母保持不变：改了会同时抬高所有中低频联系人的分数，属于脱离证据的调参。
+- 依恋/人格类结论仍只用于降低惩罚，不抬高分（见第三节第 3 条）。
+- 评分由回合证据实时重算，不读 `timelineAnalysis` 缓存，因此本次不需要提升该缓存版本号（该版本只决定 AI 摘要文案是否重写）；公式版本号已升到 `2.2`，界面规则页同步显示。
+
+## 五、明确排除
 
 - 星座、血型、塔罗、命理、择时等神秘学内容：不可证伪，不参与评分；如需展示，只作「文化视角，非证据」注记。
 - 任何声称能读出「真实想法」「真实好感概率」的推断：本工具不提供。
