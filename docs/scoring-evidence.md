@@ -59,3 +59,27 @@
 
 - 星座、血型、塔罗、命理、择时等神秘学内容：不可证伪，不参与评分；如需展示，只作「文化视角，非证据」注记。
 - 任何声称能读出「真实想法」「真实好感概率」的推断：本工具不提供。
+
+## 六、跨学科证据（AGENT／人文／心理学／神秘学／爱情／友情）
+
+检索方式：以下条目均经 Crossref API 按主题检索、核对 DOI 与期刊后写入；未核对的条目一律不写。
+编号对应上面的 DOI 可直接打开出版社页面复核。
+
+| 学科 | 结论 | 对评分的影响 | 文献 |
+| --- | --- | --- | --- |
+| 社会心理学（对话） | 提问——尤其是追问——能显著提升对方的好感，是「低成本高回报」的互动方式 | 提问上限 +8 → +10（小幅上调；2025 年该文有更正声明，不按最大效应量放大） | Huang, K., Yeomans, M., Brooks, A. W., Minson, J. A., & Gino, F. (2017). It doesn't hurt to ask: Question-asking increases liking. *Journal of Personality and Social Psychology*. [doi:10.1037/pspi0000097](https://doi.org/10.1037/pspi0000097)；更正声明 [doi:10.1037/pspi0000491](https://doi.org/10.1037/pspi0000491) |
+| 友情 | 友谊靠一组可列举的「规则」维持：支持、信任、共享信息、不背后议论、必要时主动帮忙 | 不为友情单开一套权重：这些规则已被「支持／边界／有效回应」三类信号覆盖，重复加权只会放大同一份证据 | Argyle, M., & Henderson, M. (1984). The rules of friendship. *Journal of Social and Personal Relationships*, 1(2), 211–237. [doi:10.1177/0265407584012005](https://doi.org/10.1177/0265407584012005) |
+| 神秘学（心理学视角） | 星象信念与人格特质、自我概念存在相关，但没有任何证据表明星象能预测关系质量或互动走向 | 维持排除：不进入权重，只作文化注记；该结论也不用于评价用户本人 | Andersson, I., Persson, J., & Kajonius, P. (2022). Even the stars think that I am superior: Personality, intelligence and belief in astrology. *Personality and Individual Differences*. [doi:10.1016/j.paid.2021.111389](https://doi.org/10.1016/j.paid.2021.111389)；Startup, M. (1983). Belief in astrology: A symptom of maladjustment? *Personality and Individual Differences*. [doi:10.1016/0191-8869(83)90157-5](https://doi.org/10.1016/0191-8869(83)90157-5) |
+| AGENT（AI 伴侣／依赖） | 本轮检索到的条目多为非同行评审期刊或选题偏移，未达到可引用标准 | 本轮不采纳，不据此类内容改权重 | — |
+
+AGENT 方向的后续检索口径（本轮未取到合格文献，故不写结论）：PubMed / PsycINFO 用
+`("AI companion" OR "chatbot") AND ("parasocial" OR "emotional dependency") AND ("romantic" OR "attachment")`，
+限 2023 年后、限同行评审、期刊须在 SSCI/JCR 收录；确认 DOI 可解析后再进入权重讨论。
+
+国内文献：中文期刊普遍未注册 Crossref DOI，本轮试图按《心理学报》(ISSN 0439-755X) 与《中国临床心理学杂志》(ISSN 1005-3611) 检索，前者能检索到条目但主题与「感知回应性」不匹配，后者未注册，因此**不写入任何未核对的中文条目**。中文证据继续按第二节的知网／万方检索式核对原文后采纳。
+
+## 七、v2.3 调整记录（2026-11）
+
+1. **提问上限 +8 → +10**：依据 Huang et al. (2017)。原上限在第 4 个提问回合就到顶，把「持续追问」这一高价值行为压平了；上调 2 分使其在 5 个回合内仍有区分度。因该文 2025 年有更正声明，本次只做小幅上调，不按原始效应量放大。
+2. 其余不变：正向合计上限仍为 +45（提问上限提高不会改变上限，只是更早触及），自我分享 +12、有效回应 +12、修复 +4、边界 −24、摩擦 12/8 全部维持。
+3. 公式版本号升到 `2.3`，规则页与打分依据文案同步。

@@ -232,7 +232,7 @@ export function interactionScoreBreakdown(counts={}){
  if(!totalMessages&&!targetTurns&&!selfTurns)return null;
  const positivePoints=Number.isFinite(counts.positivePoints)?Math.min(6*positive,num(counts.positivePoints)):6*positive;
  const emotionalSharingTurns=Math.min(sharing,num(counts.emotionalSharingTurns));
- const positiveBonus=Math.min(18,positivePoints),questionBonus=Math.min(8,2*question),sharingBonus=Math.min(12,2.5*sharing+1.5*emotionalSharingTurns);
+ const positiveBonus=Math.min(18,positivePoints),questionBonus=Math.min(10,2*question),sharingBonus=Math.min(12,2.5*sharing+1.5*emotionalSharingTurns);
  const responseBonus=Math.min(12,12*responsiveTurns/Math.max(4,targetTurns));
  const rawWarm=positiveBonus+questionBonus+sharingBonus+responseBonus,warm=Math.min(45,rawWarm);
  const initiative=selfTurns>0&&targetTurns>0?4*targetStarts/(selfStarts+targetStarts+4):0;
@@ -254,7 +254,7 @@ export function interactionScoreBreakdown(counts={}){
  const add=(key,label,condition,delta,detail,kind)=>items.push({key,label,condition,delta,hit:delta!==0,detail,...(kind?{kind}:{})});
  add('base','基础分','沿用 38 起算；小样本向 32 折算',38,'38');
  add('positive','正向措辞','每回合取最强一项：礼貌 +1、关心支持或具体感谢 +4、明确亲近 +6；合计最多 +18',positiveBonus,'对方正向措辞 '+positive+' 回合，原始加分 '+positivePoints,'positive');
- add('question','对方提问','每个命中回合 +2，最多 +8',questionBonus,'对方提问 '+question+' 回合','question');
+ add('question','对方提问','每个命中回合 +2，最多 +10',questionBonus,'对方提问 '+question+' 回合','question');
  add('sharing','对方自我分享','普通分享每回合 +2.5；其中第一人称感受分享再 +1.5；合计最多 +12',sharingBonus,'对方分享 '+sharing+' 回合，其中感受分享 '+emotionalSharingTurns+' 回合','sharing');
  add('response','有效回应','回答或承接取并集，12 × 有效回应回合 ÷ max(4,对方回合)，最多 +12',responseBonus,'有效回应 '+responsiveTurns+' / '+targetTurns+' 回合');
  add('warmCap','正向合计上限 +45','四项加分总计最多 45',warm-rawWarm,'原正向合计 '+Number(rawWarm.toFixed(2)));
@@ -270,7 +270,7 @@ export function interactionScoreBreakdown(counts={}){
  add('sampleAdjustment','小样本折算','超过 32 的部分乘以 min(1,对方回合数 ÷ 6)',adjusted-picked,'对方 '+targetTurns+' 回合；折算系数 '+evidenceWeight.toFixed(2));
  add('strongCap','重复摩擦封顶 48','同段至少两个摩擦回合时，最终不超过 48',conflictCapped-adjusted,strong?'触发同段重复摩擦':'未触发');
  add('boundaryCap','明确边界封顶 32','存在未被排除的负向或拒绝证据时，不被正向信号抵消',score-conflictCapped,boundary?'触发边界上限':'未触发');
- return {score,computed,picked,quiet,strong,items,evidenceWeight,formulaVersion:'2.2',counts:{positive,positivePoints,emotionalSharingTurns,boundary,question,sharing,perfunctoryCount,lowContentCount,responsiveTurns,selfStarts,targetStarts,selfMessages,targetMessages,medianMinutes,targetTurns,selfTurns,conflictCount,appeasementCount,totalMessages}};
+ return {score,computed,picked,quiet,strong,items,evidenceWeight,formulaVersion:'2.3',counts:{positive,positivePoints,emotionalSharingTurns,boundary,question,sharing,perfunctoryCount,lowContentCount,responsiveTurns,selfStarts,targetStarts,selfMessages,targetMessages,medianMinutes,targetTurns,selfTurns,conflictCount,appeasementCount,totalMessages}};
 }
 export function interactionScore(counts={}){
  const result=interactionScoreBreakdown(counts);
