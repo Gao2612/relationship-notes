@@ -32,3 +32,20 @@ test('period review date control retains selected period in preference updates',
  nodes.find(n=>n.type==='input'&&n.props.type==='date').props.onChange({target:{value:'2026-11-08'}});
  assert.deepEqual(preferences,{period:'week',anchor:'2026-11-08'});
 });
+
+test('relation stage view saves manual profile and stage override',()=>{
+ let action;const contact={...base(),relationProfile:{label:'小林',context:'大学同学，聊工作和电影',expectation:'先做稳定的朋友'}};
+ const app=harness(E.createRelationStageView),props=()=>({contact,onAction:value=>action=value,onEvidence(){}});
+ let nodes=app.render(props());
+ assert(nodes.some(n=>n.children.includes('关系画像与阶段')));
+ assert.equal(nodes.find(n=>n.props['aria-label']==='对方称谓').props.value,'小林');
+ assert(nodes.some(n=>n.children.includes('当前阶段：')));
+ nodes.find(n=>n.props['aria-label']==='对方称谓').props.onChange({target:{value:'小林同学'}});
+ nodes=app.render(props());
+ find(nodes,'保存关系画像').props.onClick();
+ assert.equal(action.type,'setProfile');assert.equal(action.label,'小林同学');
+ nodes.find(n=>n.props['aria-label']==='手动设定阶段').props.onChange({target:{value:'ambiguous'}});
+ nodes=app.render(props());
+ find(nodes,'保存阶段设定').props.onClick();
+ assert.deepEqual({type:action.type,stage:action.stage},{type:'setStage',stage:'ambiguous'});
+});

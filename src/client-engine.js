@@ -8,6 +8,8 @@ export * from './reply-payload.js';
 export * from './wechat-export.js';
 export * from './profile-lifecycle.js';
 export * from './profile-bridge.js';
+export * from './relation-stage.js';
+export * from './views/relation-stage.js';
 export * from './interaction-metrics.js';
 export * from './persistence-schema.js';
 export * from './interpretation-view.js';

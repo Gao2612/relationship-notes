@@ -1,7 +1,7 @@
 // 一级导航（最多两层）：一级入口 + 页内 tab。旧的路由 id 全部保留为别名，
 // 通过 GROUP_ALIASES 映射到新的分组，避免任何死链。
 export const NAVIGATION = [
-  {id:'contact',label:'联系人',items:[{id:'profile',label:'联系人档案',tabs:[['basic','基本资料'],['interests','兴趣偏好']]}]},
+  {id:'contact',label:'联系人',items:[{id:'profile',label:'联系人档案',tabs:[['basic','基本资料'],['interests','兴趣偏好'],['stage','关系阶段']]}]},
   {id:'records',label:'记录与评分',items:[{id:'behavior',label:'行为记录',tabs:[['daily','每日历程'],['metrics','互动评分'],['basis','打分依据'],['review','周/月复盘'],['evidence','记录列表'],['rules','评分规则']]}]},
   {id:'communicate',label:'沟通',items:[{id:'replies',label:'回复草稿',tabs:[['session','会话']]},{id:'goals',label:'行动计划',tabs:[['current','当前目标'],['progress','进展记录']]}]},
   {id:'manage',label:'设置',items:[{id:'settings',label:'通用设置',tabs:[['general','通用设置']]},{id:'import',label:'聊天导入',tabs:[['file','导入文件'],['identity','身份确认'],['result','导入结果']]}]},

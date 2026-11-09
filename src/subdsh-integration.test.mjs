@@ -22,7 +22,7 @@ test('registers Relationship Notes in the Sub DSH module registry without host s
   const visit=node=>{if(!node||typeof node!=='object')return;if(node.props?.role==='tablist')tablists.push(node.props.className);if(node.props?.role==='tab')tabs.push(node.props);if(node.props?.id==='rn-panel')panel=node.props;for(const child of node.children||[])visit(child);};
   visit(page);
   assert.deepEqual(tablists,['rn-tabs rn-group-tabs','rn-tabs rn-context-tabs']);
-  assert.equal(tabs.length,6);
+  assert.equal(tabs.length,7,'四个一级分组 + 联系人档案的三个页内 tab（含关系阶段）');
   assert.equal(tabs.filter(tab=>tab.id.startsWith('rn-tab-rn-group-tabs-')).length,4);
   for(const tab of tabs){assert.equal(tab['aria-controls'],'rn-panel');assert.equal(typeof tab['aria-selected'],'boolean');assert.equal(tab['aria-pressed'],undefined);assert.equal(typeof tab.tabIndex,'number');}
   assert.equal(panel.tabIndex,-1);

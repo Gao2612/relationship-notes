@@ -214,7 +214,7 @@ export const css=`
 `;
 
 export function createPlugin(React,E,dictionaries){
- const ScoringBasisView=E.createScoringBasisView(React,E),AutoAnalysisStatusView=E.createAutoAnalysisStatusView(React),InterpretationView=E.createInterpretationView(React),EvidenceContextView=E.createEvidenceContextView(React,E),ProfileLifecycleView=E.createProfileLifecycleView(React,E),ReplyFeedbackView=E.createReplyFeedbackView(React,E),TopicSuggestionsView=E.createTopicSuggestionsView(React,E),PeriodReviewView=E.createPeriodReviewView(React,E),ShareScopeView=E.createShareScopeView(React,E),SelfPlanView=E.createSelfPlanView(React,E);
+ const ScoringBasisView=E.createScoringBasisView(React,E),AutoAnalysisStatusView=E.createAutoAnalysisStatusView(React),InterpretationView=E.createInterpretationView(React),EvidenceContextView=E.createEvidenceContextView(React,E),ProfileLifecycleView=E.createProfileLifecycleView(React,E),ReplyFeedbackView=E.createReplyFeedbackView(React,E),TopicSuggestionsView=E.createTopicSuggestionsView(React,E),PeriodReviewView=E.createPeriodReviewView(React,E),ShareScopeView=E.createShareScopeView(React,E),SelfPlanView=E.createSelfPlanView(React,E),RelationStageView=E.createRelationStageView(React,E);
  const h=React.createElement,id='local-relationship-notes',emptyMessages=[];
   const localFileUrl=createMediaUrls(),mediaLabels=MEDIA_LABELS,messageMediaKind=mediaKind;let pdfWorkerUrl='';
  return {inject:['locale','subdsh'],apply(ctx){
@@ -441,6 +441,7 @@ for(const batch of batches){
    const [editing,setEditing]=React.useState(null),[editValue,setEditValue]=React.useState(''),[addField,setAddField]=React.useState('daily'),[editMode,setEditMode]=React.useState('edit'),[effectiveAt,setEffectiveAt]=React.useState(''),[view,setView]=React.useState('active'),[undo,setUndo]=React.useState(null);
    React.useEffect(()=>{setEditing(null);setView('active');setUndo(null);},[contact?.id,tab]);
    if(!contact)return empty();
+   if(tab==='stage')return box(contact.target+(contact.isSample?' · 虚构示例':''),h(RelationStageView,{contact,onAction:action=>{const current=store.getSnapshot();set({contacts:current.contacts.map(c=>c.id===contact.id?E.changeRelationProfile(c,action):c),status:'关系画像与阶段已保存。'});},onEvidence:ref=>showEvidence(contact.id,ref)}));
    const fields=tab==='basic'?[['city','城市'],['job','工作情况'],['daily','生活习惯'],['recent','最近近况'],['agreement','重要约定'],['style','沟通风格（行为模式）'],['boundary','明确边界'],['followup','待跟进事项'],['inference','可能解释（推测）']]:[['interests','兴趣爱好'],['preferences','个人偏好']],all=E.profileRows(contact),facts=all.filter(f=>(f.manual||E.supportedProfileSummary(f))&&(view==='active'?f.status==='active':view==='pending'?f.status==='pending':['archived','superseded'].includes(f.status)));
    const act=action=>{const current=store.getSnapshot();set({contacts:current.contacts.map(c=>c.id===contact.id?E.changeProfile(c,action):c)});};
    const open=(fact,mode)=>{setEditing(fact?.uid||'new');setEditMode(mode);setEditValue(mode==='update'?'':fact?.value||'');setAddField(fact?.field||fields[0][0]);setEffectiveAt(new Date().toLocaleString('sv-SE',{timeZone:'Asia/Shanghai',hour12:false}).slice(0,16).replace(' ','T'));};
