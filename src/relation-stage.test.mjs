@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as E from './relation-stage.js';
 
@@ -89,4 +89,18 @@ test('关系画像字段可保存、截断并拒绝未知阶段',()=>{
  assert.equal(Array.from(long.relationProfile.label).length,60);
  assert.throws(()=>E.changeRelationProfile(contact(),{type:'setStage',stage:'恋人'}),/未知的关系阶段/);
  assert.throws(()=>E.changeRelationProfile(contact(),{type:'remove'}),/未知的关系画像操作/);
+});
+
+test('疑问、否定与过往表述不算关系确认，真实确认才判对象',()=>{
+ const asked=contact({messages:[message('对方','你有男朋友吗？'),message('我','没有')]});
+ assert.notEqual(E.buildRelationStage(asked,{days:days(6,45)}).stage,'partner','疑问句不是关系确认');
+ const past=contact({messages:[message('对方','我前对象昨天来找我')]});
+ assert.notEqual(E.buildRelationStage(past,{days:days(6,45)}).stage,'partner','过往表述不是当前关系');
+ const real=contact({messages:[message('对方','我男朋友今天来接我')]});
+ const realStage=E.buildRelationStage(real,{days:days(6,45)});
+ assert.equal(realStage.stage,'partner');
+ const mixed=contact({messages:[message('对方','我前对象昨天来找我'),message('对方','我男朋友今天来接我')]});
+ const mixedStage=E.buildRelationStage(mixed,{days:days(6,45)});
+ assert.equal(mixedStage.stage,'partner');
+ assert(mixedStage.reasons.find(r=>r.code==='commit').text.includes('已排除 1 条'),'被排除的表述要在证据句里点名');
 });

@@ -18,6 +18,10 @@ const WORK=/(工作|上班|加班|项目|报告|论文|考试|作业|方案|设�
 const STRONG_ROMANCE=/(想你|好想你|喜欢你|心动|心跳|想见你|宝贝|亲爱的|亲亲|抱抱|做我女朋友|做我男朋友|我女朋友|我男朋友|在一起吧|想娶你|想嫁你)/;
 const WEAK_ROMANCE=/(晚安|在吗|在干嘛|吃什么|一起去|一起看|周末有空|小可爱|傻瓜|笨蛋)/;
 const COMMIT=/(男朋友|女朋友|老公|老婆|对象|情侣|恋爱关系|我们在一起|我对象|领证|订婚)/;
+// 疑问、否定与过往时态不是关系确认：「你有男朋友吗？」「我前男友」都不算证据。
+const EXCLUDED_CONTEXT=/(前男友|前女友|前对象|前任|曾经|以前|当初|没有男朋友|没有女朋友|没对象|找不到对象|单身|不是男朋友|不是女朋友)/;
+const QUESTION_TAIL=/(吗|嘛|么|呢)?\s*[?？]\s*$/;
+const romanceEvidence=(pattern,text)=>pattern.test(text)&&!EXCLUDED_CONTEXT.test(text)&&!QUESTION_TAIL.test(text);
 const DAY=86400000;
 const clip=(value,max)=>typeof value==='string'?Array.from(value.trim()).slice(0,max).join(''):'';
 const timestamp=message=>typeof message?.timestamp==='string'?message.timestamp:'';
@@ -92,9 +96,10 @@ function scanSide(contact,anchorDate,isTarget){
   const text=message.text,date=timestamp(message).slice(0,10);
   if(Number.isFinite(start)&&dayTime(date)<start)continue;
   side.total++;
-  if(STRONG_ROMANCE.test(text))side.strong.push(message);
+  if(romanceEvidence(STRONG_ROMANCE,text))side.strong.push(message);
   if(WEAK_ROMANCE.test(text))side.weak.push(message);
-  if(COMMIT.test(text))side.commit.push(message);
+  if(romanceEvidence(COMMIT,text))side.commit.push(message);
+  else if(COMMIT.test(text))side.excluded=(side.excluded||0)+1;
   if(WORK.test(text))side.work++;
   if(lateNight(message))side.lateNight++;
  }
@@ -117,10 +122,10 @@ export function buildRelationStage(contact,options={}){
  const push=(code,text,evidence)=>{reasons.push(evidence?{code,text,evidence}:{code,text});};
  push('window',`近 30 天有 ${metrics.days} 天可评分互动、${metrics.turns} 个回合，平均线索分 ${metrics.averageScore===null?'—':metrics.averageScore}（按对方回合加权，样本少于 20 回合时沿用月/年桶的收缩规则）。`);
  let stage='acquaintance',confidence=0.35;
- const commitHits=theirs.commit.length+mine.commit.length;
+ const commitHits=theirs.commit.length+mine.commit.length,excluded=(theirs.excluded||0)+(mine.excluded||0);
  if(theirs.commit.length||commitHits>=2){
   stage='partner';confidence=0.85;
-  push('commit',`出现 ${commitHits} 条明确的情侣称呼或关系确认${theirs.commit.length?`（对方 ${theirs.commit.length} 条）`:''}。`,evidenceOf(theirs.commit[0]||mine.commit[0]));
+  push('commit',`出现 ${commitHits} 条明确的情侣称呼或关系确认${excluded?`（已排除 ${excluded} 条疑问/否定/过往表述）`:''}${theirs.commit.length?`（对方 ${theirs.commit.length} 条）`:''}。`,evidenceOf(theirs.commit[0]||mine.commit[0]));
  }else if((mine.strong.length&&theirs.strong.length)||(mine.weak.length>=3&&theirs.weak.length>=3&&theirs.lateNight>=2)){
   stage='ambiguous';confidence=mine.strong.length&&theirs.strong.length?0.75:0.55;
   push('mutual',`双方都有超越朋友的表达：我方 ${mine.strong.length} 条强信号 / ${mine.weak.length} 条弱信号，对方 ${theirs.strong.length} 条强信号 / ${theirs.weak.length} 条弱信号，对方深夜消息 ${theirs.lateNight} 条。`,evidenceOf(theirs.strong[0]||theirs.weak[0]));

@@ -102,3 +102,15 @@ AGENT 方向的后续检索口径（本轮未取到合格文献，故不写结�
 2. 再接入被丢弃扣分，且保持三条约束：仅我方回合 ≥3 时计分、上限 −12 低于边界（−24/回合）与重复摩擦（−12/回合）、并入负向组后仍受 −60 组上限与边界封顶 32 约束。
 
 公式版本号维持 `2.3`，权重未变；本节只记录方案与前置条件。
+
+## 九、关系阶段（3c）的文献口径（2026-11）
+
+阶段判定的「顺序」与「可观察行为」有文献支撑，但**具体数字阈值没有**：
+
+- 人们对关系升级有一致的「行动序列」预期（哪些动作先出现、哪些属于下一步），这支持把阶段当作有序序列而非并列标签：[Memory Structures for Relational Escalation](https://doi.org/10.1111/j.1468-2958.1989.tb00205.x)（Human Communication Research, 1989）。
+- 关系升级过程中的矛盾张力与依恋差异，支持「同一批消息在不同阶段含义不同」的读法：[Navigating Relational Escalation](https://doi.org/10.1080/10570314.2023.2166797)（Western Journal of Communication, 2023）。
+- 恋爱关系三阶段中，关系思维与关系传播随阶段变化：[The role of relational interdependence, relationship thinking, and relational communication in three stages of romantic relationships](https://doi.org/10.1080/08824090109384813)（Communication Research Reports, 2001）。
+
+因此文献只用于两件事：**阶段有序**、**每一档必须落到消息级证据**。各档分数线（如好朋友 ≥55 分且 ≥12 天）仍是工程设定，不声称来自文献。
+
+同期收紧一条证据规则：疑问句、否定与过往表述不计入「关系确认」（如「你有男朋友吗？」「我前对象」），并把被排除条数写进证据句，避免单条误判把阶段直接跳到「对象」。公式版本不变（`2.3`，未改权重）。
