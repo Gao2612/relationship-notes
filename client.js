@@ -34095,9 +34095,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var WORK2 = /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿|会议|客户|同事|领导|老板|周报|需求|上线|排期|面试|入职)/;
   var STRONG_ROMANCE = /(想你|好想你|喜欢你|心动|心跳|想见你|宝贝|亲爱的|亲亲|抱抱|做我女朋友|做我男朋友|我女朋友|我男朋友|在一起吧|想娶你|想嫁你)/;
   var WEAK_ROMANCE = /(晚安|在吗|在干嘛|吃什么|一起去|一起看|周末有空|小可爱|傻瓜|笨蛋)/;
-  var COMMIT = /(男朋友|女朋友|老公|老婆|对象|情侣|恋爱关系|我们在一起|我对象|领证|订婚)/;
-  var EXCLUDED_CONTEXT = /(前男友|前女友|前对象|前任|曾经|以前|当初|没有男朋友|没有女朋友|没对象|找不到对象|单身|不是男朋友|不是女朋友)/;
-  var QUESTION_TAIL = /(吗|嘛|么|呢)?\s*[?？]\s*$/;
+  var COMMIT = /(男朋友|女朋友|男票|女票|男友|女友|老公|老婆|对象|情侣|恋爱关系|我们在一起|我对象|领证|订婚)/;
+  var EXCLUDED_CONTEXT = /(前男友|前女友|前对象|前任|曾经|以前|当初|没有男朋友|没有女朋友|没男朋友|没女朋友|没有男票|没有女票|没男票|没女票|没(有)?对象|没有(男|女)友|找不到对象|单身|不是男朋友|不是女朋友|不是男票|不是女票)/;
+  var QUESTION_TAIL = /([?？]|(吗|嘛|呢)[。.!！~～…\s]*)$/;
   var romanceEvidence = (pattern, text) => pattern.test(text) && !EXCLUDED_CONTEXT.test(text) && !QUESTION_TAIL.test(text);
   var DAY = 864e5;
   var clip2 = (value, max) => typeof value === "string" ? Array.from(value.trim()).slice(0, max).join("") : "";

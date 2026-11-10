@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as E from './relation-stage.js';
 
@@ -71,6 +71,7 @@ test('人工设定优先于自动判定，且重算不会把它冲掉',()=>{
  assert.equal(result.stage,'ambiguous');
  assert.equal(result.manual,true);
  assert.equal(result.confidence,1);
+ assert.deepEqual(result.band,[50,100],'人工设定后证据区间改用该阶段自身的区间');
  assert.equal(result.autoStage,'friend');
  assert(result.reasons[0].text.includes('你手动设定'));
  const later=E.buildRelationStage(manual,{days:days(13,70,{emotionalSharingTurns:5})});
@@ -89,6 +90,30 @@ test('关系画像字段可保存、截断并拒绝未知阶段',()=>{
  assert.equal(Array.from(long.relationProfile.label).length,60);
  assert.throws(()=>E.changeRelationProfile(contact(),{type:'setStage',stage:'恋人'}),/未知的关系阶段/);
  assert.throws(()=>E.changeRelationProfile(contact(),{type:'remove'}),/未知的关系画像操作/);
+});
+
+test('不带问号的疑问句、否定与口语称呼按同一口径处理',()=>{
+ const noMark=contact({messages:[message('对方','你有男票吗')]});
+ assert.notEqual(E.buildRelationStage(noMark,{days:days(6,45)}).stage,'partner','省略问号的疑问句不是关系确认');
+ const denied=contact({messages:[message('我','我没有男友')]});
+ assert.notEqual(E.buildRelationStage(denied,{days:days(6,45)}).stage,'partner','否定表述不是关系确认');
+ const colloquial=contact({messages:[message('对方','我男票今天来接我')]});
+ assert.equal(E.buildRelationStage(colloquial,{days:days(6,45)}).stage,'partner','男票/女票属于明确关系称呼');
+});
+
+test('八档阶段定义自洽：标签唯一、区间落在 0–100 且下限不大于上限',()=>{
+ const options=E.relationStageOptions();
+ assert.equal(options.length,8);
+ assert.equal(new Set(options.map(option=>option.label)).size,8,'八档标签不能重复');
+ const auto=E.buildRelationStage(contact(),{days:days(6,45)});
+ assert(auto.band[0]>=0&&auto.band[1]<=100,'证据区间必须落在 0–100');
+ assert(auto.band[0]<=auto.band[1]);
+ for(const option of options){
+  assert.equal(E.isRelationStage(option.key),true);
+  assert.equal(E.relationStageLabel(option.key),option.label);
+ }
+ assert.equal(E.relationStageLabel('soulmate'),'待定');
+ assert.equal(E.isRelationStage('soulmate'),false);
 });
 
 test('疑问、否定与过往表述不算关系确认，真实确认才判对象',()=>{

@@ -17,10 +17,11 @@ const PROFILE_FIELDS=[['label',60],['context',300],['expectation',300]];
 const WORK=/(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿|会议|客户|同事|领导|老板|周报|需求|上线|排期|面试|入职)/;
 const STRONG_ROMANCE=/(想你|好想你|喜欢你|心动|心跳|想见你|宝贝|亲爱的|亲亲|抱抱|做我女朋友|做我男朋友|我女朋友|我男朋友|在一起吧|想娶你|想嫁你)/;
 const WEAK_ROMANCE=/(晚安|在吗|在干嘛|吃什么|一起去|一起看|周末有空|小可爱|傻瓜|笨蛋)/;
-const COMMIT=/(男朋友|女朋友|老公|老婆|对象|情侣|恋爱关系|我们在一起|我对象|领证|订婚)/;
+const COMMIT=/(男朋友|女朋友|男票|女票|男友|女友|老公|老婆|对象|情侣|恋爱关系|我们在一起|我对象|领证|订婚)/;
 // 疑问、否定与过往时态不是关系确认：「你有男朋友吗？」「我前男友」都不算证据。
-const EXCLUDED_CONTEXT=/(前男友|前女友|前对象|前任|曾经|以前|当初|没有男朋友|没有女朋友|没对象|找不到对象|单身|不是男朋友|不是女朋友)/;
-const QUESTION_TAIL=/(吗|嘛|么|呢)?\s*[?？]\s*$/;
+const EXCLUDED_CONTEXT=/(前男友|前女友|前对象|前任|曾经|以前|当初|没有男朋友|没有女朋友|没男朋友|没女朋友|没有男票|没有女票|没男票|没女票|没(有)?对象|没有(男|女)友|找不到对象|单身|不是男朋友|不是女朋友|不是男票|不是女票)/;
+// 中文聊天常省略问号：「你有男票吗」同样是疑问，不能当成关系确认。
+const QUESTION_TAIL=/([?？]|(吗|嘛|呢)[。.!！~～…\s]*)$/;
 const romanceEvidence=(pattern,text)=>pattern.test(text)&&!EXCLUDED_CONTEXT.test(text)&&!QUESTION_TAIL.test(text);
 const DAY=86400000;
 const clip=(value,max)=>typeof value==='string'?Array.from(value.trim()).slice(0,max).join(''):'';

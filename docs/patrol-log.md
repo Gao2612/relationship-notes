@@ -29,3 +29,17 @@
 | `d9a5b6f` | 关系阶段（3c）证据精度修复：疑问句、否定与过往表述不再计入「关系确认」（如「你有男朋友吗？」「我前对象」），被排除条数写进证据句；新增 1 条测试（疑问／过往／真实确认／混合四场景）。 | 阶段顺序有文献支撑、阈值为工程设定，见 [docs/scoring-evidence.md 第九节](scoring-evidence.md)：[Memory Structures for Relational Escalation](https://doi.org/10.1111/j.1468-2958.1989.tb00205.x)、[Navigating Relational Escalation](https://doi.org/10.1080/10570314.2023.2166797)、[Three stages of romantic relationships](https://doi.org/10.1080/08824090109384813) | build 通过（client.js 2,774,522 B）；47 个测试文件 312 断言通过，2 条沙箱环境性失败（跨时区子进程／ZIP 打包 EPERM）与本轮改动无关；`verify-v3.mjs` 因 spawn 被沙箱拦截，本轮改为逐文件直跑统计 |
 
 本轮截图通道：CDP 9222 仍拒绝连接，走窗口兜底通道（PrintWindow）截取 DSH 主窗口；面板内 11 视图无法在无 CDP 下自动逐屏切换，未取得整轮 11 视图拼图。
+
+## 2026-11-10
+
+| commit | 改动 | 依据 | 验证 |
+| --- | --- | --- | --- |
+| 本轮 | 关系阶段（3c）证据精度收口：`男票 / 女票 / 男友 / 女友` 计入明确关系称呼；省略问号的疑问（「你有男票吗」）、否定（「我没有男友」）与前任性表述统一排除，判定依据里点名「已排除 N 条」 | 本地规则误判复盘：无问号中文疑问句与口语称呼是同一批漏判；口径见 \src/relation-stage.js\ 注释 | build 通过；316 断言全绿 |
+| 本轮 | 阶段测试补强：八档阶段标签唯一性、证据区间落在 0–100、人工覆盖后区间改用该阶段自身 band | 巡检要求：分数边界／人工覆盖／无名联系人不崩 | 同上 |
+| 本轮 | 联系人档案的「关系阶段」页确认可持久化：\elationProfile\ 随 contacts 原样迁移，自动判定只读不写回 | \src/persistence-schema.js\ 迁移逻辑保持 contacts 原样展开 | 代码审查，无回归 |
+
+### 当日文献复核（不改权重）
+
+- 检索 [Crossref](https://api.crossref.org/works?query.bibliographic=perceived+responsiveness+mediates+relationship+satisfaction+daily+diary)：命中 [Frontiers 2021 日记法研究](https://doi.org/10.3389/fpsyg.2021.609232)、[长距离短信与关系满意度](https://doi.org/10.1177/02654075211043296)、[即时通讯跨年龄跨文化](https://doi.org/10.5817/cp2023-3-8)。
+- 结论：这些研究支持「自我表露 + 感知回应性 + 日常累积」的方向，但均未给出可落到单条消息的更细权重，且与现有 v2.3 校准一致；网络检索命中的聚合站与非同行评审条目一律不采纳。
+- 因此公式版本维持 **v2.3**，本轮不改权重、不触发全量重算。
