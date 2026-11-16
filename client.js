@@ -14616,10 +14616,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     clipBbox(graphics, x0, y0, x1, y1) {
       const bboxWidth = x1 - x0;
       const bboxHeight = y1 - y0;
-      const clip3 = new Path2D();
-      clip3.rect(x0, y0, bboxWidth, bboxHeight);
+      const clip5 = new Path2D();
+      clip5.rect(x0, y0, bboxWidth, bboxHeight);
       Util.axialAlignedBoundingBox([x0, y0, x1, y1], getCurrentTransform(graphics.ctx), graphics.current.minMax);
-      graphics.ctx.clip(clip3);
+      graphics.ctx.clip(clip5);
       graphics.current.updateClipFromPath();
     }
     setFillAndStrokeStyleToContext(graphics, paintType, color) {
@@ -15815,9 +15815,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           layerCtx.save();
           layerCtx.globalAlpha = 1;
           layerCtx.setTransform(1, 0, 0, 1, 0, 0);
-          const clip3 = new Path2D();
-          clip3.rect(clipX, clipY, clipW, clipH);
-          layerCtx.clip(clip3);
+          const clip5 = new Path2D();
+          clip5.rect(clipX, clipY, clipW, clipH);
+          layerCtx.clip(clip5);
           layerCtx.globalCompositeOperation = "destination-in";
           layerCtx.drawImage(preparedEntry.canvas, srcX, srcY, clipW, clipH, clipX, clipY, clipW, clipH);
           layerCtx.restore();
@@ -15866,9 +15866,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       layerCtx.save();
       layerCtx.globalAlpha = 1;
       layerCtx.setTransform(1, 0, 0, 1, 0, 0);
-      const clip3 = new Path2D();
-      clip3.rect(layerOffsetX, layerOffsetY, width, height);
-      layerCtx.clip(clip3);
+      const clip5 = new Path2D();
+      clip5.rect(layerOffsetX, layerOffsetY, width, height);
+      layerCtx.clip(clip5);
       layerCtx.globalCompositeOperation = "destination-in";
       layerCtx.drawImage(maskCtx.canvas, layerOffsetX - maskOffsetX, layerOffsetY - maskOffsetY, width, height, layerOffsetX, layerOffsetY, width, height);
       layerCtx.restore();
@@ -16500,9 +16500,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     setCharWidth(opIdx, xWidth, yWidth) {
     }
     setCharWidthAndBounds(opIdx, xWidth, yWidth, llx, lly, urx, ury) {
-      const clip3 = new Path2D();
-      clip3.rect(llx, lly, urx - llx, ury - lly);
-      this.ctx.clip(clip3);
+      const clip5 = new Path2D();
+      clip5.rect(llx, lly, urx - llx, ury - lly);
+      this.ctx.clip(clip5);
       this.dependencyTracker?.recordBBox(opIdx, this.ctx, llx, urx, lly, ury).recordClipBox(opIdx, this.ctx, llx, urx, lly, ury);
       this.endPath(opIdx);
     }
@@ -16613,9 +16613,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (bbox) {
         Util.axialAlignedBoundingBox(bbox, this.baseTransform, this.current.minMax);
         const [x0, y0, x1, y1] = bbox;
-        const clip3 = new Path2D();
-        clip3.rect(x0, y0, x1 - x0, y1 - y0);
-        this.ctx.clip(clip3);
+        const clip5 = new Path2D();
+        clip5.rect(x0, y0, x1 - x0, y1 - y0);
+        this.ctx.clip(clip5);
         this.dependencyTracker?.recordClipBox(opIdx, this.ctx, x0, x1, y0, y1);
         this.endPath(opIdx);
       }
@@ -16642,15 +16642,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const currentCtx = this.ctx;
       if ((!group.needsIsolation || !group.isolated && !group.hasSoftMask) && !group.knockout && !group.isGray && this.#knockoutGroupLevel === 0 && currentCtx.globalAlpha === 1 && currentCtx.globalCompositeOperation === "source-over" && !inSMaskMode) {
         if (group.bbox) {
-          let clip3 = new Path2D();
+          let clip5 = new Path2D();
           const [x0, y0, x1, y1] = group.bbox;
-          clip3.rect(x0, y0, x1 - x0, y1 - y0);
+          clip5.rect(x0, y0, x1 - x0, y1 - y0);
           if (group.matrix) {
             const path = new Path2D();
-            path.addPath(clip3, new DOMMatrix(group.matrix));
-            clip3 = path;
+            path.addPath(clip5, new DOMMatrix(group.matrix));
+            clip5 = path;
           }
-          currentCtx.clip(clip3);
+          currentCtx.clip(clip5);
         }
         this.groupStack.push(null);
         this.#groupStackMeta.push(null);
@@ -16703,15 +16703,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         groupCtx.restore();
       }
       if (group.bbox) {
-        let clip3 = new Path2D();
+        let clip5 = new Path2D();
         const [x0, y0, x1, y1] = group.bbox;
-        clip3.rect(x0, y0, x1 - x0, y1 - y0);
+        clip5.rect(x0, y0, x1 - x0, y1 - y0);
         if (group.matrix) {
           const path = new Path2D();
-          path.addPath(clip3, new DOMMatrix(group.matrix));
-          clip3 = path;
+          path.addPath(clip5, new DOMMatrix(group.matrix));
+          clip5 = path;
         }
-        groupCtx.clip(clip3);
+        groupCtx.clip(clip5);
       }
       if (group.smask) {
         this.smaskStack.push({
@@ -16834,9 +16834,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
         } else {
           if (groupMeta.replaceBackdrop) {
-            const clip3 = new Path2D();
-            clip3.rect(0, 0, groupCtx.canvas.width, groupCtx.canvas.height);
-            this.ctx.clip(clip3);
+            const clip5 = new Path2D();
+            clip5.rect(0, 0, groupCtx.canvas.width, groupCtx.canvas.height);
+            this.ctx.clip(clip5);
             this.ctx.globalCompositeOperation = "copy";
           }
           this.ctx.drawImage(groupCtx.canvas, 0, 0);
@@ -16941,9 +16941,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         } else {
           resetCtxToDefault(this.ctx);
           this.endPath(opIdx);
-          const clip3 = new Path2D();
-          clip3.rect(rect[0], rect[1], width, height);
-          this.ctx.clip(clip3);
+          const clip5 = new Path2D();
+          clip5.rect(rect[0], rect[1], width, height);
+          this.ctx.clip(clip5);
         }
       }
       this.current = new CanvasExtraState(this.ctx.canvas.width, this.ctx.canvas.height);
@@ -19398,21 +19398,21 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const metrics = ctx.measureText("");
       const ascent = metrics.fontBoundingBoxAscent;
       const descent = Math.abs(metrics.fontBoundingBoxDescent);
-      let ratio = 0.8;
+      let ratio2 = 0.8;
       if (ascent) {
-        ratio = ascent / (ascent + descent);
+        ratio2 = ascent / (ascent + descent);
       } else {
         if (FeatureTest.platform.isFirefox) {
           warn("Enable the `dom.textMetrics.fontBoundingBox.enabled` preference in `about:config` to improve TextLayer rendering.");
         }
         if (style.ascent) {
-          ratio = style.ascent;
+          ratio2 = style.ascent;
         } else if (style.descent) {
-          ratio = 1 + style.descent;
+          ratio2 = 1 + style.descent;
         }
       }
-      this.#ascentCache.set(fontFamily, ratio);
-      return ratio;
+      this.#ascentCache.set(fontFamily, ratio2);
+      return ratio2;
     }
   };
   var RENDERING_CANCELLED_TIMEOUT = 100;
@@ -19673,8 +19673,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     getPage(pageNumber) {
       return this._transport.getPage(pageNumber);
     }
-    getPageIndex(ref) {
-      return this._transport.getPageIndex(ref);
+    getPageIndex(ref2) {
+      return this._transport.getPageIndex(ref2);
     }
     getDestinations() {
       return this._transport.getDestinations();
@@ -19744,8 +19744,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     cleanup(keepLoadedFonts = false) {
       return this._transport.startCleanup(keepLoadedFonts || this.isPureXfa);
     }
-    cachedPageNumber(ref) {
-      return this._transport.cachedPageNumber(ref);
+    cachedPageNumber(ref2) {
+      return this._transport.cachedPageNumber(ref2);
     }
     get loadingParams() {
       return this._transport.loadingParams;
@@ -20869,13 +20869,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       this.#pagePromises.set(pageIndex, promise);
       return promise;
     }
-    async getPageIndex(ref) {
-      if (!isRefProxy(ref)) {
+    async getPageIndex(ref2) {
+      if (!isRefProxy(ref2)) {
         throw new Error("Invalid pageIndex request.");
       }
       const index = await this.messageHandler.sendWithPromise("GetPageIndex", {
-        num: ref.num,
-        gen: ref.gen
+        num: ref2.num,
+        gen: ref2.gen
       });
       const pageNumber = this.pagesMapper.getPageNumber(index + 1);
       if (pageNumber === 0) {
@@ -20993,11 +20993,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       this.filterFactory.destroy(true);
       TextLayer.cleanup();
     }
-    cachedPageNumber(ref) {
-      if (!isRefProxy(ref)) {
+    cachedPageNumber(ref2) {
+      if (!isRefProxy(ref2)) {
         return null;
       }
-      const refStr = ref.gen === 0 ? `${ref.num}R` : `${ref.num}R${ref.gen}`;
+      const refStr = ref2.gen === 0 ? `${ref2.num}R` : `${ref2.num}R${ref2.gen}`;
       const pageIndex = this.#pageRefCache.get(refStr);
       if (pageIndex >= 0) {
         const pageNumber = this.pagesMapper.getPageNumber(pageIndex + 1);
@@ -29249,9 +29249,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         max = Math.max(max, pix);
         min = Math.min(min, pix);
       }
-      const ratio = 255 / (max - min);
+      const ratio2 = 255 / (max - min);
       for (let i = 0, ii = out.length; i < ii; i++) {
-        out[i] = (out[i] - min) * ratio;
+        out[i] = (out[i] - min) * ratio2;
       }
       return out;
     }
@@ -29310,9 +29310,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
           bitmap = offscreen2.transferToImageBitmap();
         }
-        const ratio = Math.min(maxDim / newWidth, maxDim / newHeight);
-        newWidth = Math.round(newWidth * ratio);
-        newHeight = Math.round(newHeight * ratio);
+        const ratio2 = Math.min(maxDim / newWidth, maxDim / newHeight);
+        newWidth = Math.round(newWidth * ratio2);
+        newHeight = Math.round(newHeight * ratio2);
       }
       const offscreen = new OffscreenCanvas(newWidth, newHeight);
       const ctx = offscreen.getContext("2d", {
@@ -29416,9 +29416,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       } = lines;
       const thickness = lines.thickness ?? 0;
       const linesAndPoints = [];
-      const ratio = Math.min(pageWidth / width, pageHeight / height);
-      const xScale = ratio / pageWidth;
-      const yScale = ratio / pageHeight;
+      const ratio2 = Math.min(pageWidth / width, pageHeight / height);
+      const xScale = ratio2 / pageWidth;
+      const yScale = ratio2 / pageHeight;
       const newCurves = [];
       for (const {
         points
@@ -30316,9 +30316,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       let canvas = null;
       if (maxPreviewDimension) {
         if (bitmapWidth > maxPreviewDimension || bitmapHeight > maxPreviewDimension) {
-          const ratio = Math.min(maxPreviewDimension / bitmapWidth, maxPreviewDimension / bitmapHeight);
-          width = Math.floor(bitmapWidth * ratio);
-          height = Math.floor(bitmapHeight * ratio);
+          const ratio2 = Math.min(maxPreviewDimension / bitmapWidth, maxPreviewDimension / bitmapHeight);
+          width = Math.floor(bitmapWidth * ratio2);
+          height = Math.floor(bitmapHeight * ratio2);
         }
         canvas = document.createElement("canvas");
         const scaledWidth = canvas.width = Math.ceil(width * outputScale.sx);
@@ -30358,9 +30358,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         } else {
           bitmap = this.#bitmap;
           if (bitmapWidth > maxDataDimension || bitmapHeight > maxDataDimension) {
-            const ratio = Math.min(maxDataDimension / bitmapWidth, maxDataDimension / bitmapHeight);
-            dataWidth = Math.floor(bitmapWidth * ratio);
-            dataHeight = Math.floor(bitmapHeight * ratio);
+            const ratio2 = Math.min(maxDataDimension / bitmapWidth, maxDataDimension / bitmapHeight);
+            dataWidth = Math.floor(bitmapWidth * ratio2);
+            dataHeight = Math.floor(bitmapHeight * ratio2);
             if (!this.#isSvg) {
               bitmap = this.#scaleBitmap(dataWidth, dataHeight);
             }
@@ -32115,11 +32115,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   // src/client-engine.js
   var client_engine_exports = {};
   __export(client_engine_exports, {
+    AI_DIMENSIONS: () => AI_DIMENSIONS,
+    AI_MAX_CHARS: () => AI_MAX_CHARS,
+    AI_MAX_MESSAGES: () => AI_MAX_MESSAGES,
+    AI_RESULT_VERSION: () => AI_RESULT_VERSION,
     AUTO_ANALYSIS_VERSION: () => AUTO_ANALYSIS_VERSION,
+    DIMENSIONS: () => DIMENSIONS,
+    FRICTION: () => FRICTION,
     HOST_TOKEN_ALIASES: () => HOST_TOKEN_ALIASES,
     ImportError: () => ImportError,
     MAX_BYTES: () => MAX_BYTES,
     MAX_MESSAGES: () => MAX_MESSAGES,
+    MODEL_VERSION: () => MODEL_VERSION,
     NAVIGATION: () => NAVIGATION,
     RELATION_STAGES: () => RELATION_STAGES,
     SESSION_BREAKPOINTS: () => SESSION_BREAKPOINTS,
@@ -32130,17 +32137,23 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     analyzeConversation: () => analyzeConversation,
     analyzeDailyTimeline: () => analyzeDailyTimeline,
     analyzeInteractionMetrics: () => analyzeInteractionMetrics,
+    analyzeRelationship: () => analyzeRelationship,
     applyTopicFeedback: () => applyTopicFeedback,
     approveReplySample: () => approveReplySample,
     beginImport: () => beginImport,
+    buildAffinityRequest: () => buildAffinityRequest,
     buildAutoAnalysisPlan: () => buildAutoAnalysisPlan,
     buildPeriodReview: () => buildPeriodReview,
     buildRelationStage: () => buildRelationStage,
     buildReplyContext: () => buildReplyContext,
     buildReplyPayload: () => buildReplyPayload,
     buildShareScopePreview: () => buildShareScopePreview,
+    buildTurns: () => buildTurns,
+    buildWeeklySignals: () => buildWeeklySignals,
+    cachedAiWeek: () => cachedAiWeek,
     categories: () => categories,
     categoryFor: () => categoryFor,
+    changePoints: () => changePoints,
     changeProfile: () => changeProfile,
     changeRelationProfile: () => changeRelationProfile,
     changeSelfPlan: () => changeSelfPlan,
@@ -32156,12 +32169,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     createProfileBridgeSnapshot: () => createProfileBridgeSnapshot,
     createProfileLifecycleView: () => createProfileLifecycleView,
     createRelationStageView: () => createRelationStageView,
+    createRelationshipInsightView: () => createRelationshipInsightView,
     createReplyFeedbackView: () => createReplyFeedbackView,
     createScoringBasisView: () => createScoringBasisView,
     createSelfPlanView: () => createSelfPlanView,
     createShareScopeView: () => createShareScopeView,
     createTopicSuggestionsView: () => createTopicSuggestionsView,
     createWorkspaceStore: () => createWorkspaceStore,
+    currentWeekKey: () => currentWeekKey,
     decodeFile: () => decodeFile,
     defaultSettings: () => defaultSettings,
     demoScores: () => demoScores,
@@ -32171,8 +32186,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     engagementSignals: () => engagementSignals,
     ensureContactMessageIds: () => ensureContactMessageIds,
     ensureMessageIds: () => ensureMessageIds,
+    ewma: () => ewma,
+    explainWeek: () => explainWeek,
     extractFacts: () => extractFacts,
     failImport: () => failImport,
+    functionWordRates: () => functionWordRates,
+    fuseDimension: () => fuseDimension,
     generateLocalDraft: () => generateLocalDraft,
     groupTabs: () => groupTabs,
     hostVar: () => hostVar,
@@ -32188,9 +32207,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     isInteractionExcluded: () => isInteractionExcluded,
     isProfileFactCurrent: () => isProfileFactCurrent,
     isRelationStage: () => isRelationStage,
+    languageStyleMatching: () => languageStyleMatching,
     legacyInteractionEvidenceKey: () => legacyInteractionEvidenceKey,
     legacyMessageId: () => legacyMessageId,
     linkWechatMediaFiles: () => linkWechatMediaFiles,
+    longitudinal: () => longitudinal,
     makeSelfProfile: () => makeSelfProfile,
     mergeContactImport: () => mergeContactImport,
     mergeProfileAnalysis: () => mergeProfileAnalysis,
@@ -32225,19 +32246,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     resolveNavigation: () => resolveNavigation,
     resolveProfileResponseFact: () => resolveProfileResponseFact,
     retrieveRelatedMessages: () => retrieveRelatedMessages,
+    ruleDimensions: () => ruleDimensions,
     sampleChat: () => sampleChat,
     sceneGroups: () => sceneGroups,
+    scoreWeek: () => scoreWeek,
     scoringMessage: () => scoringMessage,
     selectBestWechatExport: () => selectBestWechatExport,
     selectShareScopeMessages: () => selectShareScopeMessages,
+    selectWeekMessages: () => selectWeekMessages,
     sessionPaneLayout: () => sessionPaneLayout,
     shareScopeDay: () => shareScopeDay,
+    shrink: () => shrink,
     sortChatMessages: () => sortChatMessages,
+    storeAiWeek: () => storeAiWeek,
     suggestNextSteps: () => suggestNextSteps,
     summarizeSelfProfile: () => summarizeSelfProfile,
     supportedProfileSummary: () => supportedProfileSummary,
     topicSuggestionKey: () => topicSuggestionKey,
+    trend: () => trend,
     validateSettings: () => validateSettings,
+    weekFingerprint: () => weekFingerprint,
+    weekStartKey: () => weekStartKey,
     withoutPersistenceMedia: () => withoutPersistenceMedia
   });
 
@@ -32330,19 +32359,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function resolveEvidenceContext(contact, reference = {}, options = {}) {
     const messages = contact?.messages || [], radius = Number.isInteger(options.radius) ? Math.max(0, Math.min(20, options.radius)) : 3;
-    let ref = typeof reference === "string" ? { messageId: reference } : reference || {};
-    if (ref.factId) {
-      const fact = (contact?.profileSummary || contact?.facts || []).find((f) => f.uid === ref.factId || f.id === ref.factId);
+    let ref2 = typeof reference === "string" ? { messageId: reference } : reference || {};
+    if (ref2.factId) {
+      const fact = (contact?.profileSummary || contact?.facts || []).find((f) => f.uid === ref2.factId || f.id === ref2.factId);
       if (!fact) return { status: "missing", reason: "来源资料已不存在。" };
-      ref = { ...fact, ...ref, message: ref.message || fact.message, sourceMessageIds: ref.sourceMessageIds || fact.sourceMessageIds, quote: ref.quote || fact.quote };
+      ref2 = { ...fact, ...ref2, message: ref2.message || fact.message, sourceMessageIds: ref2.sourceMessageIds || fact.sourceMessageIds, quote: ref2.quote || fact.quote };
     }
-    const quote = typeof ref.quote === "string" ? ref.quote : "", source = ref.message || ref;
-    const explicit = [ref.messageId, ...Array.isArray(ref.sourceMessageIds) ? ref.sourceMessageIds : []].filter((v) => typeof v === "string" && v), ids = explicit.length ? explicit : [typeof ref.id === "string" ? ref.id : null, ref.message ? messageIdentity(ref.message) : null].filter((v) => typeof v === "string" && v);
-    const matchesSource = (message2) => (!quote || String(message2.text || "").includes(quote)) && (!source.sender || message2.sender === source.sender) && (source.timestamp == null || String(message2.timestamp) === String(source.timestamp)) && (!source.file || message2.file === source.file) && (!ref.message?.text || message2.text === ref.message.text);
+    const quote = typeof ref2.quote === "string" ? ref2.quote : "", source = ref2.message || ref2;
+    const explicit = [ref2.messageId, ...Array.isArray(ref2.sourceMessageIds) ? ref2.sourceMessageIds : []].filter((v) => typeof v === "string" && v), ids = explicit.length ? explicit : [typeof ref2.id === "string" ? ref2.id : null, ref2.message ? messageIdentity(ref2.message) : null].filter((v) => typeof v === "string" && v);
+    const matchesSource = (message2) => (!quote || String(message2.text || "").includes(quote)) && (!source.sender || message2.sender === source.sender) && (source.timestamp == null || String(message2.timestamp) === String(source.timestamp)) && (!source.file || message2.file === source.file) && (!ref2.message?.text || message2.text === ref2.message.text);
     let matches = [];
     if (ids.length) {
       matches = messages.map((message2, index2) => ({ message: message2, index: index2 })).filter(({ message: message2 }) => ids.some((id) => [messageIdentity(message2), ...aliases(message2)].includes(id))).filter(({ message: message2 }) => matchesSource(message2));
-    } else if (quote || ref.message?.text) {
+    } else if (quote || ref2.message?.text) {
       matches = messages.map((message2, index2) => ({ message: message2, index: index2 })).filter(({ message: message2 }) => matchesSource(message2));
     }
     if (matches.length !== 1) return { status: matches.length ? "ambiguous" : "missing", reason: matches.length ? "存在多条相同依据，请重新选择原消息。" : "原消息已删除、修改或不在当前记录中。" };
@@ -33402,7 +33431,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   // src/navigation.js
   var NAVIGATION = [
     { id: "contact", label: "联系人", items: [{ id: "profile", label: "联系人档案", tabs: [["basic", "基本资料"], ["interests", "兴趣偏好"], ["stage", "关系阶段"]] }] },
-    { id: "records", label: "记录与评分", items: [{ id: "behavior", label: "行为记录", tabs: [["daily", "每日历程"], ["metrics", "互动评分"], ["basis", "打分依据"], ["review", "周/月复盘"], ["evidence", "记录列表"], ["rules", "评分规则"]] }] },
+    { id: "records", label: "记录与评分", items: [{ id: "behavior", label: "行为记录", tabs: [["insight", "关系分析"], ["daily", "每日历程"], ["metrics", "互动评分"], ["basis", "打分依据"], ["review", "周/月复盘"], ["evidence", "记录列表"], ["rules", "评分规则"]] }] },
     { id: "communicate", label: "沟通", items: [{ id: "replies", label: "回复草稿", tabs: [["session", "会话"]] }, { id: "goals", label: "行动计划", tabs: [["current", "当前目标"], ["progress", "进展记录"]] }] },
     { id: "manage", label: "设置", items: [{ id: "settings", label: "通用设置", tabs: [["general", "通用设置"]] }, { id: "import", label: "聊天导入", tabs: [["file", "导入文件"], ["identity", "身份确认"], ["result", "导入结果"]] }] }
   ];
@@ -34728,6 +34757,828 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return adaptHostTokens(`var(--${name},${fallback})`);
   }
 
+  // src/affinity/lsm.js
+  var LSM_CATEGORIES = Object.freeze({
+    ppron: ["我们", "咱们", "你们", "他们", "她们", "我", "咱", "你", "您", "他", "她", "俺"],
+    ipron: ["这个", "那个", "这些", "那些", "这样", "那样", "什么", "哪里", "哪儿", "自己", "别人", "大家", "这", "那", "哪", "谁"],
+    prep: ["关于", "对于", "从", "对", "向", "跟", "给", "把", "被", "往", "比", "离", "按"],
+    auxverb: ["可以", "应该", "必须", "可能", "愿意", "会", "能", "要", "想", "敢"],
+    adverb: ["已经", "一直", "特别", "非常", "好像", "正在", "很", "太", "真", "挺", "都", "也", "还", "就", "才", "又", "再", "刚", "总"],
+    conj: ["但是", "可是", "不过", "因为", "所以", "而且", "然后", "如果", "虽然", "或者", "并且", "于是", "还是", "和"],
+    negate: ["没有", "不要", "不", "没", "别", "未", "无"],
+    quant: ["一些", "很多", "所有", "全部", "一点", "有点", "好多", "每", "几", "多", "少"],
+    particle: ["吗", "呢", "吧", "啊", "呀", "哦", "噢", "嘛", "啦", "哈", "嗯", "哎", "欸", "诶", "哇", "喔"]
+  });
+  var LSM_MIN_CHARS = 40;
+  var lexicon = Object.entries(LSM_CATEGORIES).flatMap(([category, words]) => words.map((word) => ({ word, category }))).sort((a, b) => b.word.length - a.word.length);
+  var cjk = /[㐀-鿿]/u;
+  function functionWordRates(text) {
+    const source = String(text || ""), counts = Object.fromEntries(Object.keys(LSM_CATEGORIES).map((key) => [key, 0]));
+    let chars = 0;
+    for (let i = 0; i < source.length; ) {
+      if (!cjk.test(source[i])) {
+        i++;
+        continue;
+      }
+      const hit = lexicon.find((entry) => source.startsWith(entry.word, i));
+      if (hit) {
+        counts[hit.category]++;
+        chars += hit.word.length;
+        i += hit.word.length;
+      } else {
+        chars++;
+        i++;
+      }
+    }
+    const rates = Object.fromEntries(Object.entries(counts).map(([key, value]) => [key, chars ? 100 * value / chars : 0]));
+    return { chars, counts, rates };
+  }
+  function languageStyleMatching(selfText, targetText, { minChars = LSM_MIN_CHARS } = {}) {
+    const a = functionWordRates(selfText), b = functionWordRates(targetText);
+    if (a.chars < minChars || b.chars < minChars) return { value: null, selfChars: a.chars, targetChars: b.chars, categories: {} };
+    const categories2 = {};
+    for (const key of Object.keys(LSM_CATEGORIES)) {
+      const p1 = a.rates[key], p2 = b.rates[key];
+      categories2[key] = 1 - Math.abs(p1 - p2) / (p1 + p2 + 1e-4);
+    }
+    const values = Object.values(categories2);
+    return { value: values.reduce((sum, v) => sum + v, 0) / values.length, selfChars: a.chars, targetChars: b.chars, categories: categories2 };
+  }
+
+  // src/affinity/weekly-signals.js
+  var TURN_MERGE_MINUTES = 3;
+  var SESSION_GAP_MINUTES2 = 120;
+  var APOLOGY = /(对不起|抱歉|不好意思|我错了|是我不对|我不是那个意思|不是针对你|别生气|刚才.{0,6}(?:冲|不好|过分|急))/;
+  var GOOD_NEWS = /(好消息|太好了|开心|高兴|成功|通过了|过了|拿到|录取|升职|加薪|中了|搞定|完成了|终于|获奖|得奖|被夸|表扬)/;
+  function weekStartKey(dateKey) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey || "")) return null;
+    const date = /* @__PURE__ */ new Date(dateKey + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
+    return date.toISOString().slice(0, 10);
+  }
+  function addDays(dateKey, days) {
+    const date = /* @__PURE__ */ new Date(dateKey + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  var clip3 = (text, n) => {
+    const chars = Array.from(String(text || ""));
+    return chars.length > n ? chars.slice(0, n).join("") + "…" : chars.join("");
+  };
+  function evidenceOf2(turn, kind, label) {
+    const message = turn.messages.find((m) => m.text?.trim()) || turn.messages[0];
+    return { kind, label, messageId: messageIdentity(message), quote: clip3(turn.text, 140), sender: turn.role, timestamp: message.timestamp ?? null, source: "rule" };
+  }
+  function emptyWeek(start) {
+    return {
+      start,
+      end: addDays(start, 6),
+      messages: 0,
+      messageIds: [],
+      self: { turns: 0, chars: 0, text: "", disclosure: 0, emotional: 0, questions: 0, bids: 0, starts: 0, goodNews: 0 },
+      target: { turns: 0, chars: 0, text: "", disclosure: 0, emotional: 0, questions: 0, bids: 0, starts: 0, positivePoints: 0, positiveTurns: 0, responsive: 0, conflict: 0, repair: 0, boundary: 0, empty: 0 },
+      bids: { toward: 0, away: 0, against: 0, unanswered: 0 },
+      capitalization: { opportunities: 0, constructive: 0 },
+      evidence: { responsiveness: [], disclosure: [], reciprocity: [], positivity: [], engagement: [], friction: [], boundary: [] }
+    };
+  }
+  var EVIDENCE_PER_DIMENSION = 6;
+  function pushEvidence(week, dimension, item) {
+    const list = week.evidence[dimension];
+    if (list.length >= EVIDENCE_PER_DIMENSION || list.filter((e) => e.kind === item.kind).length >= 2 || list.some((e) => e.messageId === item.messageId && e.kind === item.kind)) return;
+    list.push(item);
+  }
+  function buildTurns(contact = {}) {
+    const self2 = contact.self, target = contact.target, messages = Array.isArray(contact.messages) ? contact.messages : [];
+    if (!self2 || !target || self2 === target) return [];
+    const list = messages.filter((m) => m && typeof m.text === "string" && scoringMessage(m) && (m.sender === self2 || m.sender === target)).map((m, index) => ({ m, index, at: shanghaiTimestamp(m.timestamp) })).filter((row) => row.at !== null).sort((a, b) => a.at - b.at || a.index - b.index).map((row) => ({ ...row.m, _at: row.at }));
+    const corrections = interactionCorrectionIndex(contact.interactionCorrections || [], list);
+    const excluded = (message, kind) => isInteractionExcluded(message, kind, corrections);
+    const engagement = engagementSignals(list, self2, excluded);
+    const targetTurnInfo = /* @__PURE__ */ new Map();
+    for (const turn of engagement.turnEvidence || []) targetTurnInfo.set(messageIdentity(turn.message), turn);
+    const turns = [];
+    let previous = null;
+    for (const message of list) {
+      const role = message.sender === self2 ? "self" : "target", at = message._at;
+      const sameTurn = previous && previous.role === role && at - previous.lastAt <= TURN_MERGE_MINUTES * 6e4;
+      if (sameTurn) {
+        previous.messages.push(message);
+        previous.lastAt = at;
+        continue;
+      }
+      const newSession = !previous || at - previous.lastAt >= SESSION_GAP_MINUTES2 * 6e4;
+      previous = { role, messages: [message], at, lastAt: at, newSession };
+      turns.push(previous);
+    }
+    for (const turn of turns) {
+      turn.text = turn.messages.map((m) => String(m.text || "").trim()).filter(Boolean).join(" ");
+      turn.date = shanghaiDateKey(turn.messages[0].timestamp);
+      turn.week = weekStartKey(turn.date);
+      const any = (detect, kind) => turn.messages.some((m) => detect(m.text) && !(turn.role === "target" && excluded(m, kind)));
+      const signals = {
+        question: any(question, "question"),
+        disclosure: any(sharing, "sharing"),
+        emotional: any(emotionalSharing, "sharing"),
+        boundary: any(negative, "boundary"),
+        positiveWeight: Math.max(0, ...turn.messages.map((m) => turn.role === "target" && excluded(m, "positive") ? 0 : positiveSignal(m.text).weight))
+      };
+      if (turn.role === "target") {
+        const info2 = turnInfoFor(turn, targetTurnInfo);
+        const applied = info2?.applied || [];
+        signals.responsive = !signals.boundary && !applied.includes("conflict") && (applied.includes("answer") || applied.includes("continuation"));
+        signals.conflict = info2 ? applied.includes("conflict") : conflict(turn.text);
+        signals.repair = (info2 ? applied.includes("appeasement") : appeasement(turn.text)) || APOLOGY.test(turn.text);
+        signals.empty = applied.includes("perfunctory") || applied.includes("lowContent");
+      } else {
+        signals.goodNews = GOOD_NEWS.test(turn.text) && /我/.test(turn.text);
+        if (signals.goodNews) signals.disclosure = true;
+      }
+      signals.bid = signals.question || signals.disclosure;
+      turn.signals = signals;
+    }
+    return turns;
+  }
+  function turnInfoFor(turn, map) {
+    for (const message of turn.messages) {
+      const info2 = map.get(messageIdentity(message));
+      if (info2) return info2;
+    }
+    return null;
+  }
+  function buildWeeklySignals(contact = {}, turns = buildTurns(contact)) {
+    const weeks = /* @__PURE__ */ new Map();
+    const weekOf = (key) => {
+      if (!weeks.has(key)) weeks.set(key, emptyWeek(key));
+      return weeks.get(key);
+    };
+    turns.forEach((turn, i) => {
+      if (!turn.week) return;
+      const week = weekOf(turn.week), side = week[turn.role], s = turn.signals;
+      week.messages += turn.messages.length;
+      for (const m of turn.messages) week.messageIds.push(messageIdentity(m));
+      side.turns++;
+      side.chars += Array.from(turn.text).length;
+      side.text += turn.text + "\n";
+      if (turn.newSession) side.starts++;
+      if (s.disclosure) side.disclosure++;
+      if (s.emotional) side.emotional++;
+      if (s.question) side.questions++;
+      if (s.bid) side.bids++;
+      if (turn.role === "target") {
+        if (s.disclosure) pushEvidence(week, "disclosure", evidenceOf2(turn, s.emotional ? "emotional" : "disclosure", s.emotional ? "对方分享了自己的感受" : "对方分享了自己的经历或想法"));
+        if (s.positiveWeight) {
+          side.positivePoints += s.positiveWeight;
+          side.positiveTurns++;
+          pushEvidence(week, "positivity", evidenceOf2(turn, "positive", s.positiveWeight >= 6 ? "直接的亲近表达" : s.positiveWeight >= 4 ? "支持或具体感谢" : "礼貌或轻度积极表达"));
+        }
+        if (s.responsive) side.responsive++;
+        if (s.conflict) {
+          side.conflict++;
+          pushEvidence(week, "friction", evidenceOf2(turn, "conflict", "摩擦表达"));
+        }
+        if (s.repair) {
+          side.repair++;
+          pushEvidence(week, "friction", evidenceOf2(turn, "repair", "解释或缓和"));
+        }
+        if (s.boundary) {
+          side.boundary++;
+          pushEvidence(week, "boundary", evidenceOf2(turn, "boundary", "明确的拒绝或边界"));
+        }
+        if (s.empty) side.empty++;
+        if (turn.newSession || s.question) pushEvidence(week, "engagement", evidenceOf2(turn, turn.newSession ? "start" : "question", turn.newSession ? "对方主动开启对话" : "对方提问"));
+      } else if (s.goodNews) side.goodNews++;
+      if (turn.role === "self" && s.bid) {
+        const next = turns[i + 1];
+        if (!next || next.role !== "target" || next.at - turn.lastAt >= 24 * 36e5) week.bids.unanswered++;
+        else if (next.signals.boundary || next.signals.conflict) {
+          week.bids.against++;
+          pushEvidence(week, "responsiveness", evidenceOf2(next, "against", "对我方提问/分享的回应带有摩擦或拒绝"));
+        } else if (next.signals.responsive || next.signals.positiveWeight >= 4 || next.signals.question && !next.newSession) {
+          week.bids.toward++;
+          pushEvidence(week, "responsiveness", evidenceOf2(next, "toward", "回答或承接了我方的提问/分享"));
+        } else {
+          week.bids.away++;
+          pushEvidence(week, "responsiveness", evidenceOf2(next, "away", "规则未识别为直接回应（可能是自然的话题切换，也可能漏判）"));
+        }
+        if (s.goodNews && next?.role === "target" && next.at - turn.lastAt < 24 * 36e5) {
+          week.capitalization.opportunities++;
+          if (!next.signals.conflict && (next.signals.positiveWeight >= 4 || next.signals.question && next.signals.positiveWeight >= 1 || next.signals.responsive && next.signals.positiveWeight >= 1)) week.capitalization.constructive++;
+        }
+      }
+    });
+    for (const week of weeks.values()) {
+      const lsm = languageStyleMatching(week.self.text, week.target.text);
+      week.lsm = lsm.value;
+      week.lsmChars = Math.min(lsm.selfChars, lsm.targetChars);
+      delete week.self.text;
+      delete week.target.text;
+      pushReciprocityEvidence(week);
+    }
+    return [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start));
+  }
+  function pushReciprocityEvidence(week) {
+    const s = week.self, t = week.target;
+    week.evidence.reciprocity.push({ kind: "counts", label: "双方分享回合", value: `我方 ${s.disclosure} / 对方 ${t.disclosure}`, source: "rule" }, { kind: "counts", label: "双方主动开启对话", value: `我方 ${s.starts} / 对方 ${t.starts}`, source: "rule" }, { kind: "counts", label: "双方提问回合", value: `我方 ${s.questions} / 对方 ${t.questions}`, source: "rule" });
+  }
+
+  // src/affinity/model.js
+  var MODEL_VERSION = "3.0";
+  var PRIOR = 0.5;
+  var PRIOR_STRENGTH = 4;
+  var MAX_SHIFT = 0.25;
+  var DISAGREE_AT = 0.35;
+  var Z80 = 1.2816;
+  var LLM_CONFIDENCE = Object.freeze({ low: 0.5, medium: 1, high: 1.5 });
+  var LLM_PSEUDO_COUNT = 4;
+  var ref = (text, url) => ({ text, url });
+  var DIMENSIONS = Object.freeze([
+    {
+      key: "responsiveness",
+      label: "回应性",
+      weight: 0.28,
+      llm: true,
+      definition: "对方是否接住你的提问与分享：理解内容、认可、表达关心。",
+      rule: "我方提问/分享（连接邀请）后，对方下一回合回答或承接的比例：toward ÷ (toward + away + against)；未回复不计入分母（文字聊天可异步）。",
+      refs: [ref("Reis, Clark & Holmes (2004). Perceived partner responsiveness as an organizing construct. Handbook of Closeness and Intimacy."), ref("Laurenceau, Barrett & Pietromonaco (1998). JPSP 74(5):1238–1251.", "https://doi.org/10.1037/0022-3514.74.5.1238"), ref("Gottman & Driver (2005). Dysfunctional marital conflict and everyday marital interaction. J Divorce & Remarriage 43(3–4):63–77.", "https://doi.org/10.1300/J087v43n03_04")]
+    },
+    {
+      key: "disclosure",
+      label: "自我开示",
+      weight: 0.18,
+      llm: true,
+      definition: "对方主动讲述自己的经历、想法与感受；感受类开示比事实类更能预测亲密感。",
+      rule: "(对方分享回合 + 0.5 × 感受分享回合) ÷ (0.6 × 对方回合)，上限 1。0.6 为饱和参数（产品设定）。",
+      refs: [ref("Collins & Miller (1994). Self-disclosure and liking: A meta-analytic review. Psychological Bulletin 116(3):457–475.", "https://doi.org/10.1037/0033-2909.116.3.457"), ref("Laurenceau, Barrett & Pietromonaco (1998). JPSP 74(5):1238–1251.", "https://doi.org/10.1037/0022-3514.74.5.1238")]
+    },
+    {
+      key: "reciprocity",
+      label: "相互性",
+      weight: 0.16,
+      llm: true,
+      definition: "双方在分享、提问与主动开启对话上是否大致对等。",
+      rule: "分享率、提问率、主动开启次数三项各取 1 − |a−b| ÷ (a+b)，再取平均（只看对等，不看谁多）。",
+      refs: [ref("Sprecher, Treger, Wondra, Hilaire & Wallpe (2013). Taking turns: Reciprocal self-disclosure promotes liking in initial interactions. JESP 49:860–866.", "https://doi.org/10.1016/j.jesp.2013.03.017")]
+    },
+    {
+      key: "positivity",
+      label: "积极回应",
+      weight: 0.14,
+      llm: true,
+      definition: "对方的积极、支持性表达，以及在你分享好消息时的积极建设性回应。",
+      rule: "0.5 × min(1, 正向分值 ÷ (2 × 对方回合)) + 0.5 × 好消息获积极回应比例（无此情境时只用前一项）。",
+      refs: [ref("Gable, Reis, Impett & Asher (2004). What do you do when things go right? JPSP 87(2):228–245.", "https://doi.org/10.1037/0022-3514.87.2.228")]
+    },
+    {
+      key: "engagement",
+      label: "主动投入",
+      weight: 0.14,
+      llm: true,
+      definition: "对方主动开启对话、提问、发出“连接邀请”的程度。",
+      rule: "0.5 × 对方主动开启占比 + 0.5 × min(1, 对方邀请回合 ÷ (0.5 × 对方回合))。",
+      refs: [ref("Gottman & Driver (2005). J Divorce & Remarriage 43(3–4):63–77.", "https://doi.org/10.1300/J087v43n03_04"), ref("Stafford & Canary (1991). Maintenance strategies and romantic relationship type. JSPR 8(2):145–159.", "https://doi.org/10.1177/0265407591082001")]
+    },
+    {
+      key: "coordination",
+      label: "语言同步",
+      weight: 0.1,
+      llm: false,
+      definition: "双方虚词使用风格的相似度（LSM）。只作弱信号：中文为近似词表。",
+      rule: "九类虚词每 100 字使用率的 1 − |p1−p2| ÷ (p1+p2) 的平均；任一方少于 40 字不计算。",
+      refs: [ref("Ireland, Slatcher, Eastwick, Scissors, Finkel & Pennebaker (2011). Language style matching predicts relationship initiation and stability. Psychological Science 22(1):39–44.", "https://doi.org/10.1177/0956797610392928")]
+    }
+  ]);
+  var FRICTION = {
+    key: "friction",
+    label: "摩擦与修复",
+    definition: "对方的批评、防御、冷淡等摩擦表达，以及之后是否解释或缓和。摩擦按比例降低综合指数。",
+    rule: "摩擦强度 = min(1, 2 × (摩擦回合 + 0.5 × 连续缺少回应回合) ÷ max(4, 对方回合))；修复后按 (1 − 0.5 × 修复比例) 减轻。综合指数 × (1 − 0.6 × 摩擦)。",
+    refs: [ref("Gottman & Levenson (1992). Marital processes predictive of later dissolution. JPSP 63(2):221–233.", "https://doi.org/10.1037/0022-3514.63.2.221"), ref("Salvatore, Kuo, Steele, Simpson & Collins (2011). Recovering from conflict in romantic relationships. Psychological Science 22(3):376–383.", "https://doi.org/10.1177/0956797610397055")]
+  };
+  var BOUNDARY_CAP = 30;
+  var clamp01 = (v) => Math.max(0, Math.min(1, v));
+  var ratio = (a, b) => a + b > 0 ? 1 - Math.abs(a - b) / (a + b) : null;
+  var mean = (values) => {
+    const list = values.filter((v) => v !== null && Number.isFinite(v));
+    return list.length ? list.reduce((s, v) => s + v, 0) / list.length : null;
+  };
+  function ruleDimensions(week) {
+    const s = week.self, t = week.target, b = week.bids, out = {};
+    const bidN = b.toward + b.away + b.against;
+    out.responsiveness = { value: bidN ? b.toward / bidN : null, n: bidN };
+    out.disclosure = { value: t.turns ? clamp01((t.disclosure + 0.5 * t.emotional) / (0.6 * t.turns)) : null, n: t.turns };
+    const rate = (x, turns) => turns ? x / turns : 0;
+    const recip = [ratio(rate(s.disclosure, s.turns), rate(t.disclosure, t.turns)), ratio(rate(s.questions, s.turns), rate(t.questions, t.turns)), ratio(s.starts, t.starts)];
+    out.reciprocity = { value: s.turns && t.turns ? mean(recip) : null, n: s.disclosure + t.disclosure + s.questions + t.questions + s.starts + t.starts };
+    const pos = t.turns ? clamp01(t.positivePoints / (2 * t.turns)) : null, cap = week.capitalization.opportunities ? week.capitalization.constructive / week.capitalization.opportunities : null;
+    out.positivity = { value: pos === null ? null : cap === null ? pos : 0.5 * pos + 0.5 * cap, n: t.turns + week.capitalization.opportunities };
+    const startShare = s.starts + t.starts ? t.starts / (s.starts + t.starts) : null, bidRate = t.turns ? clamp01(t.bids / (0.5 * t.turns)) : null;
+    out.engagement = { value: mean([startShare, bidRate]), n: s.starts + t.starts + t.turns };
+    out.coordination = { value: week.lsm, n: week.lsm === null ? 0 : Math.min(12, Math.floor((week.lsmChars || 0) / 20)) };
+    const frictionRaw = t.turns ? clamp01(2 * (t.conflict + 0.5 * t.empty) / Math.max(4, t.turns)) : 0, repair = t.conflict ? clamp01(t.repair / t.conflict) : 0;
+    out.friction = { value: frictionRaw * (1 - 0.5 * repair), raw: frictionRaw, repair, n: t.turns };
+    out.boundary = { present: t.boundary > 0, count: t.boundary };
+    return out;
+  }
+  function shrink(value, n, { prior = PRIOR, strength = PRIOR_STRENGTH } = {}) {
+    const x = value === null || !Number.isFinite(value) ? prior : value, count = value === null ? 0 : Math.max(0, n);
+    const est = (count * x + strength * prior) / (count + strength);
+    return { estimate: est, se: Math.sqrt(est * (1 - est) / (count + strength)), n: count };
+  }
+  var ratingToUnit = (r) => Number.isInteger(r) && r >= 1 && r <= 5 ? (r - 1) / 4 : null;
+  function fuseDimension(rule, ai, { prior = PRIOR } = {}) {
+    const base = shrink(rule.value, rule.n, { prior });
+    const aiUnit = ai && Array.isArray(ai.evidence) && ai.evidence.length ? ratingToUnit(ai.rating) : null;
+    if (aiUnit === null) return { ...base, rule: rule.value, ruleN: rule.n, ai: null, aiConfidence: null, source: "rule", shifted: 0, disagreement: false };
+    const m = LLM_PSEUDO_COUNT * (LLM_CONFIDENCE[ai.confidence] || LLM_CONFIDENCE.low), ruleCount = rule.value === null ? 0 : rule.n, ruleValue = rule.value === null ? prior : rule.value;
+    let est = (ruleCount * ruleValue + PRIOR_STRENGTH * prior + m * aiUnit) / (ruleCount + PRIOR_STRENGTH + m);
+    const shifted = Math.max(-MAX_SHIFT, Math.min(MAX_SHIFT, est - base.estimate));
+    est = base.estimate + shifted;
+    const total = ruleCount + PRIOR_STRENGTH + m;
+    return {
+      estimate: est,
+      se: Math.sqrt(est * (1 - est) / total),
+      n: ruleCount,
+      rule: rule.value,
+      ruleN: rule.n,
+      ai: aiUnit,
+      aiConfidence: ai.confidence,
+      source: "fused",
+      shifted,
+      disagreement: rule.value !== null && rule.n >= 3 && Math.abs(aiUnit - rule.value) > DISAGREE_AT
+    };
+  }
+  function scoreWeek(week, aiResult = null) {
+    const rule = ruleDimensions(week), ai = aiResult?.dimensions || {}, dims = {};
+    for (const d of DIMENSIONS) dims[d.key] = fuseDimension(rule[d.key], d.llm ? ai[d.key] : null);
+    const fr = rule.friction, frBase = fr.n ? fr.n * fr.value / (fr.n + PRIOR_STRENGTH) : 0;
+    let friction = frBase, frAi = null;
+    const aiF = ai.friction;
+    if (aiF && Array.isArray(aiF.evidence) && aiF.evidence.length && ratingToUnit(aiF.rating) !== null) {
+      frAi = ratingToUnit(aiF.rating);
+      const m = LLM_PSEUDO_COUNT * (LLM_CONFIDENCE[aiF.confidence] || LLM_CONFIDENCE.low);
+      const fused = (fr.n * fr.value + m * frAi) / (fr.n + PRIOR_STRENGTH + m);
+      friction = frBase + Math.max(-MAX_SHIFT, Math.min(MAX_SHIFT, fused - frBase));
+      if (aiF.repaired === true) friction *= 0.75;
+    }
+    const totalW = DIMENSIONS.reduce((s, d) => s + d.weight, 0);
+    const P = DIMENSIONS.reduce((s, d) => s + d.weight * dims[d.key].estimate, 0) / totalW;
+    const seP = Math.sqrt(DIMENSIONS.reduce((s, d) => s + (d.weight * dims[d.key].se) ** 2, 0)) / totalW;
+    const factor = 1 - 0.6 * friction;
+    let index = 100 * P * factor, low = 100 * Math.max(0, P - Z80 * seP) * factor, high = 100 * Math.min(1, P + Z80 * seP) * factor;
+    const boundary2 = rule.boundary.present, aiBoundary = Boolean(aiResult?.boundary?.present && aiResult.boundary.evidence?.length);
+    if (boundary2) {
+      index = Math.min(index, BOUNDARY_CAP);
+      low = Math.min(low, BOUNDARY_CAP);
+      high = Math.min(high, BOUNDARY_CAP);
+    }
+    const evidenceN = DIMENSIONS.reduce((s, d) => s + dims[d.key].n, 0);
+    return {
+      start: week.start,
+      end: week.end,
+      index: Math.round(index),
+      low: Math.round(low),
+      high: Math.round(high),
+      se: 100 * seP * factor,
+      dims,
+      friction: { estimate: friction, rule: fr.value, raw: fr.raw, repair: fr.repair, ai: frAi, n: fr.n },
+      boundary: { rule: boundary2, count: rule.boundary.count, ai: aiBoundary, needsReview: aiBoundary && !boundary2 },
+      // 可信度按对方回合数与连接邀请数判断（各维度共享同一批回合，不能简单相加）。
+      reliability: week.target.turns >= 20 && dims.responsiveness.n >= 5 ? "high" : week.target.turns >= 8 ? "medium" : "low",
+      evidenceN,
+      targetTurns: week.target.turns,
+      aiUsed: Boolean(aiResult),
+      messages: week.messages
+    };
+  }
+
+  // src/affinity/longitudinal.js
+  var EWMA_LAMBDA = 0.3;
+  var TREND_WINDOW = 8;
+  var CUSUM_K = 0.5;
+  var CUSUM_H = 3;
+  var MIN_TREND_WEEKS = 4;
+  var MIN_CUSUM_WEEKS = 6;
+  function withGaps(scored) {
+    const list = [...scored].sort((a, b) => a.start.localeCompare(b.start)), out = [];
+    for (let i = 0; i < list.length; i++) {
+      out.push(list[i]);
+      const next = list[i + 1];
+      if (next) for (let w = addDays(list[i].start, 7); w < next.start; w = addDays(w, 7)) out.push({ start: w, end: addDays(w, 6), gap: true });
+    }
+    return out;
+  }
+  function ewma(values, lambda = EWMA_LAMBDA) {
+    let level = null;
+    return values.map((v) => {
+      if (v === null || !Number.isFinite(v)) return level;
+      level = level === null ? v : lambda * v + (1 - lambda) * level;
+      return level;
+    });
+  }
+  function trend(points) {
+    const data = points.filter((p) => !p.gap).slice(-TREND_WINDOW);
+    if (data.length < MIN_TREND_WEEKS) return { direction: "insufficient", weeks: data.length };
+    const t0 = Date.parse(data[0].start + "T00:00:00Z"), xs = data.map((p) => (Date.parse(p.start + "T00:00:00Z") - t0) / (7 * 864e5)), ys = data.map((p) => p.index), ws = data.map((p) => 1 / Math.max(4, (p.se || 10) ** 2));
+    const W = ws.reduce((s, w) => s + w, 0), mx = xs.reduce((s, x, i) => s + ws[i] * x, 0) / W, my = ys.reduce((s, y, i) => s + ws[i] * y, 0) / W;
+    const sxx = xs.reduce((s, x, i) => s + ws[i] * (x - mx) ** 2, 0);
+    if (!sxx) return { direction: "insufficient", weeks: data.length };
+    const slope = xs.reduce((s, x, i) => s + ws[i] * (x - mx) * (ys[i] - my), 0) / sxx;
+    const resid = ys.map((y, i) => y - (my + slope * (xs[i] - mx))), dof = Math.max(1, data.length - 2);
+    const s2 = resid.reduce((s, r, i) => s + ws[i] * r * r, 0) / dof, se = Math.sqrt(s2 / sxx);
+    const low = slope - Z80 * se, high = slope + Z80 * se;
+    const direction = low > 0 && slope >= 1 ? "rising" : high < 0 && slope <= -1 ? "falling" : "stable";
+    return { direction, slope, low, high, weeks: data.length, from: data[0].start, to: data.at(-1).start };
+  }
+  function changePoints(points, { k = CUSUM_K, h = CUSUM_H } = {}) {
+    const data = points.filter((p) => !p.gap);
+    if (data.length < MIN_CUSUM_WEEKS) return [];
+    const ys = data.map((p) => p.index);
+    const mssd = Math.sqrt(ys.slice(1).reduce((s, y, i) => s + (y - ys[i]) ** 2, 0) / (2 * (ys.length - 1)));
+    const medianSe = [...data.map((p) => p.se || 0)].sort((a, b) => a - b)[Math.floor(data.length / 2)];
+    const sd = Math.max(3, mssd, medianSe * 0.5);
+    const out = [];
+    let anchor = 0, pos = 0, neg = 0;
+    for (let i = anchor + 2; i < ys.length; i++) {
+      const base = ys.slice(anchor, i), mu = base.reduce((s, y) => s + y, 0) / base.length, z = (ys[i] - mu) / sd;
+      pos = Math.max(0, pos + z - k);
+      neg = Math.max(0, neg - z - k);
+      if (pos > h || neg > h) {
+        const up = pos > h;
+        let start = i;
+        for (let j = i - 1; j >= anchor + 2; j--) {
+          const zz = (ys[j] - mu) / sd;
+          if (up ? zz <= k : zz >= -k) break;
+          start = j;
+        }
+        out.push({ index: start, start: data[start].start, direction: up ? "up" : "down" });
+        anchor = start;
+        pos = 0;
+        neg = 0;
+        i = Math.max(i, anchor + 1);
+      }
+    }
+    return out;
+  }
+  function phases(points, cps) {
+    const data = points.filter((p) => !p.gap);
+    if (!data.length) return [];
+    const cuts = [0, ...cps.map((c) => c.index).filter((i) => i > 0), data.length], out = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const slice = data.slice(cuts[i], cuts[i + 1]);
+      if (!slice.length) continue;
+      const avg = (f) => slice.reduce((s, p) => s + f(p), 0) / slice.length;
+      out.push({
+        start: slice[0].start,
+        end: slice.at(-1).end,
+        weeks: slice.length,
+        index: Math.round(avg((p) => p.index)),
+        dims: Object.fromEntries(DIMENSIONS.map((d) => [d.key, avg((p) => p.dims[d.key].estimate)])),
+        friction: avg((p) => p.friction.estimate)
+      });
+    }
+    for (let i = 1; i < out.length; i++) {
+      const prev = out[i - 1], cur = out[i];
+      cur.change = cur.index - prev.index;
+      cur.drivers = [
+        ...DIMENSIONS.map((d) => ({ key: d.key, label: d.label, delta: cur.dims[d.key] - prev.dims[d.key], impact: 100 * d.weight * (cur.dims[d.key] - prev.dims[d.key]) })),
+        { key: "friction", label: "摩擦与修复", delta: cur.friction - prev.friction, impact: -60 * (cur.friction - prev.friction) * 0.5 }
+      ].filter((x) => Math.abs(x.impact) >= 0.5).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact)).slice(0, 3);
+    }
+    return out;
+  }
+  function longitudinal(scored) {
+    const points = withGaps(scored), smooth = ewma(points.map((p) => p.gap ? null : p.index));
+    points.forEach((p, i) => {
+      p.ewma = smooth[i] === null ? null : Math.round(smooth[i] * 10) / 10;
+    });
+    const cps = changePoints(points);
+    return { points, trend: trend(points), changePoints: cps, phases: phases(points, cps), current: points.filter((p) => !p.gap).at(-1) || null };
+  }
+
+  // src/affinity/index.js
+  var AI_RESULT_VERSION = 1;
+  var AI_MAX_MESSAGES = 80;
+  var AI_MAX_CHARS = 300;
+  var AI_DIMENSIONS = ["responsiveness", "disclosure", "reciprocity", "positivity", "engagement", "friction"];
+  function hashText(text) {
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h.toString(36);
+  }
+  var clip4 = (text, n) => {
+    const chars = Array.from(String(text || "").replace(/\s+/g, " ").trim());
+    return chars.length > n ? chars.slice(0, n).join("") : chars.join("");
+  };
+  function selectWeekMessages(contact, weekStart, { max = AI_MAX_MESSAGES, turns: all = buildTurns(contact) } = {}) {
+    const turns = all.filter((t) => t.week === weekStart);
+    const rows = turns.flatMap((turn, ti) => turn.messages.map((m) => ({ m, ti, turn })));
+    if (rows.length <= max) return { rows, sampled: false, total: rows.length };
+    const keep = /* @__PURE__ */ new Set();
+    turns.forEach((turn, ti) => {
+      const s = turn.signals;
+      if (turn.role === "target" && (s.disclosure || s.conflict || s.repair || s.boundary || s.positiveWeight >= 4 || s.question)) {
+        keep.add(ti);
+        if (ti > 0) keep.add(ti - 1);
+      }
+    });
+    let picked = rows.filter((r) => keep.has(r.ti));
+    if (picked.length > max) picked = picked.filter((_, i) => i % Math.ceil(picked.length / max) === 0);
+    const rest = rows.filter((r) => !keep.has(r.ti)), room = max - picked.length;
+    if (room > 0 && rest.length) {
+      const step = rest.length / room;
+      for (let i = 0; i < room && Math.floor(i * step) < rest.length; i++) picked.push(rest[Math.floor(i * step)]);
+    }
+    const order = new Map(rows.map((r, i) => [r, i]));
+    picked.sort((a, b) => order.get(a) - order.get(b));
+    return { rows: picked.slice(0, max), sampled: true, total: rows.length };
+  }
+  function buildAffinityRequest(contact, weekStart, { previousSummary, turns } = {}) {
+    const { rows, sampled, total } = selectWeekMessages(contact, weekStart, { turns });
+    const messages = rows.map(({ m }) => ({ id: clip4(messageIdentity(m), 200), sender: m.sender, text: clip4(m.text, AI_MAX_CHARS) })).filter((m) => m.text);
+    const body = { self: clip4(contact.self, 100), target: clip4(contact.target, 100), week: { start: weekStart, end: shiftDays(weekStart, 6) }, messages, sampled: { total, sent: messages.length } };
+    if (previousSummary) body.previousSummary = clip4(previousSummary, 600);
+    return body;
+  }
+  function shiftDays(key, days) {
+    const d = /* @__PURE__ */ new Date(key + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+  function weekFingerprint(contact, weekStart, turns = buildTurns(contact)) {
+    const rows = turns.filter((t) => t.week === weekStart).flatMap((t) => t.messages);
+    return hashText(rows.map((m) => messageIdentity(m) + "" + m.text).join(""));
+  }
+  function cachedAiWeek(contact, weekStart, fingerprint = weekFingerprint(contact, weekStart)) {
+    const entry = contact.affinityV3?.weeks?.[weekStart];
+    return entry && entry.version === AI_RESULT_VERSION && entry.fingerprint === fingerprint && entry.result ? entry : null;
+  }
+  function storeAiWeek(contact, weekStart, { result, provider, model, fingerprint, request }, now = Date.now()) {
+    const weeks = { ...contact.affinityV3?.weeks || {} };
+    weeks[weekStart] = { version: AI_RESULT_VERSION, fingerprint, result, provider, model, analyzedAt: now, sampled: request?.sampled || null };
+    return { ...contact, affinityV3: { modelVersion: MODEL_VERSION, weeks } };
+  }
+  var byId = (contact) => {
+    const map = /* @__PURE__ */ new Map();
+    for (const m of contact.messages || []) map.set(messageIdentity(m), m);
+    return map;
+  };
+  function explainWeek(scored, week, ai, contact) {
+    const messages = byId(contact), one = (key) => {
+      const dim = key === "friction" ? FRICTION : DIMENSIONS.find((d) => d.key === key), fused = key === "friction" ? null : scored.dims[key];
+      const facts = (week.evidence[key] || []).map((e) => ({ ...e, type: "fact", message: e.messageId ? messages.get(e.messageId) || null : null }));
+      const aiDim = ai?.dimensions?.[key];
+      const observations = (aiDim?.evidence || []).map((e) => ({ type: "ai-quote", messageId: e.messageId, quote: e.quote, note: e.note || "", message: messages.get(e.messageId) || null }));
+      const inference = aiDim && aiDim.inference ? { type: "inference", text: aiDim.inference, alternatives: aiDim.alternatives || "", confidence: aiDim.confidence, rating: aiDim.rating } : null;
+      return { key, label: dim.label, definition: dim.definition, rule: dim.rule, refs: dim.refs, fused, facts, observations, inference };
+    };
+    return {
+      dimensions: [...DIMENSIONS.map((d) => one(d.key)), one("friction")],
+      boundary: {
+        facts: (week.evidence.boundary || []).map((e) => ({ ...e, type: "fact", message: messages.get(e.messageId) || null })),
+        ai: (ai?.boundary?.evidence || []).map((e) => ({ type: "ai-quote", messageId: e.messageId, quote: e.quote, note: e.note || "", message: messages.get(e.messageId) || null }))
+      },
+      summary: ai?.summary || "",
+      uncertainties: ai?.uncertainties || ""
+    };
+  }
+  function analyzeRelationship(contact = {}) {
+    const turns = buildTurns(contact), weeks = buildWeeklySignals(contact, turns), scored = [], pending = [];
+    const byWeek = /* @__PURE__ */ new Map();
+    for (const t of turns) {
+      if (!byWeek.has(t.week)) byWeek.set(t.week, []);
+      byWeek.get(t.week).push(t);
+    }
+    for (const week of weeks) {
+      const fingerprint = weekFingerprint(contact, week.start, byWeek.get(week.start) || []), cached = cachedAiWeek(contact, week.start, fingerprint);
+      const result = scoreWeek(week, cached?.result || null);
+      result.fingerprint = fingerprint;
+      result.ai = cached ? { provider: cached.provider, model: cached.model, analyzedAt: cached.analyzedAt, sampled: cached.sampled } : null;
+      result.week = week;
+      scored.push(result);
+      if (!cached && week.target.turns > 0) pending.push(week.start);
+    }
+    const series = longitudinal(scored);
+    const coverage = scored.length ? scored.filter((s) => s.ai).length / scored.length : 0;
+    return { modelVersion: MODEL_VERSION, turns, weeks: scored, ...series, pending, coverage, boundaryWeeks: scored.filter((s) => s.boundary.rule).map((s) => s.start), reviewWeeks: scored.filter((s) => s.boundary.needsReview).map((s) => s.start) };
+  }
+  function currentWeekKey(now = Date.now()) {
+    return weekStartKey(shanghaiDateKey(now));
+  }
+
+  // src/views/relationship-insight.js
+  function createRelationshipInsightView(React2, E) {
+    const h = React2.createElement;
+    const pct = (v) => v === null || v === void 0 || !Number.isFinite(v) ? "—" : Math.round(v * 100);
+    const fmt = (v, d = 1) => v === null || v === void 0 || !Number.isFinite(v) ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+    const TREND = { rising: ["上升", "rn-tone-up"], falling: ["下降", "rn-tone-down"], stable: ["大致稳定", "rn-tone-flat"], insufficient: ["数据不足", "rn-tone-flat"] };
+    const RELIABILITY = { high: "证据较充分", medium: "证据一般", low: "证据较少" };
+    const CONF = { low: "低", medium: "中", high: "高" };
+    const tag = (kind, text) => h("span", { className: "rn-tag rn-tag-" + kind }, text);
+    const btn = (label, onClick, props = {}) => h("button", { type: "button", onClick, ...props }, label);
+    function percentileOf(weeks, value) {
+      const list = weeks.map((w) => w.index);
+      if (list.length < 3 || value === null) return null;
+      return Math.round(100 * list.filter((v) => v < value).length / list.length);
+    }
+    function TrendChart({ points, changePoints: changePoints2, selected: selected2, onSelect }) {
+      const data = points;
+      if (!data.length) return null;
+      const W = 720, H = 220, L = 36, R = 12, T = 14, B = 30, x = (i) => L + (data.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (data.length - 1)), y = (v) => T + (100 - v) * (H - T - B) / 100;
+      const band = [], line = [], ew = [];
+      data.forEach((p, i) => {
+        if (p.gap) return;
+        band.push([x(i), y(p.high), y(p.low)]);
+        line.push([x(i), y(p.index)]);
+        if (p.ewma !== null) ew.push([x(i), y(p.ewma)]);
+      });
+      const path = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+      const area = band.length ? "M" + band.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L") + " L" + [...band].reverse().map((p) => p[0].toFixed(1) + " " + p[2].toFixed(1)).join(" L") + " Z" : "";
+      const cpStarts = new Set(changePoints2.map((c) => c.start)), labelEvery = Math.max(1, Math.ceil(data.length / 8));
+      return h(
+        "svg",
+        { className: "rn-insight-chart", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "每周关系互动指数与 80% 区间；虚线为平滑趋势；竖线为检测到的变化点" },
+        ...[0, 25, 50, 75, 100].map((v) => h("g", { key: "g" + v }, h("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), className: "rn-insight-grid" }), h("text", { x: L - 6, y: y(v) + 4, textAnchor: "end", className: "rn-insight-axis" }, v))),
+        area && h("path", { d: area, className: "rn-insight-band" }),
+        ...data.map((p, i) => cpStarts.has(p.start) ? h("line", { key: "cp" + i, x1: x(i), x2: x(i), y1: T, y2: H - B, className: "rn-insight-cp" }) : null),
+        ew.length > 1 && h("path", { d: path(ew), className: "rn-insight-ewma" }),
+        line.length > 1 && h("path", { d: path(line), className: "rn-insight-line" }),
+        ...data.map((p, i) => p.gap ? h("circle", { key: "p" + i, cx: x(i), cy: H - B - 4, r: 2.5, className: "rn-insight-gap" }, h("title", null, p.start + " 无记录（缺口）")) : h("circle", {
+          key: "p" + i,
+          cx: x(i),
+          cy: y(p.index),
+          r: p.start === selected2 ? 6 : 4,
+          className: "rn-insight-dot" + (p.start === selected2 ? " selected" : ""),
+          tabIndex: 0,
+          role: "button",
+          "aria-label": `${p.start} 周：${p.index}（区间 ${p.low}–${p.high}）`,
+          onClick: () => onSelect(p.start),
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect(p.start);
+            }
+          }
+        }, h("title", null, `${p.start} 周：${p.index}（80% 区间 ${p.low}–${p.high}）`))),
+        ...data.map((p, i) => i % labelEvery === 0 || i === data.length - 1 ? h("text", { key: "l" + i, x: x(i), y: H - 8, textAnchor: "middle", className: "rn-insight-axis" }, p.start.slice(5)) : null)
+      );
+    }
+    function Quote({ item, onEvidence }) {
+      return h(
+        "li",
+        { className: "rn-insight-quote" },
+        h("div", { className: "rn-insight-quote-head" }, item.type === "fact" ? tag("fact", "原文事实") : tag("ai", "AI 引用"), item.label && h("span", null, item.label), item.sender && h("small", null, item.sender === "target" || item.sender === "self" ? item.sender === "target" ? "对方" : "我" : item.sender)),
+        item.quote && h("blockquote", null, item.quote),
+        item.value && h("p", { className: "rn-insight-count" }, item.value),
+        item.note && h("p", { className: "rn-insight-note" }, item.note),
+        item.message && btn("查看原文上下文", () => onEvidence({ messageId: item.messageId, message: item.message, quote: item.quote }), { className: "rn-insight-open" })
+      );
+    }
+    function Dimension({ d, open, onToggle, onEvidence }) {
+      const f = d.fused, isFriction = d.key === "friction", value = isFriction ? d.friction.estimate : f.estimate;
+      return h(
+        "section",
+        { className: "rn-insight-dim" + (open ? " open" : "") },
+        h(
+          "button",
+          { type: "button", className: "rn-insight-dim-head", onClick: onToggle, "aria-expanded": open },
+          h("span", { className: "rn-insight-dim-name" }, d.label),
+          h(
+            "span",
+            { className: "rn-insight-bar" + (isFriction ? " friction" : ""), "aria-hidden": true },
+            h("i", { style: { width: pct(value) + "%" } }),
+            !isFriction && f.rule !== null && h("b", { className: "rn-insight-tick rule", style: { left: pct(f.rule) + "%" }, title: "规则层原始值" }),
+            !isFriction && f.ai !== null && h("b", { className: "rn-insight-tick ai", style: { left: pct(f.ai) + "%" }, title: "AI 评定" })
+          ),
+          h("span", { className: "rn-insight-dim-val" }, pct(value)),
+          h("span", { className: "rn-insight-dim-meta" }, isFriction ? `规则 ${pct(d.friction.rule)} · AI ${pct(d.friction.ai)}` : `规则 ${pct(f.rule)}（n=${f.ruleN}）· AI ${pct(f.ai)}${f.aiConfidence ? "（置信" + CONF[f.aiConfidence] + "）" : ""}`),
+          !isFriction && f.disagreement && h("span", { className: "rn-insight-flag" }, "规则与 AI 不一致，请核对")
+        ),
+        open && h(
+          "div",
+          { className: "rn-insight-dim-body" },
+          h("p", null, d.definition),
+          h(
+            "details",
+            { className: "rn-insight-method" },
+            h("summary", null, "计算方法与研究依据"),
+            h("p", null, h("strong", null, "规则层："), d.rule),
+            !isFriction && h("p", null, h("strong", null, "融合："), "规则观测按证据量向中性 0.5 收缩；AI 评分须附逐字原文，以“4 × 置信度”的伪计数加入，且最多使该维度偏移 ±25 分。"),
+            h("ul", { className: "rn-insight-refs" }, ...d.refs.map((r, i) => h("li", { key: i }, r.url ? h("a", { href: r.url, target: "_blank", rel: "noreferrer" }, r.text) : r.text)))
+          ),
+          h(
+            "div",
+            { className: "rn-insight-columns" },
+            h("div", null, h("h4", null, tag("fact", "原文事实"), " 规则层观察"), d.facts.length ? h("ul", { className: "rn-insight-quotes" }, ...d.facts.map((item, i) => h(Quote, { key: i, item, onEvidence }))) : h("p", { className: "rn-muted" }, "本周没有该维度的规则命中。")),
+            h(
+              "div",
+              null,
+              h("h4", null, tag("ai", "AI 引用"), " 上下文评定"),
+              d.observations.length ? h("ul", { className: "rn-insight-quotes" }, ...d.observations.map((item, i) => h(Quote, { key: i, item, onEvidence }))) : h("p", { className: "rn-muted" }, d.inference ? "AI 认为证据不足，未评分。" : "本周尚未进行 AI 分析。"),
+              d.inference && h("div", { className: "rn-insight-inference" }, h("div", null, tag("inference", "AI 推断"), h("small", null, `评分 ${d.inference.rating ?? "—"}/5 · 置信 ${CONF[d.inference.confidence] || "—"}`)), h("p", null, d.inference.text), d.inference.alternatives && h("p", { className: "rn-insight-alt" }, h("strong", null, "其他可能："), d.inference.alternatives))
+            )
+          )
+        )
+      );
+    }
+    return function RelationshipInsightView({ contact, busy, progress, error, modelReady, onRun, onCancel, onEvidence, onConfigure }) {
+      const analysis = React2.useMemo(() => contact ? E.analyzeRelationship(contact) : null, [contact?.messages, contact?.affinityV3, contact?.interactionCorrections, contact?.self, contact?.target]);
+      const [selected2, setSelected] = React2.useState(null), [openDim, setOpenDim] = React2.useState("responsiveness");
+      if (!analysis || !analysis.weeks.length) return h("section", { className: "rn-box" }, h("h2", null, "关系分析"), h("p", { className: "rn-muted" }, "还没有双方可分析的聊天记录。"));
+      const weeks = analysis.weeks, current = analysis.current, pick = weeks.find((w) => w.start === selected2) || current;
+      const aiEntry = contact.affinityV3?.weeks?.[pick.start], ai = aiEntry && pick.ai ? aiEntry.result : null;
+      const explain = E.explainWeek(pick, pick.week, ai, contact);
+      const dims = explain.dimensions.map((d) => d.key === "friction" ? { ...d, friction: pick.friction } : d);
+      const tr = analysis.trend, [trendLabel, trendTone] = TREND[tr.direction], rank = percentileOf(weeks, current.ewma ?? current.index);
+      const pending = analysis.pending.length;
+      return h(
+        "div",
+        { className: "rn-insight" },
+        analysis.boundaryWeeks.length > 0 && h("div", { className: "rn-insight-alert", role: "alert" }, h("strong", null, "检测到明确的拒绝或边界表达"), h("p", null, `出现在 ${analysis.boundaryWeeks.join("、")} 这几周。相关周的指数已封顶 30。请优先尊重对方表达的边界，不建议依据其他信号继续推进。`)),
+        analysis.reviewWeeks.length > 0 && h("div", { className: "rn-insight-alert soft" }, h("strong", null, "AI 提示可能存在边界表达，请人工核对"), h("p", null, `${analysis.reviewWeeks.join("、")}：规则层未识别到，AI 引用了原文。AI 不会单独触发封顶。`)),
+        h(
+          "section",
+          { className: "rn-box rn-insight-hero" },
+          h(
+            "div",
+            { className: "rn-insight-hero-main" },
+            h(
+              "div",
+              null,
+              h("small", { className: "rn-muted" }, "关系互动指数 · 最近一周（平滑）"),
+              h("div", { className: "rn-insight-score" }, h("strong", null, Math.round(current.ewma ?? current.index)), h("span", null, "/ 100")),
+              h("p", { className: "rn-muted" }, `本周 ${current.index}，80% 区间 ${current.low}–${current.high} · ${RELIABILITY[current.reliability]}（对方 ${current.targetTurns} 个回合）`)
+            ),
+            h(
+              "ul",
+              { className: "rn-insight-facts" },
+              h("li", null, h("span", null, "长期趋势"), h("strong", { className: trendTone }, trendLabel), tr.slope !== void 0 && h("small", null, `${fmt(tr.slope)} 分/周（80% 区间 ${fmt(tr.low)}～${fmt(tr.high)}，近 ${tr.weeks} 周）`)),
+              h("li", null, h("span", null, "相对你们自己的历史"), h("strong", null, rank === null ? "—" : `高于 ${rank}% 的周`), h("small", null, `共 ${weeks.length} 个有记录周`)),
+              h("li", null, h("span", null, "AI 上下文分析"), h("strong", null, `${weeks.filter((w) => w.ai).length} / ${weeks.length} 周`), h("small", null, pending ? `${pending} 周待分析` : "全部已分析"))
+            )
+          ),
+          h(
+            "div",
+            { className: "rn-insight-actions" },
+            busy ? h("div", { className: "rn-insight-progress", role: "status" }, h("span", null, progress || "正在分析…"), btn("取消", onCancel)) : modelReady ? btn(pending ? `AI 分析 ${pending} 周` : "已全部分析", onRun, { className: "primary", disabled: !pending }) : h("div", { className: "rn-insight-progress" }, h("span", null, "未配置模型：当前只显示规则层结果。"), btn("去设置模型", onConfigure, { className: "primary" })),
+            error && h("p", { className: "rn-error", role: "alert" }, error),
+            h("p", { className: "rn-insight-legend" }, tag("fact", "原文事实"), " 规则统计与可核对的原文　", tag("ai", "AI 引用"), " 经逐字校验的原文　", tag("inference", "AI 推断"), " 可能的解释，可能有误")
+          ),
+          h("p", { className: "rn-insight-disclaimer" }, "指数概括可观察的互动过程（回应、开示、相互性、积极回应、主动投入、语言同步与摩擦），不是“对方喜欢你的概率”。权重来自文献的理论排序，未经你们的数据校准。")
+        ),
+        h(
+          "section",
+          { className: "rn-box" },
+          h("h2", null, "长期变化"),
+          h(TrendChart, { points: analysis.points, changePoints: analysis.changePoints, selected: pick.start, onSelect: setSelected }),
+          h("p", { className: "rn-insight-chart-legend" }, h("span", { className: "sw line" }), "每周指数　", h("span", { className: "sw band" }), "80% 区间　", h("span", { className: "sw ewma" }), "平滑趋势（EWMA）　", h("span", { className: "sw cp" }), "检测到的变化点　", h("span", { className: "sw gap" }), "无记录周（缺口）"),
+          analysis.phases.length > 1 ? h("ol", { className: "rn-insight-phases" }, ...analysis.phases.map((p, i) => h(
+            "li",
+            { key: i },
+            h("div", null, h("strong", null, `${p.start} ～ ${p.end}`), h("small", null, `${p.weeks} 周 · 均值 ${p.index}`), p.change !== void 0 && h("span", { className: p.change > 0 ? "rn-tone-up" : "rn-tone-down" }, `${fmt(p.change, 0)} 分`)),
+            p.drivers?.length > 0 && h("p", null, "主要变化来自：", p.drivers.map((d) => `${d.label}${d.delta > 0 ? "↑" : "↓"}（${fmt(d.impact)} 分）`).join("，"))
+          ))) : h("p", { className: "rn-muted" }, analysis.points.filter((p) => !p.gap).length < 6 ? "至少 6 个有记录周后才进行变化点检测。" : "未检测到持续的阶段性变化。")
+        ),
+        h(
+          "section",
+          { className: "rn-box" },
+          h("h2", null, `${pick.start} ～ ${pick.end} 的分析依据`),
+          h(
+            "div",
+            { className: "rn-insight-week-head" },
+            h("span", null, `指数 ${pick.index}（80% 区间 ${pick.low}–${pick.high}）`),
+            h("span", null, `${pick.messages} 条消息 · ${RELIABILITY[pick.reliability]}`),
+            pick.ai ? h("span", null, `AI：${pick.ai.model || "DSH 模型"}${pick.ai.sampled && pick.ai.sampled.sent < pick.ai.sampled.total ? `（抽样 ${pick.ai.sampled.sent}/${pick.ai.sampled.total} 条）` : ""}`) : h("span", null, "仅规则层"),
+            weeks.length > 1 && h("label", { className: "rn-insight-week-pick" }, "选择周", h("select", { value: pick.start, onChange: (e) => setSelected(e.target.value) }, ...[...weeks].reverse().map((w) => h("option", { key: w.start, value: w.start }, `${w.start}（${w.index}）`))))
+          ),
+          explain.summary && h("div", { className: "rn-insight-summary" }, tag("ai", "AI 摘要"), h("p", null, explain.summary), explain.uncertainties && h("p", { className: "rn-insight-alt" }, h("strong", null, "局限："), explain.uncertainties)),
+          h("div", { className: "rn-insight-dims" }, ...dims.map((d) => h(Dimension, { key: d.key, d, open: openDim === d.key, onToggle: () => setOpenDim(openDim === d.key ? "" : d.key), onEvidence }))),
+          (explain.boundary.facts.length > 0 || explain.boundary.ai.length > 0) && h("div", { className: "rn-insight-boundary" }, h("h4", null, "边界相关原文"), h("ul", { className: "rn-insight-quotes" }, ...[...explain.boundary.facts, ...explain.boundary.ai].map((item, i) => h(Quote, { key: i, item, onEvidence }))))
+        ),
+        h(
+          "details",
+          { className: "rn-more rn-insight-about" },
+          h("summary", null, "方法、权重与局限"),
+          h("table", null, h("thead", null, h("tr", null, h("th", null, "维度"), h("th", null, "权重"), h("th", null, "AI 参与"))), h("tbody", null, ...E.DIMENSIONS.map((d) => h("tr", { key: d.key }, h("td", null, d.label), h("td", null, Math.round(d.weight * 100) + "%"), h("td", null, d.llm ? "是" : "否"))), h("tr", null, h("td", null, "摩擦与修复"), h("td", null, "× (1 − 0.6 × 摩擦)"), h("td", null, "是")))),
+          h(
+            "ul",
+            null,
+            h("li", null, "综合指数 = 100 × Σ 权重 × 维度估计 × (1 − 0.6 × 摩擦)；明确边界的周最高 30。区间由各维度的二项标准误合成（80%）。"),
+            h("li", null, "维度估计按证据量向 0.5 收缩：(n·x + 4·0.5)/(n + 4)，样本少时自然接近中性，不会出现极端值。"),
+            h("li", null, "权重按理论重要性排序、接近等权：在没有带标签数据拟合时，这类“不当线性模型”更稳健（Dawes, 1979, American Psychologist 34:571–582）。"),
+            h("li", null, "AI 评分必须逐字引用原文（宿主校验，伪造即丢弃），不能输出概率、不能诊断依恋或人格；温度 0.1。AI 只做有限权重的补充，不能单独触发边界封顶。LLM 适合零样本心理文本标注，但与人工一致性有限（Rathje 等, 2024, PNAS；Ziems 等, 2024, Computational Linguistics）。"),
+            h("li", null, "趋势：近 8 个有记录周的加权最小二乘斜率；变化点：自启动 CUSUM（k=0.5σ，h=3σ，σ 取相邻周差估计）。都是统计描述，不代表原因。"),
+            h("li", null, "局限：文字缺少语气与线下互动；回复慢或消息短不等于冷淡（Morey 等, 2013, Computers in Human Behavior 指出沟通方式与依恋差异有关）；中文虚词表为近似；未经你们的真实结果校准。"),
+            h("li", null, "旧版“好感线索分（v2.3）”仍保留在“每日历程 / 互动评分”中作为规则层参照，两者口径不同，不宜直接比较。")
+          )
+        )
+      );
+    };
+  }
+
   // src/evidence-list.js
   var EVIDENCE_PAGE_SIZE = 50;
   var EVIDENCE_SEARCH_DELAY = 220;
@@ -35342,6 +36193,93 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 }
 @keyframes rn-drawer{from{transform:translateX(-12px);opacity:0}to{transform:none;opacity:1}}
 `;
+  var INSIGHT_CSS = `
+.rnw .rn-insight{display:grid;gap:16px}
+.rnw .rn-insight .rn-box{margin:0!important}
+.rnw .rn-tag{display:inline-flex;align-items:center;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:650;line-height:1.7;white-space:nowrap;vertical-align:middle}
+.rnw .rn-tag-fact{background:var(--rn-surface-2);color:var(--rn-fg);border:1px solid var(--rn-line)}
+.rnw .rn-tag-ai{background:color-mix(in srgb,#3b6fd8 14%,var(--rn-bg));color:color-mix(in srgb,#3b6fd8 80%,var(--rn-fg))}
+.rnw .rn-tag-inference{background:color-mix(in srgb,#b7791f 16%,var(--rn-bg));color:color-mix(in srgb,#b7791f 85%,var(--rn-fg))}
+.rnw .rn-insight-alert{padding:14px 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--rn-danger) 40%,var(--rn-bg));background:var(--rn-danger-soft)}
+.rnw .rn-insight-alert.soft{border-color:color-mix(in srgb,#b7791f 40%,var(--rn-bg));background:color-mix(in srgb,#b7791f 10%,var(--rn-bg))}
+.rnw .rn-insight-alert p{margin:4px 0 0}
+.rnw .rn-insight-hero-main{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,1.6fr);gap:20px;align-items:start}
+.rnw .rn-insight-score{display:flex;align-items:baseline;gap:6px;margin:4px 0}
+.rnw .rn-insight-score strong{font-size:48px;line-height:1;font-weight:700;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--rn-brand-text)}
+.rnw .rn-insight-score span{color:var(--rn-sub)}
+.rnw .rn-insight-facts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.rnw .rn-insight-facts li{display:grid;gap:2px;padding:12px 14px;border:1px solid var(--rn-line);border-radius:12px;background:var(--rn-surface)}
+.rnw .rn-insight-facts li>span{font-size:12px;color:var(--rn-sub)}
+.rnw .rn-insight-facts li>strong{font-size:17px}
+.rnw .rn-insight-facts li>small{color:var(--rn-sub);font-size:11.5px;line-height:1.5}
+.rnw .rn-tone-up{color:var(--rn-brand-text)!important}
+.rnw .rn-tone-down{color:var(--rn-danger)!important}
+.rnw .rn-tone-flat{color:var(--rn-fg)}
+.rnw .rn-insight-actions{display:grid;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--rn-line)}
+.rnw .rn-insight-actions>button{justify-self:start}
+.rnw .rn-insight-progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rnw .rn-insight-legend{margin:0;font-size:12px;color:var(--rn-sub);line-height:2}
+.rnw .rn-insight-disclaimer{margin:10px 0 0;font-size:12px;color:var(--rn-sub)}
+.rnw .rn-insight-chart{display:block;width:100%;height:auto;max-height:280px}
+.rnw .rn-insight-grid{stroke:var(--rn-line);stroke-width:1}
+.rnw .rn-insight-axis{fill:var(--rn-sub);font-size:11px;font-family:inherit}
+.rnw .rn-insight-band{fill:color-mix(in srgb,var(--rn-brand) 14%,transparent)}
+.rnw .rn-insight-line{fill:none;stroke:var(--rn-brand);stroke-width:2}
+.rnw .rn-insight-ewma{fill:none;stroke:var(--rn-fg);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55}
+.rnw .rn-insight-cp{stroke:#b7791f;stroke-width:1.5;stroke-dasharray:3 3}
+.rnw .rn-insight-dot{fill:var(--rn-bg);stroke:var(--rn-brand);stroke-width:2;cursor:pointer}
+.rnw .rn-insight-dot.selected{fill:var(--rn-brand)}
+.rnw .rn-insight-dot:focus-visible{outline:none;stroke-width:4}
+.rnw .rn-insight-gap{fill:none;stroke:var(--rn-sub);stroke-dasharray:2 2}
+.rnw .rn-insight-chart-legend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:6px 0 0;font-size:12px;color:var(--rn-sub)}
+.rnw .rn-insight-chart-legend .sw{display:inline-block;width:16px;height:3px;border-radius:2px;margin-left:6px}
+.rnw .sw.line{background:var(--rn-brand)}.rnw .sw.band{height:10px;background:color-mix(in srgb,var(--rn-brand) 18%,transparent)}.rnw .sw.ewma{background:repeating-linear-gradient(90deg,var(--rn-fg) 0 4px,transparent 4px 7px);opacity:.6}.rnw .sw.cp{width:3px;height:12px;background:#b7791f}.rnw .sw.gap{width:7px;height:7px;border:1px dashed var(--rn-sub);border-radius:50%}
+.rnw .rn-insight-phases{display:grid;gap:8px;margin:14px 0 0;padding-left:20px}
+.rnw .rn-insight-phases li>div{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.rnw .rn-insight-phases small{color:var(--rn-sub)}
+.rnw .rn-insight-phases p{margin:2px 0 0;font-size:12.5px}
+.rnw .rn-insight-week-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:-4px 0 12px;font-size:12.5px;color:var(--rn-sub)}
+.rnw .rn-insight-week-pick{flex-direction:row!important;align-items:center;margin-left:auto}
+.rnw .rn-insight-week-pick select{width:auto;min-width:170px}
+.rnw .rn-insight-summary{padding:12px 14px;margin-bottom:12px;border-radius:12px;background:color-mix(in srgb,#3b6fd8 6%,var(--rn-bg));border:1px solid color-mix(in srgb,#3b6fd8 18%,var(--rn-bg))}
+.rnw .rn-insight-summary p{margin:6px 0 0}
+.rnw .rn-insight-dims{display:grid;gap:8px}
+.rnw .rn-insight-dim{border:1px solid var(--rn-line);border-radius:12px;background:var(--rn-bg);overflow:hidden}
+.rnw .rn-insight-dim.open{border-color:var(--rn-brand-line)}
+.rnw .rn-insight-dim-head{display:grid!important;grid-template-columns:96px minmax(80px,1fr) 40px 250px;align-items:center;gap:6px 14px;width:100%;padding:10px 14px!important;border:0!important;border-radius:0!important;text-align:left;background:transparent}
+.rnw .rn-insight-dim-name{font-weight:650}
+.rnw .rn-insight-dim-val{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.rnw .rn-insight-dim-meta{font-size:11.5px;color:var(--rn-sub);white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis}
+.rnw .rn-insight-flag{grid-column:1/-1;justify-self:start;font-size:11.5px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,#b7791f 14%,var(--rn-bg));color:color-mix(in srgb,#b7791f 85%,var(--rn-fg))}
+.rnw .rn-insight-bar{position:relative;height:8px;border-radius:99px;background:var(--rn-surface-2)}
+.rnw .rn-insight-bar>i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--rn-brand)}
+.rnw .rn-insight-bar.friction>i{background:var(--rn-danger)}
+.rnw .rn-insight-tick{position:absolute;top:-4px;width:2px;height:16px;border-radius:1px;transform:translateX(-1px)}
+.rnw .rn-insight-tick.rule{background:var(--rn-fg);opacity:.55}
+.rnw .rn-insight-tick.ai{background:#3b6fd8}
+.rnw .rn-insight-dim-body{padding:4px 14px 14px;border-top:1px solid var(--rn-line)}
+.rnw .rn-insight-method{margin:6px 0 10px;font-size:12.5px}
+.rnw .rn-insight-refs{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--rn-sub)}
+.rnw .rn-insight-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rnw .rn-insight-columns h4{display:flex;align-items:center;gap:6px;margin:6px 0 8px;font-size:12.5px}
+.rnw .rn-insight-quotes{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rnw .rn-insight-quote{padding:10px 12px;border:1px solid var(--rn-line);border-radius:10px;background:var(--rn-surface)}
+.rnw .rn-insight-quote-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
+.rnw .rn-insight-quote-head small{color:var(--rn-sub)}
+.rnw .rn-insight-quote blockquote{margin:6px 0}
+.rnw .rn-insight-note,.rnw .rn-insight-count{margin:4px 0;font-size:12.5px}
+.rnw .rn-insight-open{font-size:12px;padding:2px 12px!important;border-radius:999px!important;color:var(--rn-brand-text);border-color:var(--rn-brand-line)!important;background:transparent}
+.rnw .rn-insight-inference{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px dashed color-mix(in srgb,#b7791f 45%,var(--rn-bg));background:color-mix(in srgb,#b7791f 7%,var(--rn-bg))}
+.rnw .rn-insight-inference>div{display:flex;align-items:center;gap:8px}
+.rnw .rn-insight-inference small{color:var(--rn-sub)}
+.rnw .rn-insight-inference p{margin:6px 0 0}
+.rnw .rn-insight-alt{font-size:12.5px;color:var(--rn-sub)}
+.rnw .rn-insight-boundary{margin-top:14px}
+.rnw .rn-insight-about table{margin:8px 0;font-size:12.5px}
+.rnw .rn-insight-about li{margin:6px 0;font-size:12.5px;line-height:1.7}
+@media(max-width:620px){.rnw .rn-insight-axis{font-size:20px}.rnw .rn-insight-chart{max-height:none}}
+@media(max-width:760px){.rnw .rn-insight-hero-main,.rnw .rn-insight-columns{grid-template-columns:1fr}.rnw .rn-insight-dim-head{grid-template-columns:80px minmax(60px,1fr) 34px}.rnw .rn-insight-dim-meta{grid-column:1/-1;white-space:normal;text-align:left}.rnw .rn-insight-week-pick{margin-left:0}.rnw .rn-insight-score strong{font-size:40px}}
+`;
 
   // src/workspace-media.js
   var MEDIA_LABELS = { image: "图片", video: "视频", audio: "语音", sticker: "表情", file: "文件" };
@@ -35611,10 +36549,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rn-settings-menu>summary::-webkit-details-marker{display:none}
 .rn-settings-menu-items{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:176px;padding:8px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--background,#fff);box-shadow:0 8px 24px #0002;display:grid;gap:6px}
 .rn-settings-menu-items button{display:block;width:100%;text-align:left}
-` + THEME_CSS + SESSION_LAYOUT_CSS;
+` + THEME_CSS + SESSION_LAYOUT_CSS + INSIGHT_CSS;
   var hostCss = adaptHostTokens(css);
   function createPlugin(React2, E, dictionaries) {
-    const ScoringBasisView = E.createScoringBasisView(React2, E), AutoAnalysisStatusView = E.createAutoAnalysisStatusView(React2), InterpretationView = E.createInterpretationView(React2), EvidenceContextView = E.createEvidenceContextView(React2, E), ProfileLifecycleView = E.createProfileLifecycleView(React2, E), ReplyFeedbackView = E.createReplyFeedbackView(React2, E), TopicSuggestionsView = E.createTopicSuggestionsView(React2, E), PeriodReviewView = E.createPeriodReviewView(React2, E), ShareScopeView = E.createShareScopeView(React2, E), SelfPlanView = E.createSelfPlanView(React2, E), RelationStageView = E.createRelationStageView(React2, E);
+    const ScoringBasisView = E.createScoringBasisView(React2, E), AutoAnalysisStatusView = E.createAutoAnalysisStatusView(React2), InterpretationView = E.createInterpretationView(React2), EvidenceContextView = E.createEvidenceContextView(React2, E), ProfileLifecycleView = E.createProfileLifecycleView(React2, E), ReplyFeedbackView = E.createReplyFeedbackView(React2, E), TopicSuggestionsView = E.createTopicSuggestionsView(React2, E), PeriodReviewView = E.createPeriodReviewView(React2, E), ShareScopeView = E.createShareScopeView(React2, E), SelfPlanView = E.createSelfPlanView(React2, E), RelationStageView = E.createRelationStageView(React2, E), RelationshipInsightView = E.createRelationshipInsightView(React2, E);
     const h = React2.createElement, id = "local-relationship-notes", emptyMessages = [];
     const localFileUrl = createMediaUrls(), mediaLabels = MEDIA_LABELS, messageMediaKind = mediaKind;
     let pdfWorkerUrl = "";
@@ -35623,7 +36561,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       ctx.effect(() => Object.entries(dictionaries).map(([lang, dict]) => ctx.locale.register(id, lang, dict)));
       const historyViews = /* @__PURE__ */ new Map();
       const store = E.createWorkspaceStore({ persistenceReady: false, persistenceStatus: "" });
-      let autoAnalysisScheduler = null, profileRequest = 0, profileController = null, request = 0, modelRequest = 0, controller = null, timelineRequest = 0, timelineController = null, importEpoch = 0;
+      let affinityController = null, autoAnalysisScheduler = null, profileRequest = 0, profileController = null, request = 0, modelRequest = 0, controller = null, timelineRequest = 0, timelineController = null, importEpoch = 0;
       const persistence = createWorkspacePersistence({ E, store });
       const set = (change) => store.set(change), nav = (feature, tab) => store.navigate(feature, tab);
       const useState = () => React2.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
@@ -35750,6 +36688,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       ctx.effect(() => persistence.start());
       ctx.effect(() => () => {
         cancel();
+        affinityController?.abort();
         profileRequest++;
         profileController?.abort();
         modelRequest++;
@@ -35889,6 +36828,65 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         } finally {
           await loadingTask.destroy();
         }
+      }
+      async function runAffinity(contactId) {
+        const start = store.getSnapshot();
+        if (start.affinityBusy) return;
+        affinityController?.abort();
+        const controller2 = new AbortController();
+        affinityController = controller2;
+        const first = start.contacts.find((c) => c.id === contactId);
+        if (!first) return;
+        const pending = E.analyzeRelationship(first).pending, failed = [];
+        let done = 0, stored = 0, consecutive = 0;
+        set({ affinityBusy: contactId, affinityProgress: "准备中…", affinityError: "" });
+        try {
+          for (const week of pending) {
+            if (controller2.signal.aborted) break;
+            const current = store.getSnapshot(), contact = current.contacts.find((c) => c.id === contactId);
+            if (!contact) break;
+            const turns = E.buildTurns(contact), fingerprint = E.weekFingerprint(contact, week, turns);
+            const previous = Object.entries(contact.affinityV3?.weeks || {}).filter(([key, entry2]) => key < week && entry2?.result?.summary).sort((a, b) => b[0].localeCompare(a[0]))[0];
+            const body = E.buildAffinityRequest(contact, week, { previousSummary: previous?.[1].result.summary, turns });
+            if (current.provider && current.model) {
+              body.provider = current.provider;
+              body.model = current.model;
+            }
+            set({ affinityProgress: `正在分析 ${week} 这一周（${done + 1} / ${pending.length}）…` });
+            const response = await hostPost("affinity-analysis", body, { signal: controller2.signal });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.ok) {
+              if ([405, 499, 503].includes(response.status)) throw new Error(data.error || "模型分析暂不可用。");
+              failed.push(week + "：" + (data.error || "HTTP " + response.status));
+              done++;
+              if (++consecutive >= 2) {
+                failed.splice(0, failed.length);
+                throw new Error(`连续 2 周分析失败，已停止：${String(data.error || "HTTP " + response.status).replace(/[。.]+$/, "")}。请检查 DSH 的模型配置后重试，已完成的周会保留。`);
+              }
+              continue;
+            }
+            consecutive = 0;
+            const latest = store.getSnapshot(), target = latest.contacts.find((c) => c.id === contactId);
+            if (!target) break;
+            if (E.weekFingerprint(target, week) === fingerprint) {
+              set({ contacts: latest.contacts.map((c) => c.id === contactId ? E.storeAiWeek(c, week, { result: data.analysis, provider: data.provider, model: data.model, fingerprint, request: body }) : c) });
+              stored++;
+            }
+            done++;
+          }
+          if (!controller2.signal.aborted) set({ status: stored ? `关系分析已更新 ${stored} 周。` : "没有新的周需要分析。" });
+        } catch (error) {
+          if (error?.name !== "AbortError" && !controller2.signal.aborted) set({ affinityError: error.message || "模型分析暂不可用。" });
+        } finally {
+          if (affinityController === controller2) affinityController = null;
+          set({ affinityBusy: "", affinityProgress: "", ...failed.length ? { affinityError: `${failed.length} 周未完成（可再次点击重试）：${failed.slice(0, 3).join("；")}` } : {} });
+          await persistence.flush?.();
+        }
+      }
+      function cancelAffinity() {
+        affinityController?.abort();
+        affinityController = null;
+        set({ affinityBusy: "", affinityProgress: "", status: "已取消关系分析；已完成的周会保留。" });
       }
       function guessIdentity(messages) {
         const senders = [...new Set((messages || []).map((m) => m.sender).filter(Boolean))];
@@ -36283,7 +37281,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (tab === "stage") return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(RelationStageView, { contact, onAction: (action) => {
           const current = store.getSnapshot();
           set({ contacts: current.contacts.map((c) => c.id === contact.id ? E.changeRelationProfile(c, action) : c), status: "关系画像与阶段已保存。" });
-        }, onEvidence: (ref) => showEvidence(contact.id, ref) }));
+        }, onEvidence: (ref2) => showEvidence(contact.id, ref2) }));
         const fields = tab === "basic" ? [["city", "城市"], ["job", "工作情况"], ["daily", "生活习惯"], ["recent", "最近近况"], ["agreement", "重要约定"], ["style", "沟通风格（行为模式）"], ["boundary", "明确边界"], ["followup", "待跟进事项"], ["inference", "可能解释（推测）"]] : [["interests", "兴趣爱好"], ["preferences", "个人偏好"]], all = E.profileRows(contact), facts = all.filter((f) => (f.manual || E.supportedProfileSummary(f)) && (view === "active" ? f.status === "active" : view === "pending" ? f.status === "pending" : ["archived", "superseded"].includes(f.status)));
         const act = (action) => {
           const current = store.getSnapshot();
@@ -36303,7 +37301,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         };
         const editor = h("div", { className: "rn-profile-editor" }, editing === "new" && select("资料分类", addField, fields, setAddField), h("label", null, editMode === "update" ? "现在的情况" : "资料内容", h("textarea", { value: editValue, onChange: (e) => setEditValue(e.target.value), maxLength: 600, rows: 3, "aria-label": "资料内容", placeholder: "填写准确的资料内容" })), (editMode === "update" || editing === "new") && h("label", null, "生效时间", h("input", { type: "datetime-local", value: effectiveAt, onChange: (e) => setEffectiveAt(e.target.value) })), h("div", { className: "rn-actions" }, button("保存", save, { className: "primary", disabled: !editValue.trim() }), button("取消", () => setEditing(null))));
         const statusLabels = { active: "当前", archived: "已归档", superseded: "历史情况", pending: "待确认" };
-        return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(ProfileLifecycleView, { contact, onAction: act, onEvidence: (ref) => showEvidence(contact.id, ref) }), contact.profileNeedsRefresh && h("div", { className: "rn-profile-undo" }, "新增聊天待整理", button("分析新增资料", () => analyzeProfile(contact), { disabled: s.profileBusy }), button("标记为已整理", () => markProfileSettled(contact), { disabled: s.profileBusy })), h("div", { className: "rn-profile-filters" }, ...["active", "pending", "history"].map((key) => button(key === "active" ? "当前资料" : key === "pending" ? "待确认 " + all.filter((f) => f.status === "pending").length : "历史资料", () => {
+        return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(ProfileLifecycleView, { contact, onAction: act, onEvidence: (ref2) => showEvidence(contact.id, ref2) }), contact.profileNeedsRefresh && h("div", { className: "rn-profile-undo" }, "新增聊天待整理", button("分析新增资料", () => analyzeProfile(contact), { disabled: s.profileBusy }), button("标记为已整理", () => markProfileSettled(contact), { disabled: s.profileBusy })), h("div", { className: "rn-profile-filters" }, ...["active", "pending", "history"].map((key) => button(key === "active" ? "当前资料" : key === "pending" ? "待确认 " + all.filter((f) => f.status === "pending").length : "历史资料", () => {
           setView(key);
           setEditing(null);
         }, { "aria-pressed": view === key }))), undo && h("div", { className: "rn-profile-undo" }, h("span", null, "资料已删除"), button("撤销", () => {
@@ -36378,7 +37376,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }, { image: 0, video: 0, audio: 0, sticker: 0 }) : null, [contact?.messages]);
         if (!contact) return empty();
         const affinityScores = timeline.days.filter((day) => day.engagementScore !== null).map((day) => day.engagementScore), affinityAverage = affinityScores.length ? Math.round(affinityScores.reduce((sum, value) => sum + value, 0) / affinityScores.length) : null;
-        if (tab === "review") return h(PeriodReviewView, { contact, preferences: s.reviewPreferences?.[contact.id] || {}, onPreferencesChange: (value) => set({ reviewPreferences: { ...store.getSnapshot().reviewPreferences || {}, [contact.id]: value } }), onEvidence: (ref) => showEvidence(contact.id, ref) });
+        if (tab === "insight") return h(RelationshipInsightView, { contact, busy: s.affinityBusy === contact.id, progress: s.affinityProgress, error: s.affinityError, modelReady: Boolean(s.provider && s.model), onRun: () => runAffinity(contact.id), onCancel: cancelAffinity, onEvidence: (ref2) => showEvidence(contact.id, ref2), onConfigure: () => nav("settings", "general") });
+        if (tab === "review") return h(PeriodReviewView, { contact, preferences: s.reviewPreferences?.[contact.id] || {}, onPreferencesChange: (value) => set({ reviewPreferences: { ...store.getSnapshot().reviewPreferences || {}, [contact.id]: value } }), onEvidence: (ref2) => showEvidence(contact.id, ref2) });
         if (tab === "daily") {
           const [calendarYear, monthNumber] = month.split("-").map(Number);
           const firstWeekday = new Date(Date.UTC(calendarYear, monthNumber - 1, 1)).getUTCDay();
@@ -36687,9 +37686,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }
       }
       function DraftEditor({ value, onChange }) {
-        const ref = React2.useRef(null);
+        const ref2 = React2.useRef(null);
         React2.useLayoutEffect(() => {
-          const node = ref.current;
+          const node = ref2.current;
           if (!node) return;
           const resize = () => {
             node.style.height = "0px";
@@ -36706,7 +37705,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           observer?.observe(node);
           return () => observer?.disconnect();
         }, [value]);
-        return h("textarea", { ref, value, onChange, rows: 2, "aria-label": "编辑未发送的 AI 草稿", style: { resize: "none", overflow: "hidden", maxHeight: "none" } });
+        return h("textarea", { ref: ref2, value, onChange, rows: 2, "aria-label": "编辑未发送的 AI 草稿", style: { resize: "none", overflow: "hidden", maxHeight: "none" } });
       }
       function Replies({ s, contact }) {
         const formatTimestamp = formatChatTimestamp;
@@ -36962,7 +37961,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const file = e.target.files?.[0];
             e.target.value = "";
             choosePhoto(file);
-          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref) => showEvidence(contact.id, ref) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref) => showEvidence(contact.id, ref) }), h("div", { className: "rn-session-stat" }, h("strong", null, `${lastCount} 条消息`), h("small", null, [lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录", latestScore === null ? "好感 —" : `好感 ${latestScore}/100`].join(" · "))), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)), button(s.timelineAnalysisContact === contact.id ? "正在重算…" : "重算评分", () => analyzeTimeline(contact.id, { force: true }), { disabled: s.timelineAnalysisContact === contact.id }), button("模型设置", () => nav("settings", "general"))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
+          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref2) => showEvidence(contact.id, ref2) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref2) => showEvidence(contact.id, ref2) }), h("div", { className: "rn-session-stat" }, h("strong", null, `${lastCount} 条消息`), h("small", null, [lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录", latestScore === null ? "好感 —" : `好感 ${latestScore}/100`].join(" · "))), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)), button(s.timelineAnalysisContact === contact.id ? "正在重算…" : "重算评分", () => analyzeTimeline(contact.id, { force: true }), { disabled: s.timelineAnalysisContact === contact.id }), button("模型设置", () => nav("settings", "general"))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
             chooseAvatar(file, "self");
@@ -37143,7 +38142,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }, { className: "primary" })));
       }
       function TabStrip({ label, items, selected: selected3, onSelect, className }) {
-        const ref = React2.useRef(null);
+        const ref2 = React2.useRef(null);
         const onKeyDown = (e) => {
           const index = items.findIndex((item) => item[0] === selected3);
           let next;
@@ -37154,10 +38153,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (next !== void 0) {
             e.preventDefault();
             onSelect(items[next][0], true);
-            ref.current?.querySelectorAll("button")[next]?.focus();
+            ref2.current?.querySelectorAll("button")[next]?.focus();
           }
         };
-        return h("div", { className: "rn-tabs " + className, role: "tablist", "aria-label": label, ref, onKeyDown }, ...items.map(([key, text]) => button(text, () => onSelect(key, false), { key, role: "tab", id: "rn-tab-" + className + "-" + key, "aria-controls": "rn-panel", "aria-selected": selected3 === key, tabIndex: selected3 === key ? 0 : -1 })));
+        return h("div", { className: "rn-tabs " + className, role: "tablist", "aria-label": label, ref: ref2, onKeyDown }, ...items.map(([key, text]) => button(text, () => onSelect(key, false), { key, role: "tab", id: "rn-tab-" + className + "-" + key, "aria-controls": "rn-panel", "aria-selected": selected3 === key, tabIndex: selected3 === key ? 0 : -1 })));
       }
       function SettingsMenu() {
         const detailsRef = React2.useRef(null), summaryRef = React2.useRef(null), [open, setOpen] = React2.useState(false);
@@ -37258,8 +38257,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       function Page() {
         const s = useState(), contact = selected2(s), route = E.resolveNavigation(s.feature, s.tab), n = route.item, panelRef = React2.useRef(null), focusMode = React2.useRef("panel"), firstRender = React2.useRef(true);
         React2.useEffect(() => {
-          if (n.id === "replies") models();
-        }, [n.id]);
+          if (n.id === "replies" || n.id === "behavior" && route.tab === "insight") models();
+        }, [n.id, route.tab]);
         React2.useEffect(() => {
           if (firstRender.current) {
             firstRender.current = false;
@@ -37272,7 +38271,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (tab && typeof tab.focus === "function") tab.focus({ preventScroll: true });
           else if (mode === "panel") panelRef.current?.focus?.({ preventScroll: true });
         }, [route.group.id, n.id, route.tab]);
-        const sourceEnabled = n.id === "behavior", sourceChoice = s.recordSource || "all", sourceCounts = contact ? { qq: contact.messages.filter((m) => channelOf(m) === "qq").length, wechat: contact.messages.filter((m) => channelOf(m) !== "qq").length } : { qq: 0, wechat: 0 }, shownContact = contact && sourceEnabled && sourceChoice !== "all" ? { ...contact, messages: contact.messages.filter((m) => channelOf(m) === sourceChoice), pairCount: contact.messages.filter((m) => channelOf(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)).length, timelineAnalysis: {} } : contact;
+        const sourceEnabled = n.id === "behavior" && route.tab !== "insight", sourceChoice = s.recordSource || "all", sourceCounts = contact ? { qq: contact.messages.filter((m) => channelOf(m) === "qq").length, wechat: contact.messages.filter((m) => channelOf(m) !== "qq").length } : { qq: 0, wechat: 0 }, shownContact = contact && sourceEnabled && sourceChoice !== "all" ? { ...contact, messages: contact.messages.filter((m) => channelOf(m) === sourceChoice), pairCount: contact.messages.filter((m) => channelOf(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)).length, timelineAnalysis: {} } : contact;
         let content;
         if (n.id === "import") content = h(ImportView, { s, contact, tab: route.tab });
         if (n.id === "profile") content = h(Profile, { s, contact: shownContact, tab: route.tab });

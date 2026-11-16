@@ -2,7 +2,7 @@ import {EVIDENCE_FILTERS,EVIDENCE_PAGE_SIZE,EVIDENCE_SEARCH_DELAY,buildEvidenceV
 import {createWorkspacePersistence,PERSISTED_KEYS as persistedKeys,persistableState} from './workspace-persistence.js';
 import {hostPost} from './host-api.js';
 import {startImportQueue} from './workspace-import.js';
-import {THEME_CSS,SESSION_LAYOUT_CSS} from './workspace-theme.js';
+import {THEME_CSS,SESSION_LAYOUT_CSS,INSIGHT_CSS} from './workspace-theme.js';
 import {adaptHostTokens} from './host-tokens.js';
 import {createMediaUrls,downloadObjectUrl,mediaKind,MEDIA_LABELS} from './workspace-media.js';
 const autoSummaryTried=new Set(),autoProfileTried=new Set();
@@ -213,19 +213,19 @@ export const css=`
 .rn-settings-menu>summary::-webkit-details-marker{display:none}
 .rn-settings-menu-items{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:176px;padding:8px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--background,#fff);box-shadow:0 8px 24px #0002;display:grid;gap:6px}
 .rn-settings-menu-items button{display:block;width:100%;text-align:left}
-`+THEME_CSS+SESSION_LAYOUT_CSS;
+`+THEME_CSS+SESSION_LAYOUT_CSS+INSIGHT_CSS;
 
 // 输出给宿主的最终样式：兜底链里补上 DSH Web 的 --dsw-alias-* 令牌。
 export const hostCss=adaptHostTokens(css);
 export function createPlugin(React,E,dictionaries){
- const ScoringBasisView=E.createScoringBasisView(React,E),AutoAnalysisStatusView=E.createAutoAnalysisStatusView(React),InterpretationView=E.createInterpretationView(React),EvidenceContextView=E.createEvidenceContextView(React,E),ProfileLifecycleView=E.createProfileLifecycleView(React,E),ReplyFeedbackView=E.createReplyFeedbackView(React,E),TopicSuggestionsView=E.createTopicSuggestionsView(React,E),PeriodReviewView=E.createPeriodReviewView(React,E),ShareScopeView=E.createShareScopeView(React,E),SelfPlanView=E.createSelfPlanView(React,E),RelationStageView=E.createRelationStageView(React,E);
+ const ScoringBasisView=E.createScoringBasisView(React,E),AutoAnalysisStatusView=E.createAutoAnalysisStatusView(React),InterpretationView=E.createInterpretationView(React),EvidenceContextView=E.createEvidenceContextView(React,E),ProfileLifecycleView=E.createProfileLifecycleView(React,E),ReplyFeedbackView=E.createReplyFeedbackView(React,E),TopicSuggestionsView=E.createTopicSuggestionsView(React,E),PeriodReviewView=E.createPeriodReviewView(React,E),ShareScopeView=E.createShareScopeView(React,E),SelfPlanView=E.createSelfPlanView(React,E),RelationStageView=E.createRelationStageView(React,E),RelationshipInsightView=E.createRelationshipInsightView(React,E);
  const h=React.createElement,id='local-relationship-notes',emptyMessages=[];
   const localFileUrl=createMediaUrls(),mediaLabels=MEDIA_LABELS,messageMediaKind=mediaKind;let pdfWorkerUrl='';
  return {inject:['locale'],apply(ctx){
   const t=ctx.locale.bind(id);
   ctx.effect(()=>Object.entries(dictionaries).map(([lang,dict])=>ctx.locale.register(id,lang,dict)));
   const historyViews=new Map();const store=E.createWorkspaceStore({persistenceReady:false,persistenceStatus:''});
-  let autoAnalysisScheduler=null,profileRequest=0,profileController=null,request=0,modelRequest=0,controller=null,timelineRequest=0,timelineController=null,importEpoch=0;
+  let affinityController=null,autoAnalysisScheduler=null,profileRequest=0,profileController=null,request=0,modelRequest=0,controller=null,timelineRequest=0,timelineController=null,importEpoch=0;
   const persistence=createWorkspacePersistence({E,store});
   const set=change=>store.set(change), nav=(feature,tab)=>store.navigate(feature,tab);
   const useState=()=>React.useSyncExternalStore(store.subscribe,store.getSnapshot,store.getSnapshot);
@@ -259,7 +259,7 @@ export function createPlugin(React,E,dictionaries){
    return ()=>{unsubscribe();localFileUrl.dispose();if(pdfWorkerUrl)URL.revokeObjectURL(pdfWorkerUrl);};
   });
   ctx.effect(()=>persistence.start());
-  ctx.effect(()=>()=>{cancel();profileRequest++;profileController?.abort();modelRequest++;timelineRequest++;timelineController?.abort();importEpoch++;});
+  ctx.effect(()=>()=>{cancel();affinityController?.abort();profileRequest++;profileController?.abort();modelRequest++;timelineRequest++;timelineController?.abort();importEpoch++;});
   // The native DSH tool queues the conversation; the workspace consumes it once.
   ctx.effect(()=>startImportQueue({E,store,set,persistence,savedDraft,resetDraft,cancel}));
   const button=(label,onClick,props={})=>h('button',{type:'button',onClick,...props},label);
@@ -297,6 +297,41 @@ export function createPlugin(React,E,dictionaries){
     return messages.map(message=>({...message,typeName:'text',attachments:[]}));
    }finally{await loadingTask.destroy();}
   }
+  // 关系分析 v3：按周把聊天交给 DSH 模型做有引用的上下文评定，从最早的待分析周开始，前一周 AI 摘要作为背景。
+  // 每周结果都绑定消息指纹；聊天在分析期间变化时丢弃该周结果，避免把旧分析挂到新内容上。
+  async function runAffinity(contactId){
+   const start=store.getSnapshot();if(start.affinityBusy)return;
+   affinityController?.abort();const controller=new AbortController();affinityController=controller;
+   const first=start.contacts.find(c=>c.id===contactId);if(!first)return;
+   const pending=E.analyzeRelationship(first).pending,failed=[];let done=0,stored=0,consecutive=0;
+   set({affinityBusy:contactId,affinityProgress:'准备中…',affinityError:''});
+   try{
+    for(const week of pending){
+     if(controller.signal.aborted)break;
+     const current=store.getSnapshot(),contact=current.contacts.find(c=>c.id===contactId);if(!contact)break;
+     const turns=E.buildTurns(contact),fingerprint=E.weekFingerprint(contact,week,turns);
+     const previous=Object.entries(contact.affinityV3?.weeks||{}).filter(([key,entry])=>key<week&&entry?.result?.summary).sort((a,b)=>b[0].localeCompare(a[0]))[0];
+     const body=E.buildAffinityRequest(contact,week,{previousSummary:previous?.[1].result.summary,turns});
+     if(current.provider&&current.model){body.provider=current.provider;body.model=current.model;}
+     set({affinityProgress:`正在分析 ${week} 这一周（${done+1} / ${pending.length}）…`});
+     const response=await hostPost('affinity-analysis',body,{signal:controller.signal});const data=await response.json().catch(()=>({}));
+     if(!response.ok||!data.ok){if([405,499,503].includes(response.status))throw new Error(data.error||'模型分析暂不可用。');failed.push(week+'：'+(data.error||('HTTP '+response.status)));done++;
+      // 连续两周失败多半是模型不可用（凭据、额度或网络），停止而不是逐周重复请求。
+      if(++consecutive>=2){failed.splice(0,failed.length);throw new Error(`连续 2 周分析失败，已停止：${String(data.error||('HTTP '+response.status)).replace(/[。.]+$/,'')}。请检查 DSH 的模型配置后重试，已完成的周会保留。`);}continue;}
+     consecutive=0;
+     const latest=store.getSnapshot(),target=latest.contacts.find(c=>c.id===contactId);if(!target)break;
+     if(E.weekFingerprint(target,week)===fingerprint){set({contacts:latest.contacts.map(c=>c.id===contactId?E.storeAiWeek(c,week,{result:data.analysis,provider:data.provider,model:data.model,fingerprint,request:body}):c)});stored++;}
+     done++;
+    }
+    if(!controller.signal.aborted)set({status:stored?`关系分析已更新 ${stored} 周。`:'没有新的周需要分析。'});
+   }catch(error){if(error?.name!=='AbortError'&&!controller.signal.aborted)set({affinityError:error.message||'模型分析暂不可用。'});}
+   finally{
+    if(affinityController===controller)affinityController=null;
+    set({affinityBusy:'',affinityProgress:'',...(failed.length?{affinityError:`${failed.length} 周未完成（可再次点击重试）：${failed.slice(0,3).join('；')}`}:{})});
+    await persistence.flush?.();
+   }
+  }
+  function cancelAffinity(){affinityController?.abort();affinityController=null;set({affinityBusy:'',affinityProgress:'',status:'已取消关系分析；已完成的周会保留。'});}
   // 只有两位发言人且能可靠识别“我”时才预选身份；其余情况仍由用户手动确认。
   function guessIdentity(messages){
    const senders=[...new Set((messages||[]).map(m=>m.sender).filter(Boolean))];if(senders.length!==2)return {};
@@ -497,6 +532,7 @@ for(const batch of batches){
     const calendarRef=React.useRef(null);const [moreOpen,setMoreOpen]=React.useState(false);const [filter,setFilter]=React.useState('all'),[evidenceOrder,setEvidenceOrder]=React.useState('desc'),[evidenceQuery,setEvidenceQuery]=React.useState(''),[evidenceAppliedQuery,setEvidenceAppliedQuery]=React.useState(''),[evidencePage,setEvidencePage]=React.useState(1);const evidenceSearch=React.useRef(null);if(!evidenceSearch.current)evidenceSearch.current=createDebounced(value=>setEvidenceAppliedQuery(value),EVIDENCE_SEARCH_DELAY);React.useEffect(()=>()=>evidenceSearch.current?.cancel(),[]);React.useEffect(()=>{setEvidencePage(1);},[filter,evidenceAppliedQuery,evidenceOrder]);const [granularity,setGranularity]=React.useState('month'),timeline=React.useMemo(()=>contact?E.analyzeDailyTimeline(contact.messages,contact.self,contact.target,contact.interactionCorrections||[]):null,[contact?.messages,contact?.self,contact?.target,contact?.interactionCorrections]),lastDate=timeline?.days.at(-1)?.date||formatChatDayKey(Date.now()),[month,setMonth]=React.useState(lastDate.slice(0,7)),[selectedDate,setSelectedDate]=React.useState(lastDate),[year,setYear]=React.useState(lastDate.slice(0,4));React.useEffect(()=>{if(contact){const last=s.behaviorDate||timeline?.days.at(-1)?.date||formatChatDayKey(Date.now());setMonth(last.slice(0,7));setSelectedDate(last);setYear(last.slice(0,4));}},[contact?.id,lastDate,s.behaviorDate]);const a=React.useMemo(()=>contact?E.analyzeConversation(contact.messages,contact.self,contact.target):null,[contact?.messages,contact?.self,contact?.target]);
     const media=React.useMemo(()=>contact?contact.messages.reduce((out,message)=>{for(const attachment of message.attachments||[])out[attachment.kind]=(out[attachment.kind]||0)+1;return out;},{image:0,video:0,audio:0,sticker:0}):null,[contact?.messages]);
     if(!contact)return empty();const affinityScores=timeline.days.filter(day=>day.engagementScore!==null).map(day=>day.engagementScore),affinityAverage=affinityScores.length?Math.round(affinityScores.reduce((sum,value)=>sum+value,0)/affinityScores.length):null;
+   if(tab==='insight')return h(RelationshipInsightView,{contact,busy:s.affinityBusy===contact.id,progress:s.affinityProgress,error:s.affinityError,modelReady:Boolean(s.provider&&s.model),onRun:()=>runAffinity(contact.id),onCancel:cancelAffinity,onEvidence:ref=>showEvidence(contact.id,ref),onConfigure:()=>nav('settings','general')});
    if(tab==='review')return h(PeriodReviewView,{contact,preferences:s.reviewPreferences?.[contact.id]||{},onPreferencesChange:value=>set({reviewPreferences:{...(store.getSnapshot().reviewPreferences||{}),[contact.id]:value}}),onEvidence:ref=>showEvidence(contact.id,ref)});
    if(tab==='daily'){
      const [calendarYear,monthNumber]=month.split('-').map(Number);
@@ -722,9 +758,9 @@ function Settings({s}){const provider=s.models.find(p=>p.id===s.provider),modelO
   }
   function Page(){
    const s=useState(),contact=selected(s),route=E.resolveNavigation(s.feature,s.tab),n=route.item,panelRef=React.useRef(null),focusMode=React.useRef('panel'),firstRender=React.useRef(true);
-   React.useEffect(()=>{if(n.id==='replies')models();},[n.id]);
+   React.useEffect(()=>{if(n.id==='replies'||(n.id==='behavior'&&route.tab==='insight'))models();},[n.id,route.tab]);
    React.useEffect(()=>{if(firstRender.current){firstRender.current=false;return;}const mode=focusMode.current;focusMode.current='panel';if(mode==='none')return;const tab=mode==='context'&&typeof document!=='undefined'?document.getElementById('rn-tab-rn-context-tabs-'+n.id+'__'+route.tab):mode==='group'&&typeof document!=='undefined'?document.getElementById('rn-tab-rn-group-tabs-'+route.group.id):null;if(tab&&typeof tab.focus==='function')tab.focus({preventScroll:true});else if(mode==='panel')panelRef.current?.focus?.({preventScroll:true});},[route.group.id,n.id,route.tab]);
-   const sourceEnabled=n.id==='behavior',sourceChoice=s.recordSource||'all',sourceCounts=contact?{qq:contact.messages.filter(m=>channelOf(m)==='qq').length,wechat:contact.messages.filter(m=>channelOf(m)!=='qq').length}:{qq:0,wechat:0},shownContact=contact&&sourceEnabled&&sourceChoice!=='all'?{...contact,messages:contact.messages.filter(m=>channelOf(m)===sourceChoice),pairCount:contact.messages.filter(m=>channelOf(m)===sourceChoice&&(m.sender===contact.self||m.sender===contact.target)).length,timelineAnalysis:{}}:contact;
+   const sourceEnabled=n.id==='behavior'&&route.tab!=='insight',sourceChoice=s.recordSource||'all',sourceCounts=contact?{qq:contact.messages.filter(m=>channelOf(m)==='qq').length,wechat:contact.messages.filter(m=>channelOf(m)!=='qq').length}:{qq:0,wechat:0},shownContact=contact&&sourceEnabled&&sourceChoice!=='all'?{...contact,messages:contact.messages.filter(m=>channelOf(m)===sourceChoice),pairCount:contact.messages.filter(m=>channelOf(m)===sourceChoice&&(m.sender===contact.self||m.sender===contact.target)).length,timelineAnalysis:{}}:contact;
    let content;if(n.id==='import')content=h(ImportView,{s,contact,tab:route.tab});if(n.id==='profile')content=h(Profile,{s,contact:shownContact,tab:route.tab});if(n.id==='behavior')content=h(Behavior,{s,contact:shownContact,tab:route.tab});if(n.id==='goals')content=h(Goals,{s,contact,tab:route.tab});if(n.id==='replies')content=h(Replies,{s,contact,tab:route.tab});if(n.id==='settings')content=h(Settings,{s,tab:route.tab});
    const groupItems=E.NAVIGATION.map(group=>[group.id,group.label]),contextItems=E.groupTabs(route.group).map(tab=>[tab.key,tab.label]),selectedContextKey=n.id+'__'+route.tab;
    return h('main',{className:'rnw',style:{'--rn-font':(s.displayFontSize||13)+'px','--rn-gap':s.displayDensity==='compact'?'8px':'14px'}},h('style',null,hostCss),h('header',{className:'rn-head'},h('div',null,h('div',{className:'rn-breadcrumb'},'关系手记 / '+route.group.label),h('h1',null,n.label),contact&&h(HeadSummary,{contact})),h('div',{style:{display:'flex',alignItems:'flex-end',gap:12}},!s.contacts.length&&button('导入聊天',()=>nav('import','file'),{className:'primary'}),select('当前联系人',s.selectedId,[['','请选择联系人'],...s.contacts.map(c=>[c.id,c.target+(c.isSample?'（示例）':'')])],chooseContact,{disabled:!s.contacts.length}),h(SettingsMenu,{}))),h(TabStrip,{label:'主导航',items:groupItems,selected:route.group.id,onSelect:(key,fromKeyboard)=>{const group=E.NAVIGATION.find(item=>item.id===key),first=group?.items.find(item=>!item.hidden);if(first){focusMode.current=fromKeyboard?'group':'none';nav(first.id,first.tabs[0][0]);}},className:'rn-group-tabs'}),contextItems.length>1&&h(TabStrip,{label:route.group.label+'页面',items:contextItems,selected:selectedContextKey,onSelect:(key,fromKeyboard)=>{const [feature,tab]=key.split('__');focusMode.current=fromKeyboard?'context':'none';nav(feature,tab);},className:'rn-context-tabs'}),h('div',{id:'rn-panel',ref:panelRef,tabIndex:-1,style:{width:'100%',minWidth:0,maxWidth:'none'},role:'tabpanel','aria-label':n.label},!s.contacts.length&&route.item.id==='profile'&&route.tab==='basic'&&h(StartGuide,{}),sourceEnabled&&contact&&h('div',{className:'rn-actions rn-source-filter',role:'group','aria-label':'记录来源',style:{marginBottom:16}},...['all','wechat','qq'].map(key=>button(key==='all'?`全部 ${contact.messages.length} 条`:key==='qq'?`QQ ${sourceCounts.qq} 条`:`微信 ${sourceCounts.wechat} 条`,()=>set({recordSource:key}),{key,'aria-pressed':sourceChoice===key,disabled:key!=='all'&&sourceChoice!==key&&!sourceCounts[key],title:key!=='all'&&!sourceCounts[key]?'该来源暂无记录':undefined}))),!(!s.contacts.length&&route.item.id==='profile'&&route.tab==='basic')&&content),h(AutoAnalysisStatusView,{contacts:s.contacts,timeline:{contactId:s.timelineAnalysisContact,progress:s.timelineAnalysisProgress,done:s.timelineAnalysisDone,total:s.timelineAnalysisTotal},onPause:id=>autoAnalysisScheduler?.pause(id),onResume:id=>autoAnalysisScheduler?.resume(id)}),s.evidenceContext&&h(EvidenceContextView,{contact:s.contacts.find(c=>c.id===s.evidenceContext.contactId),reference:s.evidenceContext.reference,onClose:()=>set({evidenceContext:null})}),s.status&&h(StatusToast,{text:s.status,busy:Boolean(s.replyBusy||s.profileBusy||s.importBusy||s.modelBusy||s.timelineAnalysisContact),onClose:()=>set({status:''})}));

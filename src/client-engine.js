@@ -32,3 +32,5 @@ export * from './auto-analysis.js';
 export * from './interaction-context.js';
 export * from './session-layout.js';
 export * from './host-tokens.js';
+export * from './affinity/index.js';
+export * from './views/relationship-insight.js';

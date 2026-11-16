@@ -12,6 +12,7 @@
 | `/profile-analysis` | `target,messages`；可选 `mode:'summary'` | `facts:[{field,value,id,quote}],model`。 |
 | `/media-analysis` | `mediaType:'image'|'video',frames` | `analysis,provider,model`。 |
 | `/interpretation` | `self,target,messages`；可选成对 `provider,model`、`selfProfile`、`historyMemory` | `interpretations:[{explanation,uncertainty,evidence:[{messageId,quote}],reply}]`；详细限制见文末。 |
+| `/affinity-analysis` | `self,target,week:{start,end},messages`；可选成对 `provider,model`，以及 `sampled:{total,sent}`、`previousSummary` | `analysis:{dimensions,boundary,summary,uncertainties},provider,model`；详见下文“关系分析 v3”。 |
 | `/analysis-history` | `self,target,messages`；可选成对 `provider,model`、`memory` | `memory:string`，历史分批滚动归纳，单批最多100条、正文合计20000字符。 |
 
 模型列表与 reply/timeline/profile-analysis 的通用请求体原始字符上限为 64000；interpretation 为 60000。reply 的序列化背景上限为 60000 字符；显式 provider/model 都必须非空，省略则读取 DSH 默认模型。服务商凭据与模型传输留在宿主，不随响应返回。
@@ -78,3 +79,13 @@ profile桥接请求最多2000000字符；snapshot为 `{contact:{id,self,target},
 返回 `{ok:true,memory}`，memory最长4000字符。提示要求只整理可观察主题、明确偏好（包括否定）、变化、近况/计划和明确边界，不猜心理。旧摘要与当前批次都作为不可信资料；最终可能解释仍必须从最终请求messages中引用真实id和连续原文，不能用滚动摘要补造证据。
 
 接口复用60秒超时、取消、文本流收集和JSON校验，不做宿主自动无限重试。每个已认证宿主路由对相同服务商、模型和请求做进程内单飞；成功摘要缓存10分钟，最多50条，键为SHA256，缓存不保留原始请求正文。失败不缓存，模型/正文/旧摘要改变后重新调用。第一发起请求取消会取消共享调用，其他等待窗口收到499后可按客户端有限策略稍后重试。宿主缓存和客户端检查点是不同用途，不能把短期缓存命中当作尚未处理记录的覆盖证明。
+
+## 关系分析 v3
+
+`POST /api/relationship-notes/affinity-analysis` 由用户在「关系分析」页点击后按周调用，设计见 [AFFINITY-V3](AFFINITY-V3.md)。
+
+请求字段白名单：`self`、`target`（各 ≤100 字符且不同）、`week:{start,end}`（`YYYY-MM-DD`，end ≥ start）、`messages`（1–80 条 `{id,sender,text}`，id ≤200 字符且唯一，sender 只能是双方，text ≤300 字符，且至少一条来自对方）、可选 `sampled:{total,sent}`（整数，sent ≤ total ≤ 100000）、`previousSummary`（≤600 字符，仅作背景）、成对的 `provider,model`。整个请求 ≤60000 字符（超出返回 413）。未知字段返回 400。
+
+成功返回 `{ok:true,analysis,provider,model}`。`analysis.dimensions` 只可能包含 `responsiveness,disclosure,reciprocity,positivity,engagement,friction`，每项 `{rating:1–5|null,confidence:'low'|'medium'|'high',evidence:[{messageId,quote,note,sender}],inference,alternatives}`，`friction` 另有 `repaired:true|false|null`。`boundary:{present,evidence}`，`summary` ≤320、`uncertainties` ≤240 字符。
+
+校验（不合格返回 502）：非 null 评分至少一条引用；quote 必须是对应消息的逐字连续片段；边界引用必须来自对方；拒绝好感概率/百分比、“肯定/一定/证明……喜欢你”之类确定性结论，以及依恋类型、人格诊断措辞；模型输出 ≤16000 字符，需完整结束；允许 ```json 代码块包裹。温度 0.1，最多 3500 tokens，总超时 90 秒（504）。没有可用模型返回 503，取消返回 499。

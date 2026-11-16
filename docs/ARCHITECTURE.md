@@ -11,6 +11,8 @@
 - 宿主没有 `subdsh` 时，`ctx.inject(['slots'], …)` 在原生侧栏注册 `sidebar.panellist` + `main` 面板（id 同为 `relationship-notes`）；若 `subdsh` 稍后出现，退路面板会被释放，避免出现两个入口。仍然禁止接管 `sidebar.workspaces`（`verify-v3.mjs` 检查）。
 - 宿主上下文不支持 `ctx.inject` 时（测试替身等），退回直接调用 `ctx.subdsh.register`。
 
+关系分析 v3：纯模块位于 `src/affinity/`（`weekly-signals` 规则层周汇总 → `model` 维度收缩、AI 融合与综合指数 → `longitudinal` 趋势与变化点 → `index` 编排、缓存指纹与解释），宿主路由 `affinity-service.js`，页面 `src/views/relationship-insight.js`。纯模块不发请求；`workspace.js` 的 `runAffinity` 负责逐周调用、取消与保存。设计与研究依据见 [AFFINITY-V3](AFFINITY-V3.md)。
+
 主题：样式中的宿主变量经 `src/host-tokens.js` 的 `adaptHostTokens` 处理，在桌面版的 `--background` 等变量之后补上 Web 版的 `--dsw-alias-*` 令牌，两种宿主的浅色/深色主题都能生效。会话页三栏的响应式状态由纯函数 `src/session-layout.js` 计算，断点与样式中的容器查询一致。
 
 纯模块（解析、评分、档案生命周期、本人表达档案、回复载荷、建议）放在 `src/`，不得自行发送消息、调用宿主或读取操作系统窗口。浏览器资料保存在本机 IndexedDB；模型请求仅由用户触发的流程送往已配置模型。

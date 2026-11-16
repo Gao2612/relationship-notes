@@ -24,7 +24,7 @@ test('top navigation is two levels: four level-one entries and page tabs',()=>{
   assert.deepEqual(NAVIGATION.map(group=>group.id),['contact','records','communicate','manage']);
   assert.deepEqual(NAVIGATION.map(group=>group.label),['联系人','记录与评分','沟通','设置']);
   for(const group of NAVIGATION){for(const item of group.items){assert(item.tabs.length>=1,item.id);}const keys=groupTabs(group).map(tab=>tab.key);assert.equal(new Set(keys).size,keys.length,group.id);}
-  assert.equal(groupTabs(NAVIGATION.find(group=>group.id==='records')).length,6);
+  assert.equal(groupTabs(NAVIGATION.find(group=>group.id==='records')).length,7);
   assert.equal(groupTabs(NAVIGATION.find(group=>group.id==='communicate')).length,3);
 });
 

@@ -8,7 +8,7 @@ const source=readFileSync(new URL('./workspace.js',import.meta.url),'utf8');
 
 test('theme layer is appended after the legacy styles so it wins the cascade',()=>{
  assert.ok(css.includes(THEME_CSS));
- assert.match(source,/`\+THEME_CSS\+SESSION_LAYOUT_CSS;/);
+ assert.match(source,/`\+THEME_CSS\+SESSION_LAYOUT_CSS\+INSIGHT_CSS;/);
 });
 
 test('theme colours derive from host variables so dark hosts stay readable',()=>{

@@ -32,6 +32,7 @@
     "import-service.js",
     "profile-service.js",
     "interpretation-service.js",
+    "affinity-service.js",
     "src/**/*.js",
     "client.js",
     "PDFJS-LICENSE.md",
