@@ -21,7 +21,7 @@ export async function collectReleaseFiles(root,pkg){
    if(entry.isSymbolicLink()||['.git','node_modules'].includes(entry.name)||path==='docs/archive')continue;
    if(entry.isDirectory()){await visit(absolute);continue;}
    if(!entry.isFile()||/\.test\.|\.before-|(?:^|\/)standalone\./.test(path))continue;
-   const documentation=/^(?:README\.md|LICENSE(?:\.md)?|package\.json|PDFJS-LICENSE\.md)$/.test(path)||path.startsWith('docs/')&&path.endsWith('.md');
+   const documentation=/^(?:README(?:\.(?:en|ja))?\.md|LICENSE(?:\.md)?|package\.json|PDFJS-LICENSE\.md)$/.test(path)||path.startsWith('docs/')&&path.endsWith('.md');
    if(documentation||patterns.some(pattern=>pattern.test(path)))selected.push(path);
   }
  }

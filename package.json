@@ -40,6 +40,8 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
+    "README.en.md",
+    "README.ja.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
