@@ -47,7 +47,7 @@ test('groups chat day separators by China date for local, zoned and Unix timesta
 });
 
 test('renders analysis and raw-history timestamps through the China-time formatter',()=>{
- assert.match(source,/const source=m=>h\('div',\{className:'rn-muted'\},\[m\?\.sender,m\?\.timestamp!==undefined\?formatChatTimestamp\(m\.timestamp\)/);
+ assert.match(source,/const source=m=>h\('div',\{className:'rn-muted(?: rn-source)?'\},\[m\?\.sender,m\?\.timestamp!==undefined\?formatChatTimestamp\(m\.timestamp\)/);
  assert.match(source,/function Replies\(\{s,contact\}\)\{const formatTimestamp=formatChatTimestamp;/);
  assert.match(builtClient,/function formatChatTimestamp\(value\)/);
  assert.match(builtClient,/function formatChatDayKey\(value\)/);
