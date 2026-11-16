@@ -4,7 +4,14 @@
 
 ## 运行链路
 
-宿主入口 `index.js` 注册模型/导入等服务；浏览器客户端由 `src/workspace.js` 注册至 DSH 的 `subdsh` 容器。注册 id `relationship-notes` 与 `inject: ['locale', 'subdsh']` 是集成契约，维护时应保持兼容。
+宿主入口 `index.js` 注册模型/导入等服务；浏览器客户端由 `src/workspace.js` 的 `mountWorkspace` 挂载：
+
+- 顶层只声明 `inject: ['locale']`。cordis 4.1 的注入全部是必需项，若把 `subdsh` 列在顶层，没有该容器的宿主（npm 公开版 `@deepseek-ai/dsh` Web）会停在 “Failed to load plugins”，整个 DSH 无法使用（2026-11-16 在 0.2.2-rc.1 实测）。
+- `ctx.inject(['subdsh'], …)`：宿主提供 `subdsh` 时注册 id `relationship-notes`、label、order 20 的子页面，与此前完全一致。
+- 宿主没有 `subdsh` 时，`ctx.inject(['slots'], …)` 在原生侧栏注册 `sidebar.panellist` + `main` 面板（id 同为 `relationship-notes`）；若 `subdsh` 稍后出现，退路面板会被释放，避免出现两个入口。仍然禁止接管 `sidebar.workspaces`（`verify-v3.mjs` 检查）。
+- 宿主上下文不支持 `ctx.inject` 时（测试替身等），退回直接调用 `ctx.subdsh.register`。
+
+主题：样式中的宿主变量经 `src/host-tokens.js` 的 `adaptHostTokens` 处理，在桌面版的 `--background` 等变量之后补上 Web 版的 `--dsw-alias-*` 令牌，两种宿主的浅色/深色主题都能生效。会话页三栏的响应式状态由纯函数 `src/session-layout.js` 计算，断点与样式中的容器查询一致。
 
 纯模块（解析、评分、档案生命周期、本人表达档案、回复载荷、建议）放在 `src/`，不得自行发送消息、调用宿主或读取操作系统窗口。浏览器资料保存在本机 IndexedDB；模型请求仅由用户触发的流程送往已配置模型。
 

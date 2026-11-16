@@ -32116,13 +32116,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var client_engine_exports = {};
   __export(client_engine_exports, {
     AUTO_ANALYSIS_VERSION: () => AUTO_ANALYSIS_VERSION,
+    HOST_TOKEN_ALIASES: () => HOST_TOKEN_ALIASES,
     ImportError: () => ImportError,
     MAX_BYTES: () => MAX_BYTES,
     MAX_MESSAGES: () => MAX_MESSAGES,
     NAVIGATION: () => NAVIGATION,
     RELATION_STAGES: () => RELATION_STAGES,
+    SESSION_BREAKPOINTS: () => SESSION_BREAKPOINTS,
     WORKSPACE_SCHEMA_VERSION: () => WORKSPACE_SCHEMA_VERSION,
     acceptImport: () => acceptImport,
+    adaptHostTokens: () => adaptHostTokens,
     adviceMode: () => adviceMode,
     analyzeConversation: () => analyzeConversation,
     analyzeDailyTimeline: () => analyzeDailyTimeline,
@@ -32172,6 +32175,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     failImport: () => failImport,
     generateLocalDraft: () => generateLocalDraft,
     groupTabs: () => groupTabs,
+    hostVar: () => hostVar,
     identityReady: () => identityReady,
     inheritRule: () => inheritRule,
     initialRules: () => initialRules,
@@ -32226,6 +32230,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     scoringMessage: () => scoringMessage,
     selectBestWechatExport: () => selectBestWechatExport,
     selectShareScopeMessages: () => selectShareScopeMessages,
+    sessionPaneLayout: () => sessionPaneLayout,
     shareScopeDay: () => shareScopeDay,
     sortChatMessages: () => sortChatMessages,
     suggestNextSteps: () => suggestNextSteps,
@@ -34378,7 +34383,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setError("复制失败，请手动选择草稿。");
         }
       };
-      return h("section", { className: "rn-interpretations" }, h("h3", null, "可能解释与回复思路"), h("div", { role: "status", style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "nowrap", margin: "4px 0" } }, h("span", { style: { fontSize: 12, color: "#556659", minWidth: 0 } }, status + " · " + (cache.coveredMessages || 0) + "/" + plan.totalMessages + (cache.error ? " · " + cache.error : "")), cache.paused || cache.status === "error" ? h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onPause?.(contact.id) }, "暂停")), h("details", { className: "rn-metric-why" }, h("summary", null, "说明：怎么分析、有哪些限制"), h("p", null, "历史文本自动分批归纳并保留进度，再结合近期原文提出多种解释。图片、语音仅按已有文字占位处理，不进行媒体识别。无法知道对方真实想法。")), (!s?.provider || !s?.model) && h("div", { className: "rn-empty" }, h("strong", null, "未配置模型，自动分析保持等待"), h("p", null, "未配置模型时不会生成「可能解释」，也不会把聊天内容发送给模型；可以先用本地草稿和原文核对。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, h("button", { type: "button", className: "primary", onClick: () => onOpenSettings?.() }, "去设置选择模型"), h("details", null, h("summary", null, "查看如何配置"), h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型；配置后自动分析会继续。")))), cache.error && h("p", { role: "alert" }, cache.error), error && h("p", { role: "alert" }, error), ...(current ? cache.interpretations || [] : []).map((item, index) => h("article", { className: "rn-message", key: index }, h("strong", null, "可能解释 " + (index + 1)), h("p", null, item.explanation), h("p", null, "不确定性：" + item.uncertainty), h("details", null, h("summary", null, "原文依据"), ...(item.evidence || []).map((e, i) => h("blockquote", { key: i }, e.quote, onEvidence && h("button", { type: "button", onClick: () => onEvidence?.(e) }, "查看解释依据上下文")))), h("p", null, "回复思路：" + item.reply), h("button", { type: "button", onClick: () => copy(item.reply) }, "复制这条草稿"))));
+      return h("section", { className: "rn-interpretations" }, h("h3", null, "可能解释与回复思路"), h("div", { role: "status", style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "nowrap", margin: "4px 0" } }, h("span", { style: { fontSize: 12, color: "var(--muted-foreground,var(--dsw-alias-label-secondary,#556659))", minWidth: 0 } }, status + " · " + (cache.coveredMessages || 0) + "/" + plan.totalMessages + (cache.error ? " · " + cache.error : "")), cache.paused || cache.status === "error" ? h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onPause?.(contact.id) }, "暂停")), h("details", { className: "rn-metric-why" }, h("summary", null, "说明：怎么分析、有哪些限制"), h("p", null, "历史文本自动分批归纳并保留进度，再结合近期原文提出多种解释。图片、语音仅按已有文字占位处理，不进行媒体识别。无法知道对方真实想法。")), (!s?.provider || !s?.model) && h("div", { className: "rn-empty" }, h("strong", null, "未配置模型，自动分析保持等待"), h("p", null, "未配置模型时不会生成「可能解释」，也不会把聊天内容发送给模型；可以先用本地草稿和原文核对。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, h("button", { type: "button", className: "primary", onClick: () => onOpenSettings?.() }, "去设置选择模型"), h("details", null, h("summary", null, "查看如何配置"), h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型；配置后自动分析会继续。")))), cache.error && h("p", { role: "alert" }, cache.error), error && h("p", { role: "alert" }, error), ...(current ? cache.interpretations || [] : []).map((item, index) => h("article", { className: "rn-message", key: index }, h("strong", null, "可能解释 " + (index + 1)), h("p", null, item.explanation), h("p", null, "不确定性：" + item.uncertainty), h("details", null, h("summary", null, "原文依据"), ...(item.evidence || []).map((e, i) => h("blockquote", { key: i }, e.quote, onEvidence && h("button", { type: "button", onClick: () => onEvidence?.(e) }, "查看解释依据上下文")))), h("p", null, "回复思路：" + item.reply), h("button", { type: "button", onClick: () => copy(item.reply) }, "复制这条草稿"))));
     };
   }
 
@@ -34417,7 +34422,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const result = E.resolveEvidenceContext(contact, reference, { radius: 3 });
       return h("div", { className: "rn-evidence-overlay", style: { position: "fixed", inset: 0, zIndex: 1e3, background: "#0006", display: "grid", placeItems: "center", padding: 20 }, onClick: (event) => {
         if (event.target === event.currentTarget) onClose();
-      } }, h("section", { ref: root, role: "dialog", "aria-modal": true, "aria-label": "原文上下文", tabIndex: -1, style: { background: "var(--background,#fff)", color: "var(--foreground,#222)", maxWidth: 760, width: "100%", maxHeight: "85vh", overflow: "auto", padding: 20, borderRadius: 12 } }, h("h2", null, "原文上下文 · " + contact.target), h("button", { type: "button", onClick: onClose }, "关闭上下文"), result.status !== "found" ? h("p", { role: "status" }, result.status === "ambiguous" ? "发现多处相似原文，无法唯一定位。请回到聊天记录核对时间与发送者。" : "原文已不存在或引用信息不足，无法定位。") : result.context.map((row) => h("article", { key: row.message.messageId || row.index, style: { padding: 12, margin: "8px 0", border: row.focus ? "2px solid var(--primary,#54855b)" : "1px solid var(--border,#ddd)", borderRadius: 8 }, "aria-label": row.focus ? "引用原文" : "上下文消息" }, h("small", null, [row.message.sender, row.message.timestamp || "", row.focus ? "引用位置" : ""].filter(Boolean).join(" · ")), h("p", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, row.message.text)))));
+      } }, h("section", { ref: root, role: "dialog", "aria-modal": true, "aria-label": "原文上下文", tabIndex: -1, style: { background: "var(--background,var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-base,#fff)))", color: "var(--foreground,var(--dsw-alias-label-primary,#222))", maxWidth: 760, width: "100%", maxHeight: "85vh", overflow: "auto", padding: 20, borderRadius: 12 } }, h("h2", null, "原文上下文 · " + contact.target), h("button", { type: "button", onClick: onClose }, "关闭上下文"), result.status !== "found" ? h("p", { role: "status" }, result.status === "ambiguous" ? "发现多处相似原文，无法唯一定位。请回到聊天记录核对时间与发送者。" : "原文已不存在或引用信息不足，无法定位。") : result.context.map((row) => h("article", { key: row.message.messageId || row.index, style: { padding: 12, margin: "8px 0", border: row.focus ? "2px solid var(--primary,#54855b)" : "1px solid var(--border,var(--dsw-alias-border-l2,#ddd))", borderRadius: 8 }, "aria-label": row.focus ? "引用原文" : "上下文消息" }, h("small", null, [row.message.sender, row.message.timestamp || "", row.focus ? "引用位置" : ""].filter(Boolean).join(" · ")), h("p", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, row.message.text)))));
     };
   }
 
@@ -34683,6 +34688,44 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const followups = (contact.profileSummary || []).filter((f) => ["followup", "plans", "agreement", "recent"].includes(f.field) && isProfileFactCurrent(f, now) && (f.provenance !== "model" || f.confirmed === true));
     const summary = selected2.length ? `本期共 ${selected2.length} 条消息，记录中出现${topics2.length ? "“" + [...new Set(topics2.flatMap((t) => t.keywords))].slice(0, 10).join("、") + "”等话题" : "的内容未匹配预设话题，请结合原文查看"}。` : "本期没有可识别日期的聊天记录。";
     return { period, start, end, summary, messageCount: selected2.length, selfCount: selected2.filter((r) => r.message.sender === contact.self).length, targetCount: selected2.filter((r) => r.message.sender === contact.target).length, topics: topics2, unanswered, followups, unknownDateCount: rows.filter((r) => !r.date).length, disclaimer: "仅按已有记录整理。未看到后续本人回应不代表问题一定未回答；话题计数可重叠，待跟进项来自当前档案，不代表对方真实想法。" };
+  }
+
+  // src/session-layout.js
+  var SESSION_BREAKPOINTS = Object.freeze({ compact: 900, narrow: 620 });
+  function sessionPaneLayout(width, { listHidden = false, listDrawer = false, toolsOpen = false, toolsHidden = false } = {}) {
+    const w = Number(width) || 0, measured = w > 0;
+    const listMode = measured && w <= SESSION_BREAKPOINTS.compact ? "drawer" : "inline";
+    const toolsMode = measured && w <= SESSION_BREAKPOINTS.narrow ? "overlay" : "inline";
+    const listVisible = listMode === "drawer" ? Boolean(listDrawer) : !listHidden;
+    const toolsVisible = toolsMode === "overlay" ? Boolean(toolsOpen) : !toolsHidden;
+    const classes = [];
+    if (listMode === "inline" && !listVisible) classes.push("list-hidden");
+    if (listMode === "drawer" && listVisible) classes.push("list-open");
+    if (toolsMode === "overlay" && toolsVisible) classes.push("right-open");
+    if (toolsMode === "inline" && !toolsVisible) classes.push("right-hidden");
+    return { listMode, toolsMode, listVisible, toolsVisible, classes };
+  }
+
+  // src/host-tokens.js
+  var HOST_TOKEN_ALIASES = Object.freeze({
+    background: "--dsw-alias-bg-base",
+    foreground: "--dsw-alias-label-primary",
+    border: "--dsw-alias-border-l2",
+    "muted-foreground": "--dsw-alias-label-secondary",
+    muted: "--dsw-alias-bg-module-platform",
+    accent: "--dsw-alias-interactive-bg-hover",
+    ring: "--dsw-alias-link"
+  });
+  function adaptHostTokens(text) {
+    let out = String(text);
+    for (const [name, alias] of Object.entries(HOST_TOKEN_ALIASES)) {
+      const pattern = new RegExp("var\\(--" + name.replace("-", "\\-") + ",([^()]*)\\)", "g");
+      out = out.replace(pattern, (_m, fallback) => `var(--${name},var(${alias},${fallback.trim()}))`);
+    }
+    return out;
+  }
+  function hostVar(name, fallback) {
+    return adaptHostTokens(`var(--${name},${fallback})`);
   }
 
   // src/evidence-list.js
@@ -35285,7 +35328,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rnw ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--rn-fg) 16%,transparent);border-radius:10px;border:3px solid transparent;background-clip:content-box}
 
 @media (prefers-reduced-motion:reduce){.rnw *,.rn-evidence-overlay,.rn-evidence-overlay *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-@media(max-width:620px){.rnw .rn-group-tabs button{min-width:0;padding:6px 12px!important}.rnw .rn-head h1{font-size:19px!important}.rnw .rn-head label>span,.rnw .rn-head label{font-size:0}.rnw .rn-head label select{font-size:13px;width:128px!important}}
+@media(max-width:620px){.rnw .rn-head{flex-wrap:wrap;row-gap:8px!important}.rnw .rn-head>div:first-child{flex:1 1 100%}.rnw .rn-head>div:last-child{margin-left:auto}.rnw .rn-group-tabs button{min-width:0;padding:6px 12px!important}.rnw .rn-head h1{font-size:19px!important}.rnw .rn-head label>span,.rnw .rn-head label{font-size:0}.rnw .rn-head label select{font-size:13px;width:128px!important}}
+`;
+  var SESSION_LAYOUT_CSS = `
+.rnw #rn-panel .right-hidden .rn-session{grid-template-columns:160px minmax(0,1fr)!important;grid-template-areas:"list main"!important}
+.rnw #rn-panel .list-hidden.right-hidden .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main"!important}
+.rnw #rn-panel .right-hidden .rn-session-right{display:none!important}
+.rnw .rn-session-scrim{display:none}
+@container rn-session-shell (max-width:900px){
+ .rnw #rn-panel .right-hidden .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main"!important}
+ .rnw #rn-panel .list-open .rn-session-list-pane{display:block!important;position:absolute;left:0;top:0;bottom:0;width:min(260px,82%);z-index:32;overflow:auto;box-shadow:var(--rn-shadow-pop);animation:rn-drawer .18s var(--rn-ease)}
+ .rnw #rn-panel .list-open .rn-session-scrim{display:block;position:absolute;inset:0;z-index:31;border-radius:14px;background:color-mix(in srgb,#000 22%,transparent);animation:rn-fade .15s ease}
+}
+@keyframes rn-drawer{from{transform:translateX(-12px);opacity:0}to{transform:none;opacity:1}}
 `;
 
   // src/workspace-media.js
@@ -35556,13 +35611,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rn-settings-menu>summary::-webkit-details-marker{display:none}
 .rn-settings-menu-items{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:176px;padding:8px;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:var(--background,#fff);box-shadow:0 8px 24px #0002;display:grid;gap:6px}
 .rn-settings-menu-items button{display:block;width:100%;text-align:left}
-` + THEME_CSS;
+` + THEME_CSS + SESSION_LAYOUT_CSS;
+  var hostCss = adaptHostTokens(css);
   function createPlugin(React2, E, dictionaries) {
     const ScoringBasisView = E.createScoringBasisView(React2, E), AutoAnalysisStatusView = E.createAutoAnalysisStatusView(React2), InterpretationView = E.createInterpretationView(React2), EvidenceContextView = E.createEvidenceContextView(React2, E), ProfileLifecycleView = E.createProfileLifecycleView(React2, E), ReplyFeedbackView = E.createReplyFeedbackView(React2, E), TopicSuggestionsView = E.createTopicSuggestionsView(React2, E), PeriodReviewView = E.createPeriodReviewView(React2, E), ShareScopeView = E.createShareScopeView(React2, E), SelfPlanView = E.createSelfPlanView(React2, E), RelationStageView = E.createRelationStageView(React2, E);
     const h = React2.createElement, id = "local-relationship-notes", emptyMessages = [];
     const localFileUrl = createMediaUrls(), mediaLabels = MEDIA_LABELS, messageMediaKind = mediaKind;
     let pdfWorkerUrl = "";
-    return { inject: ["locale", "subdsh"], apply(ctx) {
+    return { inject: ["locale"], apply(ctx) {
       const t = ctx.locale.bind(id);
       ctx.effect(() => Object.entries(dictionaries).map(([lang, dict]) => ctx.locale.register(id, lang, dict)));
       const historyViews = /* @__PURE__ */ new Map();
@@ -36450,7 +36506,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           const scoreValueLabels = buckets.map((b, i) => b.averageAffinity === null || granularity === "day" && !labelIndexes.includes(i) ? null : h("text", { key: "score-value-" + i, x: chartX(i), y: scoreY(b.averageAffinity) - 9, textAnchor: "middle", fontSize: granularity === "day" ? 10 : 11, fontWeight: 600, fill: "#3f5f45" }, b.averageAffinity)).filter(Boolean);
           const gapIndexes = buckets.map((bucket, index) => bucket.averageAffinity === null ? index : -1).filter((index) => index >= 0), gapMarkers = gapIndexes.map((index) => h("g", { key: "score-gap-" + index }, h("circle", { cx: chartX(index), cy: 290, r: 3.6, fill: "#fff", stroke: "#9db3a4", strokeWidth: 1.4, strokeDasharray: "2 2" }, h("title", null, buckets[index].label + "：" + (scoreBucketState(buckets[index]) === "gap" ? "无记录（缺口），不代表分数下降" : "有记录但暂无评分线索"))))), scoreStats = scoreValues.length ? Math.min(...scoreValues) + "–" + Math.max(...scoreValues) : "暂无", scoreSummary = "共 " + buckets.length + " 个时段，有记录 " + (buckets.length - gapIndexes.length) + " 个、均分 " + scoreStats + "，" + gapIndexes.length + " 个无记录（缺口不代表分数下降）";
           const scoreGraphic = h("svg", { className: "rn-annual-chart", viewBox: "0 0 720 300", role: "img", "aria-labelledby": "rn-score-chart-title rn-score-chart-desc", "aria-label": scopeLabel + periodLabel + "好感线索分趋势：" + scoreSummary }, h("title", { id: "rn-score-chart-title" }, scopeLabel + periodLabel + "好感线索分趋势"), h("desc", { id: "rn-score-chart-desc" }, scoreSummary), ...scoreGrid, ...scorePaths, ...scoreValueLabels, ...scorePoints, ...gapMarkers, ...scoreLabels);
-          const scoreLegend = h("div", { className: "rn-annual-note" }, h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "#68aa70" } }), "实心点与实线：有记录时段的均分，低分同样是实线"), h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "#fff", border: "1px dashed #9db3a4" } }), "空心点：无记录（缺口）"), h("span", null, "缺口 = 该时段没有聊天记录，不代表分数下降。"));
+          const scoreLegend = h("div", { className: "rn-annual-note" }, h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "#68aa70" } }), "实心点与实线：有记录时段的均分，低分同样是实线"), h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-bg)", border: "1px dashed #9db3a4" } }), "空心点：无记录（缺口）"), h("span", null, "缺口 = 该时段没有聊天记录，不代表分数下降。"));
           const barMax = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.self, bucket.target))), barTop = 30, barHeight = 210, barBottom = barTop + barHeight, barTicks = [.../* @__PURE__ */ new Set([0, Math.round(barMax / 2), barMax])], slot = buckets.length > 1 ? chartWidth / (buckets.length - 1) : chartWidth, barWidth = Math.max(2, Math.min(16, slot * 0.34));
           const barGrid = barTicks.map((value) => {
             const y = barBottom - value / barMax * barHeight;
@@ -36487,7 +36543,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             const isTimelineBusy = s.timelineAnalysisContact === contact.id;
             const channelToday = [["qq", "QQ"], ["wechat", "微信"]].filter(([channel]) => (shown?.messages || []).some((message) => channelOf(message) === channel)), cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
             const aiDetails = box("当天内容总结", channelToday.length ? h("div", null, ...channelToday.map(([channel, label]) => {
-              const entry = contact.timelineAnalysis?.[selectedDate + "#" + channel], summary = entry?.version === 4 ? cleanTimelineDisplayText(entry.summary) : "";
+              const entry2 = contact.timelineAnalysis?.[selectedDate + "#" + channel], summary = entry2?.version === 4 ? cleanTimelineDisplayText(entry2.summary) : "";
               return h("section", { key: channel, className: "rn-channel-block" }, h("h4", null, label + " 渠道"), summary ? h("p", { style: { whiteSpace: "pre-wrap" } }, summary) : muted(isTimelineBusy ? s.timelineAnalysisProgress || "正在生成…" : "这个渠道当天还没有总结，可用下方按钮生成。"));
             })) : muted("当天没有可分渠道的聊天记录。"), isTimelineBusy ? null : button("生成当天总结", () => analyzeTimeline(contact.id, { force: true, onlyDate: selectedDate }), { className: "primary" }));
             const addDayGoal = () => {
@@ -36697,6 +36753,34 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         React2.useEffect(() => {
           setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
         }, [contact?.id, messageCount, chatSource]);
+        const [listDrawer, setListDrawer] = React2.useState(false), [toolsHidden, setToolsHidden] = React2.useState(false), [shellWidth, setShellWidth] = React2.useState(0), shellRef = React2.useRef(null);
+        (React2.useLayoutEffect || React2.useEffect)(() => {
+          const node = shellRef.current;
+          if (!node) return;
+          const measure = () => setShellWidth(Math.round(node.getBoundingClientRect().width));
+          measure();
+          if (typeof ResizeObserver === "undefined") return;
+          const observer = new ResizeObserver(measure);
+          observer.observe(node);
+          return () => observer.disconnect();
+        }, [Boolean(contact)]);
+        const layout = E.sessionPaneLayout(shellWidth, { listHidden, listDrawer, toolsOpen, toolsHidden });
+        const toggleList = () => {
+          if (layout.listMode === "drawer") setListDrawer(!listDrawer);
+          else setListHidden(!listHidden);
+        };
+        const toggleTools = () => {
+          if (layout.toolsMode === "overlay") setToolsOpen(!toolsOpen);
+          else setToolsHidden(!toolsHidden);
+        };
+        React2.useEffect(() => {
+          if (!layout.listVisible || layout.listMode !== "drawer") return;
+          const onKey = (e) => {
+            if (e.key === "Escape") setListDrawer(false);
+          };
+          document.addEventListener("keydown", onKey);
+          return () => document.removeEventListener("keydown", onKey);
+        }, [layout.listVisible, layout.listMode]);
         if (!contact) return empty();
         const provider = s.models.find((p) => p.id === s.provider), modelOptions = (provider?.models || []).map((m) => {
           const id2 = typeof m === "string" ? m : m?.id || m?.modelId || m?.model_id || m?.model || m?.name;
@@ -36833,11 +36917,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             set({ status: "无法复制，请手动选中文字复制。" });
           }
         };
-        return h("div", { className: "rn-session-shell" + (toolsOpen ? " right-open" : "") + (listHidden ? " list-hidden" : "") }, h(
+        return h("div", { ref: shellRef, className: "rn-session-shell " + layout.classes.join(" ") }, h(
           "div",
           { className: "rn-session", style: { display: "grid", gridTemplateColumns: "190px minmax(0,1fr) 250px", gridTemplateAreas: '"list main right"', width: "100%", minWidth: 0, gap: 14 } },
-          h("aside", { className: "rn-session-pane rn-session-list-pane", style: { gridArea: "list", minWidth: 0 } }, h("div", { className: "rn-session-list" }, h("h3", null, "会话"), ...s.contacts.map((item) => h("button", { type: "button", className: "rn-session-contact", key: item.id, "aria-current": item.id === contact.id ? "true" : void 0, onClick: () => chooseContact(item.id) }, fileAvatar(item.targetAvatarData || item.targetAvatarFile, item.target), h("span", { className: "rn-session-contact-copy" }, h("strong", null, item.target)))), h("div", { className: "rn-session-links" }, h("h3", null, "相关页面"), button("关系观察", () => nav("behavior", "metrics")), button("每日历程", () => nav("behavior", "daily"))))),
-          h("main", { className: "rn-session-main", style: { gridArea: "main", display: "flex", flexDirection: "column", gap: 12, minWidth: 0 } }, h("header", { className: "rn-session-pane rn-session-header" }, h("button", { type: "button", onClick: () => targetAvatarInput.current?.click(), title: "更换对方头像", style: { padding: 0, border: 0 } }, fileAvatar(contact.targetAvatarData || contact.targetAvatarFile, contact.target)), h("button", { type: "button", onClick: () => selfAvatarInput.current?.click(), title: "更换我的头像", style: { padding: 0, border: 0 } }, fileAvatar(contact.selfAvatarData || contact.selfAvatarFile, contact.self)), h("div", { className: "rn-session-heading" }, h("strong", null, contact.target)), button("☰ 列表", () => setListHidden(!listHidden), { "aria-pressed": !listHidden, "aria-label": listHidden ? "显示会话列表" : "隐藏会话列表", title: listHidden ? "显示会话列表" : "隐藏会话列表" }), button(toolsOpen ? "收起工具" : "工具", () => setToolsOpen(!toolsOpen), { "aria-pressed": toolsOpen, title: "沟通工具与头像" })), h("div", { className: "rn-history-toolbar" }, select("来源", chatSource, [["all", "全部"], ["qq", "QQ"], ["wechat", "微信"]], setChatSource), h("input", { type: "search", value: search, onChange: (e) => setSearch(e.target.value), placeholder: "搜索聊天记录", "aria-label": "搜索聊天记录" }), h("input", { type: "date", value: jumpDate, onChange: (e) => jumpToDate(e.target.value), "aria-label": "跳转日期" }), button("最新", () => {
+          layout.listMode === "drawer" && layout.listVisible && h("div", { className: "rn-session-scrim", "aria-hidden": true, onClick: () => setListDrawer(false) }),
+          h("aside", { className: "rn-session-pane rn-session-list-pane", id: "rn-session-list", "aria-label": "会话列表", style: { gridArea: "list", minWidth: 0 } }, h("div", { className: "rn-session-list" }, h("h3", null, "会话"), ...s.contacts.map((item) => h("button", { type: "button", className: "rn-session-contact", key: item.id, "aria-current": item.id === contact.id ? "true" : void 0, onClick: () => {
+            chooseContact(item.id);
+            setListDrawer(false);
+          } }, fileAvatar(item.targetAvatarData || item.targetAvatarFile, item.target), h("span", { className: "rn-session-contact-copy" }, h("strong", null, item.target)))), h("div", { className: "rn-session-links" }, h("h3", null, "相关页面"), button("关系观察", () => nav("behavior", "metrics")), button("每日历程", () => nav("behavior", "daily"))))),
+          h("main", { className: "rn-session-main", style: { gridArea: "main", display: "flex", flexDirection: "column", gap: 12, minWidth: 0 } }, h("header", { className: "rn-session-pane rn-session-header" }, h("button", { type: "button", onClick: () => targetAvatarInput.current?.click(), title: "更换对方头像", style: { padding: 0, border: 0 } }, fileAvatar(contact.targetAvatarData || contact.targetAvatarFile, contact.target)), h("button", { type: "button", onClick: () => selfAvatarInput.current?.click(), title: "更换我的头像", style: { padding: 0, border: 0 } }, fileAvatar(contact.selfAvatarData || contact.selfAvatarFile, contact.self)), h("div", { className: "rn-session-heading" }, h("strong", null, contact.target)), button("☰ 列表", toggleList, { "aria-pressed": layout.listVisible, "aria-expanded": layout.listVisible, "aria-label": layout.listVisible ? "隐藏会话列表" : "显示会话列表", title: layout.listVisible ? "隐藏会话列表" : "显示会话列表" }), button(layout.toolsVisible ? "收起工具" : "工具", toggleTools, { "aria-pressed": layout.toolsVisible, "aria-expanded": layout.toolsVisible, title: layout.toolsVisible ? "收起沟通工具与头像" : "显示沟通工具与头像" })), h("div", { className: "rn-history-toolbar" }, select("来源", chatSource, [["all", "全部"], ["qq", "QQ"], ["wechat", "微信"]], setChatSource), h("input", { type: "search", value: search, onChange: (e) => setSearch(e.target.value), placeholder: "搜索聊天记录", "aria-label": "搜索聊天记录" }), h("input", { type: "date", value: jumpDate, onChange: (e) => jumpToDate(e.target.value), "aria-label": "跳转日期" }), button("最新", () => {
             setSearch("");
             setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
             requestAnimationFrame(() => {
@@ -37049,7 +37137,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           readBackup(file);
         } }), s.undoRestore && button("撤销本次恢复", () => {
           set({ ...s.undoRestore, evidenceContext: null, sharedContactId: "", undoRestore: null, status: "已恢复到导入备份前的数据。" });
-        })), preview && h("section", { className: "rn-message" }, h("h3", null, "备份预览"), h("p", null, preview.fileName), h("p", null, `${preview.state.contacts.length} 位联系人 · ${preview.state.contacts.reduce((sum, c) => sum + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${preview.state.goals.length} 条行动计划`), h("p", null, "联系人：" + preview.state.contacts.map((c) => c.target).join("、")), dates.length > 0 && h("p", null, dates[0] + " 至 " + dates.at(-1)), h("div", { className: "rn-actions" }, button("恢复此备份", restoreBackup, { className: "primary", disabled: backupBusy }), button("取消", () => setPreview(null)))), backupError && h("p", { className: "rn-error", role: "alert" }, backupError), h("h3", null, "导入记录"), ...(s.importHistory || []).slice().reverse().map((entry, i) => h("p", { key: i }, new Date(entry.at).toLocaleString() + " · " + entry.name + " · 新增 " + entry.added + " 条")), s.undoImportContacts && button("撤销最近一次导入", () => set({ contacts: s.undoImportContacts, undoImportContacts: null, status: "已撤销最近一次导入。" })), h("h3", null, "当前数据"), h("p", null, `${s.contacts.length} 位联系人 · ${s.contacts.reduce((n, c) => n + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${s.goals.length} 条行动计划`), h("div", { className: "rn-actions" }, button("清除已保存数据", clearLocalData), s.undoData && button("撤销清除", () => {
+        })), preview && h("section", { className: "rn-message" }, h("h3", null, "备份预览"), h("p", null, preview.fileName), h("p", null, `${preview.state.contacts.length} 位联系人 · ${preview.state.contacts.reduce((sum, c) => sum + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${preview.state.goals.length} 条行动计划`), h("p", null, "联系人：" + preview.state.contacts.map((c) => c.target).join("、")), dates.length > 0 && h("p", null, dates[0] + " 至 " + dates.at(-1)), h("div", { className: "rn-actions" }, button("恢复此备份", restoreBackup, { className: "primary", disabled: backupBusy }), button("取消", () => setPreview(null)))), backupError && h("p", { className: "rn-error", role: "alert" }, backupError), h("h3", null, "导入记录"), ...(s.importHistory || []).slice().reverse().map((entry2, i) => h("p", { key: i }, new Date(entry2.at).toLocaleString() + " · " + entry2.name + " · 新增 " + entry2.added + " 条")), s.undoImportContacts && button("撤销最近一次导入", () => set({ contacts: s.undoImportContacts, undoImportContacts: null, status: "已撤销最近一次导入。" })), h("h3", null, "当前数据"), h("p", null, `${s.contacts.length} 位联系人 · ${s.contacts.reduce((n, c) => n + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${s.goals.length} 条行动计划`), h("div", { className: "rn-actions" }, button("清除已保存数据", clearLocalData), s.undoData && button("撤销清除", () => {
           const before = s.undoData;
           set({ ...before, evidenceContext: null, sharedContactId: "", undoData: null, status: "已恢复清除前的数据。", persistenceReady: true, persistenceStatus: "", replyBusy: false, modelBusy: false, importBusy: false });
         }, { className: "primary" })));
@@ -37130,6 +37218,43 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const error = /失败|错误|无法/.test(text);
         return h("div", { className: "rn-status rn-toast" + (error ? " rn-toast-error" : ""), role: "status", "aria-live": "polite" }, h("span", null, text), h("button", { type: "button", onClick: onClose, "aria-label": "关闭提示", title: "关闭" }, "×"));
       }
+      function NativePanelIcon({ size = 20 }) {
+        return h("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true }, h("path", { d: "M5 4.5h10.5a3 3 0 0 1 3 3V19.5H8a3 3 0 0 1-3-3z" }), h("path", { d: "M5 16.5a3 3 0 0 1 3-3h10.5" }), h("path", { d: "M11.8 10.6c-.9-.9-2.6-.4-2.6 1 0 1.3 2.6 2.6 2.6 2.6s2.6-1.3 2.6-2.6c0-1.4-1.7-1.9-2.6-1z", fill: "currentColor", stroke: "none" }));
+      }
+      function NativePanel() {
+        return h("div", { className: "rn-native-panel", style: { height: "100%", minHeight: 0, overflow: "hidden" } }, h(Page, {}));
+      }
+      function mountWorkspace(ctx2, { entry: entry2, label, namespace }) {
+        const PANEL_ID = "relationship-notes";
+        const hasService = (name) => {
+          try {
+            return Boolean(typeof ctx2.get === "function" && ctx2.get(name));
+          } catch {
+            return false;
+          }
+        };
+        if (typeof ctx2.inject !== "function") {
+          if (ctx2.subdsh) ctx2.effect(() => ctx2.subdsh.register(entry2), "local-relationship-notes: module");
+          return;
+        }
+        let fallback = null;
+        ctx2.inject(["subdsh"], (sub) => {
+          try {
+            fallback?.dispose?.();
+          } catch {
+          }
+          fallback = null;
+          sub.effect(() => sub.subdsh.register(entry2), "local-relationship-notes: module");
+        });
+        if (hasService("subdsh")) return;
+        fallback = ctx2.inject(["slots"], (ui) => {
+          if (hasService("subdsh")) return;
+          ui.effect(function* () {
+            yield ui.slots.inject("main", () => ui.slots.register({ name: "main", key: PANEL_ID, locale: namespace }, NativePanel));
+            yield ui.slots.inject("sidebar.panellist", () => ui.slots.register({ name: "sidebar.panellist", id: PANEL_ID, order: 30, locale: namespace, label }, NativePanelIcon));
+          }, "local-relationship-notes: native panel");
+        });
+      }
       function Page() {
         const s = useState(), contact = selected2(s), route = E.resolveNavigation(s.feature, s.tab), n = route.item, panelRef = React2.useRef(null), focusMode = React2.useRef("panel"), firstRender = React2.useRef(true);
         React2.useEffect(() => {
@@ -37156,7 +37281,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (n.id === "replies") content = h(Replies, { s, contact, tab: route.tab });
         if (n.id === "settings") content = h(Settings, { s, tab: route.tab });
         const groupItems = E.NAVIGATION.map((group) => [group.id, group.label]), contextItems = E.groupTabs(route.group).map((tab) => [tab.key, tab.label]), selectedContextKey = n.id + "__" + route.tab;
-        return h("main", { className: "rnw", style: { "--rn-font": (s.displayFontSize || 13) + "px", "--rn-gap": s.displayDensity === "compact" ? "8px" : "14px" } }, h("style", null, css), h("header", { className: "rn-head" }, h("div", null, h("div", { className: "rn-breadcrumb" }, "关系手记 / " + route.group.label), h("h1", null, n.label), contact && h(HeadSummary, { contact })), h("div", { style: { display: "flex", alignItems: "flex-end", gap: 12 } }, !s.contacts.length && button("导入聊天", () => nav("import", "file"), { className: "primary" }), select("当前联系人", s.selectedId, [["", "请选择联系人"], ...s.contacts.map((c) => [c.id, c.target + (c.isSample ? "（示例）" : "")])], chooseContact, { disabled: !s.contacts.length }), h(SettingsMenu, {}))), h(TabStrip, { label: "主导航", items: groupItems, selected: route.group.id, onSelect: (key, fromKeyboard) => {
+        return h("main", { className: "rnw", style: { "--rn-font": (s.displayFontSize || 13) + "px", "--rn-gap": s.displayDensity === "compact" ? "8px" : "14px" } }, h("style", null, hostCss), h("header", { className: "rn-head" }, h("div", null, h("div", { className: "rn-breadcrumb" }, "关系手记 / " + route.group.label), h("h1", null, n.label), contact && h(HeadSummary, { contact })), h("div", { style: { display: "flex", alignItems: "flex-end", gap: 12 } }, !s.contacts.length && button("导入聊天", () => nav("import", "file"), { className: "primary" }), select("当前联系人", s.selectedId, [["", "请选择联系人"], ...s.contacts.map((c) => [c.id, c.target + (c.isSample ? "（示例）" : "")])], chooseContact, { disabled: !s.contacts.length }), h(SettingsMenu, {}))), h(TabStrip, { label: "主导航", items: groupItems, selected: route.group.id, onSelect: (key, fromKeyboard) => {
           const group = E.NAVIGATION.find((item) => item.id === key), first = group?.items.find((item) => !item.hidden);
           if (first) {
             focusMode.current = fromKeyboard ? "group" : "none";
@@ -37168,7 +37293,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           nav(feature, tab);
         }, className: "rn-context-tabs" }), h("div", { id: "rn-panel", ref: panelRef, tabIndex: -1, style: { width: "100%", minWidth: 0, maxWidth: "none" }, role: "tabpanel", "aria-label": n.label }, !s.contacts.length && route.item.id === "profile" && route.tab === "basic" && h(StartGuide, {}), sourceEnabled && contact && h("div", { className: "rn-actions rn-source-filter", role: "group", "aria-label": "记录来源", style: { marginBottom: 16 } }, ...["all", "wechat", "qq"].map((key) => button(key === "all" ? `全部 ${contact.messages.length} 条` : key === "qq" ? `QQ ${sourceCounts.qq} 条` : `微信 ${sourceCounts.wechat} 条`, () => set({ recordSource: key }), { key, "aria-pressed": sourceChoice === key, disabled: key !== "all" && sourceChoice !== key && !sourceCounts[key], title: key !== "all" && !sourceCounts[key] ? "该来源暂无记录" : void 0 }))), !(!s.contacts.length && route.item.id === "profile" && route.tab === "basic") && content), h(AutoAnalysisStatusView, { contacts: s.contacts, timeline: { contactId: s.timelineAnalysisContact, progress: s.timelineAnalysisProgress, done: s.timelineAnalysisDone, total: s.timelineAnalysisTotal }, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2) }), s.evidenceContext && h(EvidenceContextView, { contact: s.contacts.find((c) => c.id === s.evidenceContext.contactId), reference: s.evidenceContext.reference, onClose: () => set({ evidenceContext: null }) }), s.status && h(StatusToast, { text: s.status, busy: Boolean(s.replyBusy || s.profileBusy || s.importBusy || s.modelBusy || s.timelineAnalysisContact), onClose: () => set({ status: "" }) }));
       }
-      ctx.effect(() => ctx.subdsh.register({ id: "relationship-notes", label: t("nav"), order: 20, description: "联系人档案、行为记录与个性化回复", render: Page }), "local-relationship-notes: module");
+      const entry = { id: "relationship-notes", label: t("nav"), order: 20, description: "联系人档案、行为记录与个性化回复", render: Page };
+      mountWorkspace(ctx, { entry, Page, label: () => t("nav"), namespace: id });
     } };
   }
 

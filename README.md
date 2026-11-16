@@ -217,7 +217,7 @@ pnpm run build
 pnpm test
 ```
 
-构建使用显式 ESM 模块与 esbuild，不依赖仓库之外的原型文件。`client.js` 是仓库跟踪的生成产物，修改客户端源码后需重新构建并同步提交；安装包附带该产物。容器契约是 `inject: ['locale', 'subdsh']`，注册 ID `relationship-notes`。源码分层与依赖方向见 [架构与维护边界](docs/ARCHITECTURE.md)。
+构建使用显式 ESM 模块与 esbuild，不依赖仓库之外的原型文件。`client.js` 是仓库跟踪的生成产物，修改客户端源码后需重新构建并同步提交；安装包附带该产物。容器契约：顶层只声明 `inject: ['locale']`；`subdsh` 在插件内以嵌套注入等待，宿主提供时注册为 ID `relationship-notes` 的子页面（与此前相同），没有 `subdsh` 的宿主（如 npm 公开版 DSH Web）改为在原生侧栏注册同名面板，不再阻塞宿主启动。源码分层与依赖方向见 [架构与维护边界](docs/ARCHITECTURE.md)。
 
 ### 发布打包
 

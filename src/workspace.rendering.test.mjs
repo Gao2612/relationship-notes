@@ -17,7 +17,7 @@ test('conversation header omits the count and paired sender names',()=>{
 });
 
 test('conversation layout responds to the plugin container width and keeps the image pane beside chat',()=>{
- assert.match(source,/className:'rn-session-shell'/);
+ assert.match(source,/className:'rn-session-shell '\+layout\.classes\.join\(' '\)/);
  assert.match(source,/复制草稿'[\s\S]*?\{className:'primary'\}\)\)\),h\('section',\{className:'rn-session-pane rn-session-compose'/);
  assert.match(source,/h\('aside',\{className:'rn-session-right'/);
  assert.match(source,/\.rn-session-shell\{[^}]*container-type:inline-size/);

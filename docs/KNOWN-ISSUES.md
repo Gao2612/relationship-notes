@@ -10,7 +10,7 @@
 
 - 在插件源码（`index.js`、`reply-service.js`、`import-service.js`、`profile-service.js`、`interpretation-service.js`、`src/**`、`build.mjs`）中检索 `ui-voice`、`companion`、`media list` 均为 0 命中；构建产物 `client.js` 同样 0 命中。
 - 该前缀属于 DSH 自带的实验性语音输入包 `dsh-experimental-client-ui-voice-input`，它被打包在 DSH 应用包 `app.asar` 内（检索 `C:\deepseek\resources\app.asar` 可命中 `ui-voice`，包清单中可见目录名），不在本仓库的依赖树内。
-- 本插件只通过 `fetch('api/relationship-notes/...')` 访问宿主路由，并声明 `inject: ['locale', 'subdsh']`；未注册 `ui-voice` 任何能力，也不消费其 media list。
+- 本插件只通过 `fetch('api/relationship-notes/...')` 访问宿主路由，并声明 `inject: ['locale']`（`subdsh` 为插件内嵌套注入）；未注册 `ui-voice` 任何能力，也不消费其 media list。
 - 因此该 TypeError 由宿主语音输入的 companion 媒体列表读取失败触发（常见于设备/权限/媒体枚举不可用时），属于宿主的容错缺口。
 
 处理建议（由宿主维护方决定，不在本仓库实施）：

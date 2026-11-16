@@ -7,7 +7,8 @@ test('registers Relationship Notes in the Sub DSH module registry without host s
   const registered=[];
   const React={useState(value){return [value,()=>{}];},createElement(type,props,...children){return {type,props:props||{},children};},useSyncExternalStore(_subscribe,getSnapshot){return getSnapshot();},useEffect(){},useRef(current){return {current};}};
   const plugin=createPlugin(React,E,Object.fromEntries(Object.entries(textPairs).map(([key,pair])=>[key,pair[0]])));
-  assert.deepEqual(plugin.inject,['locale','subdsh']);
+  // subdsh 改为嵌套注入：缺少该容器的宿主不再被整体阻塞；有容器时注册结果不变。
+  assert.deepEqual(plugin.inject,['locale']);
   plugin.apply({
     locale:{bind:()=>key=>key==='nav'?'关系手记':key,register(){}},
     subdsh:{register(entry){registered.push(entry);return()=>{};}},

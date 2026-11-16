@@ -235,5 +235,18 @@ export const THEME_CSS = `
 .rnw ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--rn-fg) 16%,transparent);border-radius:10px;border:3px solid transparent;background-clip:content-box}
 
 @media (prefers-reduced-motion:reduce){.rnw *,.rn-evidence-overlay,.rn-evidence-overlay *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-@media(max-width:620px){.rnw .rn-group-tabs button{min-width:0;padding:6px 12px!important}.rnw .rn-head h1{font-size:19px!important}.rnw .rn-head label>span,.rnw .rn-head label{font-size:0}.rnw .rn-head label select{font-size:13px;width:128px!important}}
+@media(max-width:620px){.rnw .rn-head{flex-wrap:wrap;row-gap:8px!important}.rnw .rn-head>div:first-child{flex:1 1 100%}.rnw .rn-head>div:last-child{margin-left:auto}.rnw .rn-group-tabs button{min-width:0;padding:6px 12px!important}.rnw .rn-head h1{font-size:19px!important}.rnw .rn-head label>span,.rnw .rn-head label{font-size:0}.rnw .rn-head label select{font-size:13px;width:128px!important}}
+`;
+// 会话列表抽屉与工具栏收起：类名由 sessionPaneLayout() 按容器宽度给出，断点与上方容器查询一致。
+export const SESSION_LAYOUT_CSS = `
+.rnw #rn-panel .right-hidden .rn-session{grid-template-columns:160px minmax(0,1fr)!important;grid-template-areas:"list main"!important}
+.rnw #rn-panel .list-hidden.right-hidden .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main"!important}
+.rnw #rn-panel .right-hidden .rn-session-right{display:none!important}
+.rnw .rn-session-scrim{display:none}
+@container rn-session-shell (max-width:900px){
+ .rnw #rn-panel .right-hidden .rn-session{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"main"!important}
+ .rnw #rn-panel .list-open .rn-session-list-pane{display:block!important;position:absolute;left:0;top:0;bottom:0;width:min(260px,82%);z-index:32;overflow:auto;box-shadow:var(--rn-shadow-pop);animation:rn-drawer .18s var(--rn-ease)}
+ .rnw #rn-panel .list-open .rn-session-scrim{display:block;position:absolute;inset:0;z-index:31;border-radius:14px;background:color-mix(in srgb,#000 22%,transparent);animation:rn-fade .15s ease}
+}
+@keyframes rn-drawer{from{transform:translateX(-12px);opacity:0}to{transform:none;opacity:1}}
 `;

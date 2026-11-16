@@ -30,3 +30,5 @@ export * from './message-identity.js';
 export * from './auto-analysis.js';
 
 export * from './interaction-context.js';
+export * from './session-layout.js';
+export * from './host-tokens.js';

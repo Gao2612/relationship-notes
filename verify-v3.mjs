@@ -10,7 +10,10 @@ assert.match(client,/window\.__ModuleLoader__\.load/);
 const appSource=read('./src/workspace.js');
 assert.doesNotMatch(appSource,/ctx\.styles|iframe|dangerouslySetInnerHTML|localStorage|sessionStorage/);
 assert.match(appSource,/ctx\.subdsh\.register/);
-assert.doesNotMatch(client,/sidebar\.panellist|sidebar\.workspaces|ctx\.slots/);
+// 不再接管 DSH 侧栏的 workspaces 区域；原生侧栏面板只作为“宿主没有 subdsh 容器”时的退路。
+assert.doesNotMatch(client,/sidebar\.workspaces|ctx\.slots/);
+assert.match(appSource,/if\(hasService\('subdsh'\)\)return;\n    ui\.effect\(function\*\(\)\{[\s\S]{0,300}?name:'sidebar\.panellist'/);
+assert.equal((client.match(/sidebar\.panellist/g)||[]).length,2);
 assert.match(client,/消息均衡度|互动评分/);
 assert.match(client,/useSyncExternalStore/);
 assert.match(client,/AbortController/);
