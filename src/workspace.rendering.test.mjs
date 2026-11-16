@@ -102,7 +102,7 @@ test('首次使用给出可点击的三步引导并暴露内置虚构示例',()=
 });
 
 test('无数据时导入聊天进入主界面，会话侧栏去重并对齐导航命名',()=>{
- assert.match(source,/!s\.contacts\.length&&button\('导入聊天',\(\)=>nav\('import','file'\)/);
+ assert.match(source,/!s\.contacts\.length&&button\([\s\S]{0,90}?'导入聊天'\)?,\(\)=>nav\('import','file'\)/);
  assert.match(source,/rn-session-links'[\s\S]{0,120}?'相关页面'[\s\S]{0,160}?关系观察'[\s\S]{0,120}?每日历程'/);
  assert.doesNotMatch(source,/行为与好感度/);
  assert.doesNotMatch(source,/关系概览/);

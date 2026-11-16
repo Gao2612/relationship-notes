@@ -34,3 +34,4 @@ export * from './session-layout.js';
 export * from './host-tokens.js';
 export * from './affinity/index.js';
 export * from './views/relationship-insight.js';
+export * from './views/icons.js';

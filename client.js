@@ -32123,6 +32123,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     DIMENSIONS: () => DIMENSIONS,
     FRICTION: () => FRICTION,
     HOST_TOKEN_ALIASES: () => HOST_TOKEN_ALIASES,
+    ICON_NAMES: () => ICON_NAMES,
     ImportError: () => ImportError,
     MAX_BYTES: () => MAX_BYTES,
     MAX_MESSAGES: () => MAX_MESSAGES,
@@ -32138,6 +32139,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     analyzeDailyTimeline: () => analyzeDailyTimeline,
     analyzeInteractionMetrics: () => analyzeInteractionMetrics,
     analyzeRelationship: () => analyzeRelationship,
+    analyzeRelationshipCached: () => analyzeRelationshipCached,
     applyTopicFeedback: () => applyTopicFeedback,
     approveReplySample: () => approveReplySample,
     beginImport: () => beginImport,
@@ -32164,6 +32166,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     createAutoAnalysisScheduler: () => createAutoAnalysisScheduler,
     createAutoAnalysisStatusView: () => createAutoAnalysisStatusView,
     createEvidenceContextView: () => createEvidenceContextView,
+    createIcon: () => createIcon,
     createInterpretationView: () => createInterpretationView,
     createPeriodReviewView: () => createPeriodReviewView,
     createProfileBridgeSnapshot: () => createProfileBridgeSnapshot,
@@ -35368,6 +35371,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function currentWeekKey(now = Date.now()) {
     return weekStartKey(shanghaiDateKey(now));
   }
+  var analysisCache = /* @__PURE__ */ new WeakMap();
+  function analyzeRelationshipCached(contact = {}) {
+    const messages = contact.messages;
+    if (!messages || typeof messages !== "object") return analyzeRelationship(contact);
+    const hit = analysisCache.get(messages);
+    if (hit && hit.v3 === contact.affinityV3 && hit.corrections === contact.interactionCorrections && hit.self === contact.self && hit.target === contact.target) return hit.result;
+    const result = analyzeRelationship(contact);
+    analysisCache.set(messages, { v3: contact.affinityV3, corrections: contact.interactionCorrections, self: contact.self, target: contact.target, result });
+    return result;
+  }
 
   // src/views/relationship-insight.js
   function createRelationshipInsightView(React2, E) {
@@ -35485,7 +35498,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       );
     }
     return function RelationshipInsightView({ contact, busy, progress, error, modelReady, onRun, onCancel, onEvidence, onConfigure }) {
-      const analysis = React2.useMemo(() => contact ? E.analyzeRelationship(contact) : null, [contact?.messages, contact?.affinityV3, contact?.interactionCorrections, contact?.self, contact?.target]);
+      const analysis = contact ? E.analyzeRelationshipCached(contact) : null;
       const [selected2, setSelected] = React2.useState(null), [openDim, setOpenDim] = React2.useState("responsiveness");
       if (!analysis || !analysis.weeks.length) return h("section", { className: "rn-box" }, h("h2", null, "关系分析"), h("p", { className: "rn-muted" }, "还没有双方可分析的聊天记录。"));
       const weeks = analysis.weeks, current = analysis.current, pick = weeks.find((w) => w.start === selected2) || current;
@@ -35576,6 +35589,29 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           )
         )
       );
+    };
+  }
+
+  // src/views/icons.js
+  var PATHS = {
+    contact: ["M12 12.2a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M4.5 20c.9-3.6 3.9-5.6 7.5-5.6s6.6 2 7.5 5.6"],
+    records: ["M4 19.5h16", "M6.5 16l3.6-4.4 3.2 2.6 4.6-6.2", "M17.9 8h-3", "M17.9 8v3"],
+    communicate: ["M5 17.5 3.8 20.6 8 19.3A8.5 8.5 0 1 0 5 17.5Z", "M8.5 11.5h7", "M8.5 14.5h4.5"],
+    manage: ["M4 7h9", "M17 7h3", "M15 5v4", "M4 17h3", "M11 17h9", "M9 15v4"],
+    import: ["M12 4v10", "M8 10.5l4 4 4-4", "M5 15.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5"],
+    settings: ["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.4 7.4 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4Z"],
+    spark: ["M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9Z", "M18.5 16v4", "M16.5 18h4"],
+    heart: ["M12 19.5s-7-4.4-7-9.6A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3c0 5.2-7 9.6-7 9.6Z"],
+    book: ["M5 4.5h10.5a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3Z", "M5 16.5a3 3 0 0 1 3-3h10.5"],
+    check: ["M5 12.5l4.2 4.2L19 7"]
+  };
+  var ICON_NAMES = Object.freeze(Object.keys(PATHS));
+  function createIcon(React2) {
+    const h = React2.createElement;
+    return function Icon({ name, size = 20, className = "", title }) {
+      const paths = PATHS[name];
+      if (!paths) return null;
+      return h("svg", { className: "rn-icon " + className, width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": title ? void 0 : true, role: title ? "img" : void 0 }, title && h("title", null, title), ...paths.map((d, i) => h("path", { key: i, d })));
     };
   }
 
@@ -35949,237 +35985,291 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
   // src/workspace-theme.js
   var THEME_CSS = `
-/* ---------- 设计令牌 ---------- */
+/* ---------- 令牌 ---------- */
 .rnw{
  --rn-bg:var(--background,#fff);
- --rn-fg:var(--foreground,#1f2421);
- --rn-line:var(--border,#e3e7e4);
- --rn-sub:var(--muted-foreground,#6b756e);
- --rn-brand:#2f7d52;
- --rn-brand-fg:#fff;
+ --rn-fg:var(--foreground,#1d2321);
+ --rn-line:var(--border,#e2e6e4);
+ --rn-sub:var(--muted-foreground,#66706b);
+ --rn-brand:#3E8A7E;--rn-brand-fg:#fff;
+ --rn-pulse:#B95C7E;--rn-ai:#4361A8;--rn-amber:#B07A22;--rn-danger:#C0453F;
  --rn-brand-soft:color-mix(in srgb,var(--rn-brand) 11%,var(--rn-bg));
- --rn-brand-line:color-mix(in srgb,var(--rn-brand) 30%,var(--rn-bg));
- --rn-brand-text:color-mix(in srgb,var(--rn-brand) 78%,var(--rn-fg));
- --rn-surface:color-mix(in srgb,var(--rn-fg) 2.5%,var(--rn-bg));
- --rn-surface-2:color-mix(in srgb,var(--rn-fg) 5.5%,var(--rn-bg));
+ --rn-brand-line:color-mix(in srgb,var(--rn-brand) 34%,var(--rn-bg));
+ --rn-brand-text:color-mix(in srgb,var(--rn-brand) 82%,var(--rn-fg));
+ --rn-pulse-soft:color-mix(in srgb,var(--rn-pulse) 13%,var(--rn-bg));
+ --rn-pulse-text:color-mix(in srgb,var(--rn-pulse) 85%,var(--rn-fg));
+ --rn-danger-soft:color-mix(in srgb,var(--rn-danger) 10%,var(--rn-bg));
+ --rn-surface:color-mix(in srgb,var(--rn-fg) 3.2%,var(--rn-bg));
+ --rn-surface-2:color-mix(in srgb,var(--rn-fg) 6.5%,var(--rn-bg));
  --rn-hover:color-mix(in srgb,var(--rn-fg) 6%,transparent);
- --rn-danger:#c0453f;
- --rn-danger-soft:color-mix(in srgb,#c0453f 10%,var(--rn-bg));
- --rn-r:12px;--rn-r-sm:9px;
- --rn-shadow:0 1px 2px color-mix(in srgb,#000 5%,transparent),0 2px 10px color-mix(in srgb,#000 4%,transparent);
- --rn-shadow-pop:0 10px 30px color-mix(in srgb,#000 16%,transparent),0 2px 6px color-mix(in srgb,#000 8%,transparent);
+ --rn-line-soft:color-mix(in srgb,var(--rn-line) 60%,transparent);
+ --rn-font-ui:"PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei UI","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+ --rn-font-num:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+ --rn-chart-line:var(--rn-brand);--rn-chart-line-strong:var(--rn-brand-text);--rn-chart-text:var(--rn-brand-text);
+ --rn-chart-self:color-mix(in srgb,var(--rn-brand) 72%,var(--rn-bg));--rn-chart-target:color-mix(in srgb,#7F92AE 85%,var(--rn-bg));--rn-chart-target-text:color-mix(in srgb,#5b7285 75%,var(--rn-fg));
+ --rn-r-lg:18px;--rn-r:14px;--rn-r-sm:10px;
+ --rn-float:0 12px 32px color-mix(in srgb,#000 16%,transparent),0 2px 8px color-mix(in srgb,#000 8%,transparent);
  --rn-ease:cubic-bezier(.2,.7,.2,1);
- color:var(--rn-fg);background:var(--rn-bg);
- -webkit-font-smoothing:antialiased;
- padding-left:clamp(14px,2.4vw,28px)!important;padding-right:clamp(14px,2.4vw,28px)!important;
+ font-family:var(--rn-font-ui)!important;color:var(--rn-fg);background:var(--rn-bg);
+ -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+ padding:0 clamp(14px,2.6vw,32px) 32px!important;
 }
-.rnw ::selection{background:color-mix(in srgb,var(--rn-brand) 24%,transparent)}
-.rnw #rn-panel{max-width:1440px!important;outline:none}
-.rnw .rn-muted{color:var(--rn-sub);line-height:1.6}
+.rnw ::selection{background:color-mix(in srgb,var(--rn-brand) 26%,transparent)}
+.rnw #rn-panel{max-width:1320px!important;outline:none}
+.rnw .rn-num{font-family:var(--rn-font-num);font-variant-numeric:lining-nums tabular-nums;font-weight:600;letter-spacing:-.01em}
+.rnw .rn-muted{color:var(--rn-sub);line-height:1.65}
+.rnw .rn-icon{flex:none;display:block}
+.rnw .rn-chip{display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;background:var(--rn-surface-2);color:var(--rn-fg);font-size:11.5px;line-height:1.8}
 
-/* ---------- 顶栏 ---------- */
-.rnw .rn-head{position:sticky;top:-8px;z-index:40;margin:0 calc(-1 * clamp(14px,2.4vw,28px)) 0!important;padding:10px clamp(14px,2.4vw,28px) 8px;background:color-mix(in srgb,var(--rn-bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);align-items:center!important}
-.rnw .rn-head h1{font-size:22px!important;letter-spacing:-.3px}
-.rnw .rn-head-sub{margin:2px 0 0;font-size:12px;color:var(--rn-sub);display:flex;flex-wrap:wrap;gap:4px 10px}
-.rnw .rn-head-sub span+span::before{content:"·";margin-right:10px;opacity:.6}
-.rnw .rn-head label{color:var(--rn-sub)}
-.rnw .rn-head label select{font-weight:600;color:var(--rn-fg);border-radius:999px!important;padding-left:14px!important;background-color:var(--rn-surface)!important}
+/* ---------- 页头：关系脉搏 ---------- */
+.rnw .rn-head{position:sticky;top:0;z-index:40;display:flex!important;align-items:center!important;justify-content:space-between;gap:16px!important;margin:0 calc(-1 * clamp(14px,2.6vw,32px))!important;padding:14px clamp(14px,2.6vw,32px)!important;background:color-mix(in srgb,var(--rn-bg) 86%,transparent);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid var(--rn-line-soft)}
+.rnw .rn-identity-strip{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto}
+.rnw .rn-identity-avatar{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--rn-brand-soft);color:var(--rn-brand-text);font-size:18px;font-weight:700;box-shadow:0 0 0 2px var(--rn-bg),0 0 0 4px color-mix(in srgb,var(--rn-pulse) 55%,var(--rn-bg))}
+.rnw .rn-identity-avatar.brand{box-shadow:none;border-radius:14px}
+.rnw .rn-identity-avatar img{width:100%;height:100%;object-fit:cover}
+.rnw .rn-identity{min-width:7em}
+.rnw .rn-identity-name{display:block;font-size:19px;font-weight:700;letter-spacing:-.2px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rnw .rn-head-sub{display:flex!important;flex-wrap:wrap;align-items:center;gap:2px 12px!important;margin:2px 0 0!important;font-size:12px;color:var(--rn-sub)}
+.rnw .rn-head-tools{display:flex;align-items:center;gap:10px;flex:none}
+.rnw .rn-head-tools label{flex-direction:row!important;align-items:center;gap:8px!important;font-size:12px;color:var(--rn-sub);white-space:nowrap}
+.rnw .rn-head-tools label select{width:150px!important;min-height:44px;font-weight:600;color:var(--rn-fg)}
+.rnw .rn-pulse{display:inline-flex!important;align-items:center;gap:10px!important;padding:4px 12px 4px 10px!important;border:1px solid var(--rn-line)!important;border-radius:var(--rn-r)!important;background:var(--rn-bg)!important;color:var(--rn-fg)!important}
+.rnw .rn-pulse:hover{border-color:color-mix(in srgb,var(--rn-pulse) 45%,var(--rn-line))!important;background:var(--rn-pulse-soft)!important}
+.rnw .rn-pulse-line polyline{fill:none;stroke:var(--rn-pulse);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.rnw .rn-pulse-line circle{fill:var(--rn-pulse)}
+.rnw .rn-pulse-mid{stroke:var(--rn-line);stroke-dasharray:2 3}
+.rnw .rn-pulse-copy{display:grid;justify-items:start;line-height:1.05}
+.rnw .rn-pulse-copy strong{font-size:22px;color:var(--rn-pulse-text)}
+.rnw .rn-pulse-copy small{font-size:10.5px;color:var(--rn-sub);margin-top:2px}
 
-/* ---------- 一级导航：分段胶囊 ---------- */
-.rnw .rn-tabs.rn-group-tabs{display:inline-flex;gap:4px!important;padding:4px;margin:6px 0 4px!important;border:1px solid var(--rn-line);border-bottom:1px solid var(--rn-line)!important;border-radius:14px;background:var(--rn-surface);max-width:100%}
-.rnw .rn-group-tabs button{min-width:72px;justify-content:center;padding:6px 16px!important;border:0!important;border-radius:10px!important;color:var(--rn-sub);font-weight:500;transition:background .15s var(--rn-ease),color .15s}
-.rnw .rn-group-tabs button:hover{background:var(--rn-hover)!important;color:var(--rn-fg)}
-.rnw .rn-group-tabs button[aria-selected=true]{background:var(--rn-bg)!important;color:var(--rn-fg);font-weight:650;box-shadow:var(--rn-shadow);border-bottom:0!important}
+/* ---------- 一级导航（桌面：图标标签；手机：底部标签栏） ---------- */
+.rnw .rn-tabs.rn-group-tabs{display:flex!important;gap:4px!important;margin:14px 0 0!important;padding:0!important;border:0!important;background:transparent;overflow-x:auto;scrollbar-width:none}
+.rnw .rn-tabs.rn-group-tabs::-webkit-scrollbar{display:none}
+.rnw .rn-group-tabs button{display:inline-flex!important;align-items:center;gap:8px!important;min-height:44px;padding:8px 14px!important;border:0!important;border-radius:12px!important;background:transparent!important;color:var(--rn-sub)!important;font-weight:550;transition:background .16s var(--rn-ease),color .16s}
+.rnw .rn-group-tabs button:hover{background:var(--rn-hover)!important;color:var(--rn-fg)!important}
+.rnw .rn-group-tabs button[aria-selected=true]{background:var(--rn-brand-soft)!important;color:var(--rn-brand-text)!important;font-weight:650;box-shadow:none}
 
-/* ---------- 二级导航：下划线标签 ---------- */
-.rnw .rn-tabs.rn-context-tabs{gap:4px!important;margin-top:8px!important;margin-bottom:18px!important;scrollbar-width:none}
+/* ---------- 页标题与页内标签 ---------- */
+.rnw .rn-page-head h1{margin:22px 0 2px!important;font-size:26px!important;line-height:1.25;font-weight:700;letter-spacing:-.5px}
+.rnw .rn-breadcrumb{display:none!important}
+.rnw .rn-tabs.rn-context-tabs{gap:2px!important;margin:6px 0 22px!important;border-bottom:1px solid var(--rn-line)!important;scrollbar-width:none}
 .rnw .rn-tabs.rn-context-tabs::-webkit-scrollbar{display:none}
-.rnw .rn-context-tabs button{border-color:transparent!important;border-bottom-width:2px!important;padding:10px 12px 11px!important;border-radius:8px 8px 0 0!important;color:var(--rn-sub);transition:color .15s,background .15s}
-.rnw .rn-context-tabs button:hover{background:var(--rn-hover)!important;color:var(--rn-fg)}
-.rnw .rn-context-tabs button[aria-selected=true]{border-bottom-color:var(--rn-brand)!important;color:var(--rn-fg);background:transparent!important;font-weight:650}
+.rnw .rn-context-tabs button{position:relative;padding:10px 12px 12px!important;border:0!important;border-radius:8px 8px 0 0!important;background:transparent!important;color:var(--rn-sub);font-size:14px;transition:color .15s}
+.rnw .rn-context-tabs button:hover{color:var(--rn-fg)}
+.rnw .rn-context-tabs button[aria-selected=true]{color:var(--rn-fg);font-weight:650;border-bottom:0!important}
+.rnw .rn-context-tabs button[aria-selected=true]::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2.5px;border-radius:2px;background:var(--rn-brand)}
 
 /* ---------- 按钮 ---------- */
-.rnw button{border-radius:var(--rn-r-sm);border-color:var(--rn-line);font-weight:500;gap:6px;transition:background .15s var(--rn-ease),border-color .15s,color .15s,box-shadow .15s,transform .08s}
-.rnw button:not(:disabled):hover{background:var(--rn-hover);border-color:color-mix(in srgb,var(--rn-fg) 18%,var(--rn-line))}
+.rnw button{border:1px solid var(--rn-line);border-radius:var(--rn-r-sm);background:var(--rn-bg);color:var(--rn-fg);font-weight:550;gap:6px;transition:background .15s var(--rn-ease),border-color .15s,color .15s,transform .08s}
+.rnw button:not(:disabled):hover{background:var(--rn-surface-2);border-color:color-mix(in srgb,var(--rn-fg) 16%,var(--rn-line))}
 .rnw button:not(:disabled):active{transform:translateY(1px)}
-.rnw button.primary{background:var(--rn-brand)!important;color:var(--rn-brand-fg)!important;border-color:transparent!important;box-shadow:0 1px 2px color-mix(in srgb,var(--rn-brand) 35%,transparent)}
-.rnw button.primary:not(:disabled):hover{background:color-mix(in srgb,var(--rn-brand) 88%,#000)!important}
+.rnw button.primary{background:var(--rn-brand)!important;color:var(--rn-brand-fg)!important;border-color:transparent!important;padding-left:16px!important;padding-right:16px!important}
+.rnw button.primary:not(:disabled):hover{background:color-mix(in srgb,var(--rn-brand) 86%,#000)!important}
 .rnw button:disabled{opacity:.5;cursor:not-allowed}
-.rnw button.primary:disabled{background:color-mix(in srgb,var(--rn-brand) 45%,var(--rn-bg))!important;opacity:1;box-shadow:none}
-.rnw button[aria-pressed=true]:not(.primary):not(.rn-day){background:var(--rn-brand-soft);border-color:var(--rn-brand-line);color:var(--rn-brand-text);font-weight:600}
-.rnw :focus-visible{outline:2px solid color-mix(in srgb,var(--rn-brand) 70%,var(--ring,#6b83ac))!important;outline-offset:2px}
+.rnw button.primary:disabled{background:color-mix(in srgb,var(--rn-brand) 42%,var(--rn-bg))!important;opacity:1}
+.rnw button[aria-pressed=true]:not(.primary):not(.rn-day){background:var(--rn-brand-soft);border-color:var(--rn-brand-line);color:var(--rn-brand-text);font-weight:650}
+.rnw :focus-visible{outline:2px solid color-mix(in srgb,var(--rn-brand) 75%,var(--ring,#6b83ac))!important;outline-offset:2px}
 
-/* ---------- 表单 ---------- */
-.rnw input:not([type=checkbox]):not([type=file]):not([type=radio]),.rnw select,.rnw textarea{border-color:var(--rn-line)!important;border-radius:var(--rn-r-sm)!important;background-color:var(--rn-bg);transition:border-color .15s,box-shadow .15s}
-.rnw input:not([type=checkbox]):not([type=file]):not([type=radio]):hover,.rnw select:hover,.rnw textarea:hover{border-color:color-mix(in srgb,var(--rn-fg) 22%,var(--rn-line))!important}
-.rnw input:not([type=checkbox]):not([type=file]):not([type=radio]):focus,.rnw select:focus,.rnw textarea:focus{outline:none;border-color:var(--rn-brand)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--rn-brand) 18%,transparent)}
+/* ---------- 表单：填充式输入框 ---------- */
+.rnw input:not([type=checkbox]):not([type=file]):not([type=radio]),.rnw select,.rnw textarea{border:1px solid transparent!important;border-radius:var(--rn-r-sm)!important;background-color:var(--rn-surface-2)!important;color:var(--rn-fg);transition:border-color .15s,box-shadow .15s,background-color .15s}
+.rnw input:not([type=checkbox]):not([type=file]):not([type=radio]):hover,.rnw select:hover,.rnw textarea:hover{background-color:color-mix(in srgb,var(--rn-fg) 8.5%,var(--rn-bg))!important}
+.rnw input:not([type=checkbox]):not([type=file]):not([type=radio]):focus,.rnw select:focus,.rnw textarea:focus{outline:none;border-color:var(--rn-brand)!important;background-color:var(--rn-bg)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--rn-brand) 18%,transparent)}
 .rnw ::placeholder{color:color-mix(in srgb,var(--rn-sub) 80%,transparent)}
-.rnw label{font-size:12px;font-weight:500;color:var(--rn-sub)}
+.rnw label{font-size:12.5px;font-weight:550;color:var(--rn-sub)}
 .rnw label>select,.rnw label>input,.rnw label>textarea{font-weight:400;color:var(--rn-fg)}
 .rnw input[type=checkbox],.rnw input[type=radio]{accent-color:var(--rn-brand);width:16px;height:16px}
 .rnw .rn-check{color:var(--rn-fg);font-size:var(--rn-font,13px);font-weight:400}
 
-/* ---------- 卡片与分区 ---------- */
-.rnw .rn-box{border-color:var(--rn-line);border-radius:16px;background:var(--rn-bg);box-shadow:var(--rn-shadow);padding:clamp(16px,2vw,24px)}
+/* ---------- 分区（平面）与特写卡 ---------- */
+.rnw .rn-box{border:1px solid var(--rn-line)!important;border-radius:var(--rn-r-lg)!important;background:var(--rn-bg);box-shadow:none!important;padding:clamp(18px,2.2vw,26px)!important}
 .rnw .rn-box+.rn-box,.rnw .rn-box+section,.rnw section+.rn-box{margin-top:16px}
-.rnw .rn-box>h2{font-size:16px;font-weight:650;letter-spacing:-.1px;display:flex;align-items:center;gap:8px}
-.rnw .rn-box>h2::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--rn-brand);flex:none}
-.rnw .rn-split{gap:18px}
+.rnw .rn-box>h2,.rnw .rn-empty>h2{font-size:18px!important;font-weight:700;letter-spacing:-.2px;margin:0 0 14px!important}
+.rnw .rn-box>h2::before{content:none!important}
+.rnw h3{font-size:15px;font-weight:650;letter-spacing:-.1px}
+.rnw .rn-split{gap:16px}
+/* 阅读宽度：说明文字与表单不随宽屏无限拉长 */
+.rnw .rn-box>p.rn-muted,.rnw .rn-empty>p.rn-muted{max-width:72ch}
+.rnw .rn-empty>p.rn-muted{margin-left:auto;margin-right:auto}
+.rnw .rn-self-profile,.rnw .rn-paste-import{max-width:760px}
+/* 特写：一页最多一个——首次引导、关系分析的总览 */
+.rnw .rn-empty,.rnw .rn-insight-hero{background:color-mix(in srgb,var(--rn-brand) 4.5%,var(--rn-bg))!important;border:1px solid var(--rn-brand-line)!important;border-radius:22px!important}
 
-/* ---------- 指标块 ---------- */
-.rnw .rn-metrics{gap:10px;border:0!important;padding:0!important;background:transparent}
-.rnw .rn-metric{flex:1 1 150px;padding:14px 16px!important;border:1px solid var(--rn-line)!important;border-radius:var(--rn-r);background:var(--rn-surface);color:var(--rn-sub);font-size:12px}
-.rnw .rn-metric strong{color:var(--rn-fg);font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+/* ---------- 指标：条目层（浅底、无边框） ---------- */
+.rnw .rn-metrics{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px!important;border:0!important;padding:0!important;margin-bottom:16px}
+.rnw .rn-metric{padding:14px 16px!important;border:0!important;border-radius:var(--rn-r)!important;background:var(--rn-surface);color:var(--rn-sub);font-size:12.5px;min-width:0!important}
+.rnw .rn-metric strong{font-family:var(--rn-font-num);font-variant-numeric:lining-nums tabular-nums;font-size:26px!important;font-weight:500!important;color:var(--rn-fg);letter-spacing:-.3px;margin:6px 0 2px!important}
 
-/* ---------- 折叠项（details） ---------- */
+/* ---------- 折叠项 ---------- */
 .rnw details>summary{list-style:none;position:relative;padding-left:22px!important;border-radius:8px;transition:color .15s}
 .rnw details>summary::-webkit-details-marker{display:none}
-.rnw details>summary::before{content:"";position:absolute;left:4px;top:50%;width:7px;height:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:translateY(-70%) rotate(-45deg);opacity:.55;transition:transform .18s var(--rn-ease)}
+.rnw details>summary::before{content:"";position:absolute;left:5px;top:50%;width:7px;height:7px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:translateY(-70%) rotate(-45deg);opacity:.55;transition:transform .18s var(--rn-ease)}
 .rnw details[open]>summary::before{transform:translateY(-75%) rotate(45deg)}
 .rnw details>summary:hover{color:var(--rn-brand-text)}
 .rnw .rn-profile-menu>summary,.rnw .rn-settings-menu>summary{padding-left:0!important}
 .rnw .rn-profile-menu>summary::before,.rnw .rn-settings-menu>summary::before{display:none}
-.rnw .rn-more{border-color:var(--rn-line);background:var(--rn-bg)}
+.rnw .rn-more{border:1px solid var(--rn-line)!important;border-radius:var(--rn-r-lg)!important;background:var(--rn-bg)}
 
-/* ---------- 弹出菜单 ---------- */
-.rnw .rn-settings-menu>summary{background:var(--rn-bg);border-color:var(--rn-line)!important;color:var(--rn-sub);transition:background .15s,color .15s}
-.rnw .rn-settings-menu>summary:hover,.rnw .rn-settings-menu[open]>summary{background:var(--rn-hover);color:var(--rn-fg)}
-.rnw .rn-settings-menu-items,.rnw .rn-profile-menu-items{border-color:var(--rn-line)!important;box-shadow:var(--rn-shadow-pop)!important;animation:rn-pop .14s var(--rn-ease)}
-.rnw .rn-settings-menu-items button,.rnw .rn-profile-menu-items button{border:0!important;justify-content:flex-start}
+/* ---------- 浮层：菜单 / 提示条 ---------- */
+.rnw .rn-settings-menu>summary{width:44px;height:44px;border:1px solid var(--rn-line)!important;border-radius:12px!important;background:var(--rn-bg);color:var(--rn-sub);transition:background .15s,color .15s}
+.rnw .rn-settings-menu>summary:hover,.rnw .rn-settings-menu[open]>summary{background:var(--rn-surface-2);color:var(--rn-fg)}
+.rnw .rn-settings-menu-items,.rnw .rn-profile-menu-items{border:1px solid var(--rn-line)!important;border-radius:var(--rn-r)!important;background:var(--rn-bg)!important;box-shadow:var(--rn-float)!important;padding:6px!important;animation:rn-pop .14s var(--rn-ease)}
+.rnw .rn-settings-menu-items button,.rnw .rn-profile-menu-items button{border:0!important;justify-content:flex-start;border-radius:8px!important}
 .rnw .rn-profile-menu>summary{color:var(--rn-sub)!important}
 .rnw .rn-profile-menu>summary:hover{background:var(--rn-hover)!important}
 @keyframes rn-pop{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
-
-/* ---------- 来源筛选（全部 / 微信 / QQ） ---------- */
-.rnw .rn-source-filter{display:inline-flex!important;gap:2px!important;padding:3px;margin:0 0 16px!important;border:1px solid var(--rn-line);border-radius:12px;background:var(--rn-surface)}
-.rnw .rn-source-filter button{border:0!important;border-radius:9px!important;padding:6px 14px!important;background:transparent!important;color:var(--rn-sub)!important;box-shadow:none!important;font-weight:500}
-.rnw .rn-source-filter button[aria-pressed=true]{background:var(--rn-bg)!important;color:var(--rn-fg)!important;font-weight:650;box-shadow:var(--rn-shadow)!important}
-
-/* ---------- 空状态与引导 ---------- */
-.rnw .rn-empty{border-color:var(--rn-line);border-radius:16px;background:var(--rn-surface);padding:40px 24px}
-.rnw .rn-empty>h2{font-size:18px;margin-bottom:6px}
-.rnw .rn-onboarding-steps{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))!important;gap:12px!important;padding-left:0!important;list-style:none;margin:22px 0 18px!important;counter-reset:rn-step}
-.rnw .rn-onboarding-steps>li{counter-increment:rn-step;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:18px;border:1px solid var(--rn-line);border-radius:14px;background:var(--rn-bg);text-align:left}
-.rnw .rn-onboarding-steps>li::before{content:counter(rn-step);display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--rn-brand-soft);color:var(--rn-brand-text);font-weight:700;font-size:12px;margin-bottom:6px}
-.rnw .rn-onboarding-steps>li>.rn-muted{flex:1;margin:2px 0 10px}
-.rnw .rn-upload{border-color:var(--rn-brand-line);border-width:1.5px;border-radius:16px;background:var(--rn-brand-soft);transition:background .15s,border-color .15s}
-.rnw .rn-upload.rn-drag{border-color:var(--rn-brand);background:color-mix(in srgb,var(--rn-brand) 18%,var(--rn-bg))}
-.rnw .rn-upload>span[aria-hidden]{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--rn-bg);color:var(--rn-brand);box-shadow:var(--rn-shadow)}
-
-/* ---------- 状态提示：底部浮动条 ---------- */
-.rnw .rn-toast{position:sticky;bottom:12px;z-index:70;display:flex;align-items:center;gap:10px;width:fit-content;max-width:min(680px,100%);margin:16px auto 0;padding:6px 6px 6px 16px;border:1px solid var(--rn-line);border-radius:14px;background:var(--rn-bg);color:var(--rn-fg);box-shadow:var(--rn-shadow-pop);animation:rn-pop .18s var(--rn-ease)}
+@keyframes rn-fade{from{opacity:0}to{opacity:1}}
+.rnw .rn-toast{position:sticky;bottom:16px;z-index:70;display:flex;align-items:center;gap:10px;width:fit-content;max-width:min(680px,100%);margin:18px auto 0;padding:6px 6px 6px 16px;border:1px solid var(--rn-line);border-radius:var(--rn-r);background:var(--rn-bg);color:var(--rn-fg);box-shadow:var(--rn-float);animation:rn-pop .18s var(--rn-ease)}
 .rnw .rn-toast::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--rn-brand);flex:none}
 .rnw .rn-toast.rn-toast-error::before{background:var(--rn-danger)}
 .rnw .rn-toast>span{flex:1;min-width:0;font-size:13px;line-height:1.5}
-.rnw .rn-toast>button{border:0!important;color:var(--rn-sub);font-size:18px;line-height:1;padding:0!important;border-radius:10px!important}
+.rnw .rn-toast>button{border:0!important;color:var(--rn-sub);font-size:18px;line-height:1;padding:0!important;border-radius:10px!important;background:transparent}
 .rnw .rn-error{color:var(--rn-danger)}
 
-/* ---------- 身份确认 ---------- */
-.rnw .rn-identity{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:12px}
-.rnw .rn-identity>button{margin-bottom:0}
-@media(max-width:620px){.rnw .rn-identity{grid-template-columns:1fr}.rnw .rn-identity>button{justify-self:start}}
+/* ---------- 来源筛选（分段） ---------- */
+.rnw .rn-source-filter{display:inline-flex!important;gap:2px!important;padding:3px;margin:0 0 18px!important;border-radius:12px;background:var(--rn-surface-2)}
+.rnw .rn-source-filter button{border:0!important;border-radius:9px!important;padding:6px 14px!important;background:transparent!important;color:var(--rn-sub)!important;font-weight:550}
+.rnw .rn-source-filter button[aria-pressed=true]{background:var(--rn-bg)!important;color:var(--rn-fg)!important;font-weight:650;box-shadow:0 1px 2px color-mix(in srgb,#000 10%,transparent)}
 
-/* ---------- 列表型条目（证据、事实、计划） ---------- */
-.rnw .rn-message,.rnw .rn-fact,.rnw .rn-goal{border-bottom-color:var(--rn-line)}
-.rnw .rn-message{padding:14px 0}
+/* ---------- 首次引导 ---------- */
+.rnw .rn-empty{padding:clamp(24px,4vw,44px) clamp(18px,3vw,36px)!important;text-align:center}
+.rnw .rn-empty>h2{font-size:22px!important}
+.rnw .rn-onboarding-steps{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important;gap:12px!important;padding-left:0!important;list-style:none;margin:24px 0 18px!important;counter-reset:rn-step}
+.rnw .rn-onboarding-steps>li{counter-increment:rn-step;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:18px;border-radius:var(--rn-r);background:var(--rn-bg);border:1px solid var(--rn-line-soft);text-align:left}
+.rnw .rn-onboarding-steps>li::before{content:counter(rn-step);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--rn-brand-soft);color:var(--rn-brand-text);font-family:var(--rn-font-num);font-weight:700;font-size:14px;margin-bottom:8px}
+.rnw .rn-onboarding-steps>li>.rn-muted{flex:1;margin:2px 0 12px}
+.rnw .rn-upload{border:1.5px dashed var(--rn-brand-line)!important;border-radius:var(--rn-r-lg)!important;background:var(--rn-brand-soft)!important;min-height:200px!important;transition:background .15s,border-color .15s}
+.rnw .rn-upload.rn-drag{border-color:var(--rn-brand)!important;background:color-mix(in srgb,var(--rn-brand) 18%,var(--rn-bg))!important}
+.rnw .rn-upload>span[aria-hidden]{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--rn-bg);color:var(--rn-brand)}
+
+/* ---------- 身份确认 ---------- */
+.rnw .rn-identity{display:block}
+.rnw .rn-form.rn-identity{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:12px}
+@media(max-width:620px){.rnw .rn-form.rn-identity{grid-template-columns:1fr}.rnw .rn-form.rn-identity>button{justify-self:start}}
+
+/* ---------- 列表条目（证据、事实、计划） ---------- */
+.rnw .rn-message,.rnw .rn-fact,.rnw .rn-goal{border-bottom-color:var(--rn-line-soft)}
+.rnw .rn-message{padding:16px 0}
 .rnw .rn-source{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:6px 0 0}
 .rnw .rn-source>button{margin-left:auto;padding:4px 14px!important;font-size:12px;border-radius:999px!important;color:var(--rn-brand-text);border-color:var(--rn-brand-line)!important;background:transparent}
 .rnw .rn-source>button:hover{background:var(--rn-brand-soft)!important}
-.rnw blockquote{border-left:3px solid var(--rn-brand-line);color:var(--rn-fg);background:var(--rn-surface);padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
-.rnw .rn-goal{padding:14px 0}
+.rnw blockquote{border-left:3px solid var(--rn-brand-line)!important;color:var(--rn-fg)!important;background:var(--rn-surface);padding:9px 14px!important;border-radius:0 10px 10px 0;margin:8px 0}
 .rnw pre{background:var(--rn-surface-2)}
-.rnw table{border-radius:10px;overflow:hidden}
+.rnw table{border-radius:12px;overflow:hidden;font-variant-numeric:tabular-nums}
 .rnw th{background:var(--rn-surface)!important;color:var(--rn-sub);font-size:12px;font-weight:600}
-.rnw th,.rnw td{border-bottom-color:var(--rn-line)!important}
+.rnw th,.rnw td{border-bottom-color:var(--rn-line-soft)!important}
 .rnw tbody tr:hover td{background:var(--rn-surface)}
 
-/* ---------- 档案卡 ---------- */
-.rnw .rn-profile-filters{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--rn-line);border-radius:12px;background:var(--rn-surface)}
-.rnw .rn-profile-filters button{color:var(--rn-sub)!important;border-radius:9px!important}
-.rnw .rn-profile-filters button[aria-pressed=true]{background:var(--rn-bg)!important;color:var(--rn-fg)!important;border-radius:9px!important;box-shadow:var(--rn-shadow);border:0}
-.rnw .rn-profile-card{border-color:var(--rn-line)!important;transition:border-color .15s,box-shadow .15s}
-.rnw .rn-profile-card:hover{border-color:var(--rn-brand-line)!important;box-shadow:var(--rn-shadow)}
+/* ---------- 档案卡（条目层） ---------- */
+.rnw .rn-profile-filters{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:var(--rn-surface-2)}
+.rnw .rn-profile-filters button{color:var(--rn-sub)!important;border-radius:9px!important;border:0!important}
+.rnw .rn-profile-filters button[aria-pressed=true]{background:var(--rn-bg)!important;color:var(--rn-fg)!important;box-shadow:0 1px 2px color-mix(in srgb,#000 10%,transparent)}
+.rnw .rn-profile-card{border:0!important;border-radius:var(--rn-r)!important;background:var(--rn-surface)!important}
 .rnw .rn-profile-evidence,.rnw .rn-profile-card-head>small,.rnw .rn-profile-date{color:var(--rn-sub)!important}
-.rnw .rn-profile-comparison{background:var(--rn-surface)!important}
+.rnw .rn-profile-comparison{background:var(--rn-surface-2)!important}
 .rnw .rn-profile-undo{background:var(--rn-brand-soft)!important;color:var(--rn-brand-text)}
 
 /* ---------- 日历与图表 ---------- */
-.rnw .rn-calendar-wrap,.rnw .rn-annual-card,.rnw .rn-annual-data,.rnw .rn-rule-card{border-color:var(--rn-line)!important;border-radius:14px}
-.rnw .rn-calendar-weekday,.rnw .rn-calendar-cell{border-color:var(--rn-line)!important}
+.rnw .rn-calendar-wrap,.rnw .rn-annual-data{border-color:var(--rn-line)!important;border-radius:var(--rn-r)!important}
+.rnw .rn-annual-card,.rnw .rn-rule-card{border:0!important;border-radius:var(--rn-r)!important;background:var(--rn-surface)}
+.rnw .rn-calendar-weekday,.rnw .rn-calendar-cell{border-color:var(--rn-line-soft)!important}
 .rnw .rn-calendar-cell.empty{background:var(--rn-surface)}
-.rnw .rn-day{transition:background .15s,border-color .15s}
+.rnw .rn-day{border-radius:10px!important;transition:background .15s,border-color .15s}
 .rnw .rn-day:hover{border-color:var(--rn-brand-line)!important}
 .rnw .rn-day[aria-pressed="true"]{border-color:var(--rn-brand)!important;box-shadow:inset 0 0 0 1px var(--rn-brand)}
 .rnw .rn-day-affinity,.rnw .rn-rule-value,.rnw .rn-rule-formula li b{color:var(--rn-brand-text)!important}
 .rnw .rn-rule-value{background:var(--rn-surface-2)!important}
-.rnw .rn-rule-formula li{border-left-color:var(--rn-brand-line)!important}
-.rnw .rn-metric-scale{border-left-color:var(--rn-brand-line)!important}
+.rnw .rn-rule-formula li,.rnw .rn-metric-scale{border-left-color:var(--rn-brand-line)!important}
 .rnw .rn-day-gap{border-color:var(--rn-line)!important}
-.rnw .rn-annual-granularity{border-color:var(--rn-line)!important;background:var(--rn-surface);border-radius:11px!important}
+.rnw .rn-annual-granularity{border:0!important;background:var(--rn-surface-2);border-radius:11px!important;padding:3px!important}
 .rnw .rn-annual-granularity button{border:0!important;border-radius:8px!important;min-width:40px;justify-content:center}
-.rnw .rn-annual-granularity button[aria-pressed=true]{background:var(--rn-bg)!important;color:var(--rn-fg)!important;box-shadow:var(--rn-shadow);border:0}
+.rnw .rn-annual-granularity button[aria-pressed=true]{background:var(--rn-bg)!important;color:var(--rn-fg)!important;box-shadow:0 1px 2px color-mix(in srgb,#000 10%,transparent)}
 .rnw .rn-annual-trend .rn-annual-chart text{font-size:15px!important}
 .rnw .rn-annual-chart line{stroke:var(--rn-line)}
-.rnw .rn-annual-pie-row{background:var(--rn-surface)!important}
+.rnw .rn-annual-pie-row{background:var(--rn-bg)!important}
 .rnw .rn-progress-track{background:var(--rn-surface-2)!important}
 .rnw .rn-progress-fill{background:var(--rn-brand)!important}
 .rnw .rn-progress-value,.rnw .rn-channel-block h4{color:var(--rn-sub)!important}
 
-/* ---------- 会话：去掉硬编码浅色，深色宿主可用 ---------- */
-.rnw .rn-session-pane{border-color:var(--rn-line)!important;background:var(--rn-bg)!important;box-shadow:var(--rn-shadow)}
+/* ---------- 会话 ---------- */
+.rnw .rn-session-pane{border:1px solid var(--rn-line)!important;background:var(--rn-bg)!important;border-radius:var(--rn-r-lg)!important;box-shadow:none}
 .rnw .rn-session-list h3,.rnw .rn-session-contact-copy small,.rnw .rn-session-heading small,.rnw .rn-session-message-meta,.rnw .rn-session-compose-tools label,.rnw .rn-session-status,.rnw .rn-session-stat small,.rnw .rn-session-photo-empty{color:var(--rn-sub)!important}
-.rnw .rn-session-contact{background:var(--rn-brand-soft)!important;border-radius:10px!important}
-.rnw .rn-session-links button{border-radius:8px!important}
+.rnw .rn-session-contact{background:var(--rn-brand-soft)!important;border-radius:12px!important}
+.rnw .rn-session-links button{border-radius:8px!important;border:0!important}
 .rnw .rn-session-avatar{background:var(--rn-brand-soft)!important;color:var(--rn-brand-text)!important;box-shadow:0 0 0 2px var(--rn-bg)}
 .rnw .rn-session-header{gap:8px!important}
 .rnw .rn-session-header>button:nth-of-type(2){margin-left:-18px}
 .rnw .rn-session-header>button:nth-of-type(2) .rn-session-avatar{width:26px;height:26px;flex-basis:26px;font-size:11px;align-self:flex-end;margin-top:14px}
-.rnw .rn-session-header>button:nth-of-type(-n+2){background:transparent!important;min-width:0!important}
+.rnw .rn-session-header>button:nth-of-type(-n+2){background:transparent!important;min-width:0!important;border:0!important}
 .rnw .rn-session-heading strong{font-size:15px!important}
-.rnw .rn-session-history{background:var(--rn-surface)!important;border:1px solid var(--rn-line)}
-.rnw .rn-session-day{background:var(--rn-surface-2)!important;color:var(--rn-sub)!important;font-variant-numeric:tabular-nums}
-.rnw .rn-session-bubble{background:var(--rn-bg)!important;border-color:var(--rn-line)!important;box-shadow:0 1px 1px color-mix(in srgb,#000 4%,transparent)}
-.rnw .rn-session-message.self .rn-session-bubble{background:color-mix(in srgb,var(--rn-brand) 20%,var(--rn-bg))!important;border-color:color-mix(in srgb,var(--rn-brand) 30%,var(--rn-bg))!important}
+.rnw .rn-session-history{background:var(--rn-surface)!important;border:0;border-radius:var(--rn-r-lg)!important}
+.rnw .rn-session-day{background:var(--rn-bg)!important;color:var(--rn-sub)!important;font-variant-numeric:tabular-nums;box-shadow:0 0 0 1px var(--rn-line-soft)}
+.rnw .rn-session-bubble{background:var(--rn-bg)!important;border-color:var(--rn-line-soft)!important;border-radius:4px 16px 16px 16px!important}
+.rnw .rn-session-message.self .rn-session-bubble{background:color-mix(in srgb,var(--rn-brand) 17%,var(--rn-bg))!important;border-color:transparent!important;border-radius:16px 4px 16px 16px!important}
 .rnw .rn-media-placeholder,.rnw .rn-session-message.self .rn-media-placeholder{background:var(--rn-surface-2)!important;color:var(--rn-sub)!important}
 .rnw .rn-session-media{background:var(--rn-surface-2)!important}
-.rnw .rn-session-draft{border-color:var(--rn-brand-line)!important;background:var(--rn-bg)!important}
+.rnw .rn-session-draft{border:1px solid var(--rn-brand-line)!important;background:color-mix(in srgb,var(--rn-brand) 3%,var(--rn-bg))!important;border-radius:var(--rn-r-lg)!important}
 .rnw .rn-session-draft>strong{display:inline-flex;align-items:center;gap:6px;color:var(--rn-brand-text)!important}
 .rnw .rn-session-draft>strong::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rn-brand)}
-.rnw .rn-session-photo{background:var(--rn-surface)!important;border:1px dashed var(--rn-line)}
+.rnw .rn-session-photo{background:var(--rn-surface)!important;border:1px dashed var(--rn-line);border-radius:var(--rn-r-lg)!important}
 .rnw .rn-session-stat{background:var(--rn-surface)!important}
-.rnw .rn-session-details,.rnw .rn-session-exchange{border-top-color:var(--rn-line)!important}
-.rnw .rn-history-toolbar{margin:2px 0}
+.rnw .rn-session-details,.rnw .rn-session-exchange{border-top-color:var(--rn-line-soft)!important}
 .rnw .rn-history-toolbar label{color:var(--rn-sub)}
-.rnw .rn-kbd-hint{font-size:11px;color:var(--rn-sub);margin-left:auto;white-space:nowrap}
 
 /* ---------- 预览聊天、交流记录 ---------- */
-.rnw .rn-chat-preview{background:var(--rn-surface)!important;border-color:var(--rn-line)!important}
-.rnw .rn-chat-title{border-bottom-color:var(--rn-line)!important}
+.rnw .rn-chat-preview{background:var(--rn-surface)!important;border:0!important;border-radius:var(--rn-r-lg)!important}
+.rnw .rn-chat-title{border-bottom-color:var(--rn-line-soft)!important}
 .rnw .rn-chat-avatar{background:var(--rn-surface-2)!important;color:var(--rn-sub)!important}
 .rnw .rn-chat-row.outgoing .rn-chat-avatar{background:var(--rn-brand-soft)!important;color:var(--rn-brand-text)!important}
-.rnw .rn-chat-bubble{background:var(--rn-bg)!important;border-color:var(--rn-line)!important}
-.rnw .rn-chat-row.outgoing .rn-chat-bubble{background:color-mix(in srgb,var(--rn-brand) 20%,var(--rn-bg))!important;border-color:color-mix(in srgb,var(--rn-brand) 30%,var(--rn-bg))!important}
-.rnw .rn-exchange{border-color:var(--rn-line)!important;background:var(--rn-brand-soft)!important}
-.rnw .rn-preview-sections>section,.rnw .rn-media-card{border-color:var(--rn-line)!important}
+.rnw .rn-chat-bubble{background:var(--rn-bg)!important;border-color:var(--rn-line-soft)!important}
+.rnw .rn-chat-row.outgoing .rn-chat-bubble{background:color-mix(in srgb,var(--rn-brand) 17%,var(--rn-bg))!important;border-color:transparent!important}
+.rnw .rn-exchange{border:0!important;background:var(--rn-surface)!important;border-radius:var(--rn-r)!important}
+.rnw .rn-preview-sections>section,.rnw .rn-media-card{border-color:var(--rn-line-soft)!important;border-radius:var(--rn-r)!important}
 
-/* ---------- 行动计划表单 ---------- */
-.rnw .rn-goal-form{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;padding:16px;border:1px solid var(--rn-line);border-radius:14px;background:var(--rn-surface);margin-bottom:12px}
+/* ---------- 行动计划 ---------- */
+.rnw .rn-goal-form{grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;padding:16px;border-radius:var(--rn-r);background:var(--rn-surface);margin-bottom:14px}
 .rnw .rn-goal-form>:first-child{grid-column:1/-1}
 .rnw .rn-goal-form>button{grid-column:1/-1;justify-self:start;min-width:120px;justify-content:center}
-@media(max-width:620px){.rnw .rn-goal-form{grid-template-columns:1fr}}
+.rnw .rn-goal-form input:not([type=checkbox]){background-color:var(--rn-bg)!important}
 
-/* ---------- 证据浮层 ---------- */
-.rn-evidence-overlay{backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:rn-fade .15s ease}
-.rn-evidence-overlay>[role=dialog]{box-shadow:var(--rn-shadow-pop);border:1px solid var(--border,#e3e7e4);animation:rn-pop .18s cubic-bezier(.2,.7,.2,1)}
-@keyframes rn-fade{from{opacity:0}to{opacity:1}}
+/* ---------- 原文浮层 ---------- */
+.rn-evidence-overlay{backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:rn-fade .15s ease}
+.rn-evidence-overlay>[role=dialog]{box-shadow:0 20px 50px color-mix(in srgb,#000 22%,transparent);border:1px solid var(--border,var(--dsw-alias-border-l2,#e3e7e4));border-radius:20px!important;animation:rn-pop .18s cubic-bezier(.2,.7,.2,1)}
 
 /* ---------- 滚动条 ---------- */
 .rnw *{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--rn-fg) 18%,transparent) transparent}
 .rnw ::-webkit-scrollbar{width:10px;height:10px}
 .rnw ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--rn-fg) 16%,transparent);border-radius:10px;border:3px solid transparent;background-clip:content-box}
 
+/* ---------- 手机：底部标签栏、紧凑页头 ---------- */
+@media(max-width:620px){
+ .rnw{padding-bottom:calc(92px + env(safe-area-inset-bottom))!important}
+ .rnw .rn-head{padding-top:10px!important;padding-bottom:10px!important;gap:10px!important}
+ .rnw .rn-identity-avatar{width:38px;height:38px;font-size:16px}
+ .rnw .rn-identity-name{font-size:17px}
+ .rnw .rn-head-tools{gap:6px}
+ .rnw .rn-head-tools label{font-size:0;gap:0!important}
+ .rnw .rn-head-tools label select{width:96px!important;font-size:13px}
+ .rnw .rn-head-tools>button.primary{padding:0 12px!important}
+ .rnw .rn-head-sub{font-size:11.5px}
+ .rnw .rn-pulse{padding:4px 8px!important;gap:6px!important}
+ .rnw .rn-pulse-line{width:56px}
+ .rnw .rn-pulse-copy small{display:none}
+ .rnw .rn-tabs.rn-group-tabs{position:fixed;left:0;right:0;bottom:0;z-index:85;display:grid!important;grid-template-columns:repeat(4,1fr);gap:0!important;margin:0!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;background:color-mix(in srgb,var(--rn-bg) 92%,transparent);backdrop-filter:saturate(1.5) blur(16px);-webkit-backdrop-filter:saturate(1.5) blur(16px);border-top:1px solid var(--rn-line)!important;overflow:visible}
+ .rnw .rn-group-tabs button{flex-direction:column;justify-content:center;gap:3px!important;min-height:52px;padding:6px 2px!important;font-size:11px;border-radius:12px!important}
+ .rnw .rn-group-tabs button[aria-selected=true]{background:transparent!important}
+ .rnw .rn-group-tabs button[aria-selected=true] .rn-icon{background:var(--rn-brand-soft);border-radius:999px;padding:2px 14px;box-sizing:content-box}
+ .rnw .rn-page-head h1{font-size:22px!important;margin-top:16px!important}
+ .rnw .rn-context-tabs button{font-size:13.5px}
+ .rnw .rn-toast{bottom:calc(84px + env(safe-area-inset-bottom))}
+ .rnw .rn-box{border-radius:16px!important}
+ /* 会话工具栏：来源 + 搜索一行，日期 + 最新一行 */
+ .rnw .rn-history-toolbar{grid-template-columns:84px minmax(0,1fr) 64px!important}
+ .rnw .rn-history-toolbar label{font-size:0!important;gap:0!important}
+ .rnw .rn-history-toolbar label select{font-size:13px}
+ .rnw .rn-history-toolbar input[type=search]{grid-column:2/4}
+ .rnw .rn-history-toolbar input[type=date]{grid-column:1/3!important}
+}
 @media (prefers-reduced-motion:reduce){.rnw *,.rn-evidence-overlay,.rn-evidence-overlay *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-@media(max-width:620px){.rnw .rn-head{flex-wrap:wrap;row-gap:8px!important}.rnw .rn-head>div:first-child{flex:1 1 100%}.rnw .rn-head>div:last-child{margin-left:auto}.rnw .rn-group-tabs button{min-width:0;padding:6px 12px!important}.rnw .rn-head h1{font-size:19px!important}.rnw .rn-head label>span,.rnw .rn-head label{font-size:0}.rnw .rn-head label select{font-size:13px;width:128px!important}}
 `;
   var SESSION_LAYOUT_CSS = `
 .rnw #rn-panel .right-hidden .rn-session{grid-template-columns:160px minmax(0,1fr)!important;grid-template-areas:"list main"!important}
@@ -36198,24 +36288,24 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rnw .rn-insight .rn-box{margin:0!important}
 .rnw .rn-tag{display:inline-flex;align-items:center;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:650;line-height:1.7;white-space:nowrap;vertical-align:middle}
 .rnw .rn-tag-fact{background:var(--rn-surface-2);color:var(--rn-fg);border:1px solid var(--rn-line)}
-.rnw .rn-tag-ai{background:color-mix(in srgb,#3b6fd8 14%,var(--rn-bg));color:color-mix(in srgb,#3b6fd8 80%,var(--rn-fg))}
-.rnw .rn-tag-inference{background:color-mix(in srgb,#b7791f 16%,var(--rn-bg));color:color-mix(in srgb,#b7791f 85%,var(--rn-fg))}
+.rnw .rn-tag-ai{background:color-mix(in srgb,var(--rn-ai) 13%,var(--rn-bg));color:color-mix(in srgb,var(--rn-ai) 82%,var(--rn-fg))}
+.rnw .rn-tag-inference{background:color-mix(in srgb,var(--rn-amber) 15%,var(--rn-bg));color:color-mix(in srgb,var(--rn-amber) 85%,var(--rn-fg))}
 .rnw .rn-insight-alert{padding:14px 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--rn-danger) 40%,var(--rn-bg));background:var(--rn-danger-soft)}
-.rnw .rn-insight-alert.soft{border-color:color-mix(in srgb,#b7791f 40%,var(--rn-bg));background:color-mix(in srgb,#b7791f 10%,var(--rn-bg))}
+.rnw .rn-insight-alert.soft{border-color:color-mix(in srgb,var(--rn-amber) 40%,var(--rn-bg));background:color-mix(in srgb,var(--rn-amber) 10%,var(--rn-bg))}
 .rnw .rn-insight-alert p{margin:4px 0 0}
 .rnw .rn-insight-hero-main{display:grid;grid-template-columns:minmax(200px,1fr) minmax(0,1.6fr);gap:20px;align-items:start}
 .rnw .rn-insight-score{display:flex;align-items:baseline;gap:6px;margin:4px 0}
-.rnw .rn-insight-score strong{font-size:48px;line-height:1;font-weight:700;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--rn-brand-text)}
+.rnw .rn-insight-score strong{font-family:var(--rn-font-num);font-size:60px;line-height:1;font-weight:600;letter-spacing:-1px;font-variant-numeric:lining-nums tabular-nums;color:var(--rn-pulse-text)}
 .rnw .rn-insight-score span{color:var(--rn-sub)}
 .rnw .rn-insight-facts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.rnw .rn-insight-facts li{display:grid;gap:2px;padding:12px 14px;border:1px solid var(--rn-line);border-radius:12px;background:var(--rn-surface)}
+.rnw .rn-insight-facts li{display:grid;gap:3px;padding:14px 16px;border-radius:var(--rn-r);background:var(--rn-bg)}
 .rnw .rn-insight-facts li>span{font-size:12px;color:var(--rn-sub)}
-.rnw .rn-insight-facts li>strong{font-size:17px}
+.rnw .rn-insight-facts li>strong{font-size:17px;font-weight:700}
 .rnw .rn-insight-facts li>small{color:var(--rn-sub);font-size:11.5px;line-height:1.5}
 .rnw .rn-tone-up{color:var(--rn-brand-text)!important}
 .rnw .rn-tone-down{color:var(--rn-danger)!important}
 .rnw .rn-tone-flat{color:var(--rn-fg)}
-.rnw .rn-insight-actions{display:grid;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--rn-line)}
+.rnw .rn-insight-actions{display:grid;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--rn-brand-line)}
 .rnw .rn-insight-actions>button{justify-self:start}
 .rnw .rn-insight-progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .rnw .rn-insight-legend{margin:0;font-size:12px;color:var(--rn-sub);line-height:2}
@@ -36223,17 +36313,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rnw .rn-insight-chart{display:block;width:100%;height:auto;max-height:280px}
 .rnw .rn-insight-grid{stroke:var(--rn-line);stroke-width:1}
 .rnw .rn-insight-axis{fill:var(--rn-sub);font-size:11px;font-family:inherit}
-.rnw .rn-insight-band{fill:color-mix(in srgb,var(--rn-brand) 14%,transparent)}
-.rnw .rn-insight-line{fill:none;stroke:var(--rn-brand);stroke-width:2}
+.rnw .rn-insight-band{fill:color-mix(in srgb,var(--rn-pulse) 13%,transparent)}
+.rnw .rn-insight-line{fill:none;stroke:var(--rn-pulse);stroke-width:2.2;stroke-linejoin:round}
 .rnw .rn-insight-ewma{fill:none;stroke:var(--rn-fg);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55}
-.rnw .rn-insight-cp{stroke:#b7791f;stroke-width:1.5;stroke-dasharray:3 3}
-.rnw .rn-insight-dot{fill:var(--rn-bg);stroke:var(--rn-brand);stroke-width:2;cursor:pointer}
-.rnw .rn-insight-dot.selected{fill:var(--rn-brand)}
+.rnw .rn-insight-cp{stroke:var(--rn-amber);stroke-width:1.5;stroke-dasharray:3 3}
+.rnw .rn-insight-dot{fill:var(--rn-bg);stroke:var(--rn-pulse);stroke-width:2;cursor:pointer}
+.rnw .rn-insight-dot.selected{fill:var(--rn-pulse)}
 .rnw .rn-insight-dot:focus-visible{outline:none;stroke-width:4}
 .rnw .rn-insight-gap{fill:none;stroke:var(--rn-sub);stroke-dasharray:2 2}
 .rnw .rn-insight-chart-legend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:6px 0 0;font-size:12px;color:var(--rn-sub)}
 .rnw .rn-insight-chart-legend .sw{display:inline-block;width:16px;height:3px;border-radius:2px;margin-left:6px}
-.rnw .sw.line{background:var(--rn-brand)}.rnw .sw.band{height:10px;background:color-mix(in srgb,var(--rn-brand) 18%,transparent)}.rnw .sw.ewma{background:repeating-linear-gradient(90deg,var(--rn-fg) 0 4px,transparent 4px 7px);opacity:.6}.rnw .sw.cp{width:3px;height:12px;background:#b7791f}.rnw .sw.gap{width:7px;height:7px;border:1px dashed var(--rn-sub);border-radius:50%}
+.rnw .sw.line{background:var(--rn-pulse)}.rnw .sw.band{height:10px;background:color-mix(in srgb,var(--rn-pulse) 18%,transparent)}.rnw .sw.ewma{background:repeating-linear-gradient(90deg,var(--rn-fg) 0 4px,transparent 4px 7px);opacity:.6}.rnw .sw.cp{width:3px;height:12px;background:var(--rn-amber)}.rnw .sw.gap{width:7px;height:7px;border:1px dashed var(--rn-sub);border-radius:50%}
 .rnw .rn-insight-phases{display:grid;gap:8px;margin:14px 0 0;padding-left:20px}
 .rnw .rn-insight-phases li>div{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
 .rnw .rn-insight-phases small{color:var(--rn-sub)}
@@ -36241,35 +36331,36 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rnw .rn-insight-week-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:-4px 0 12px;font-size:12.5px;color:var(--rn-sub)}
 .rnw .rn-insight-week-pick{flex-direction:row!important;align-items:center;margin-left:auto}
 .rnw .rn-insight-week-pick select{width:auto;min-width:170px}
-.rnw .rn-insight-summary{padding:12px 14px;margin-bottom:12px;border-radius:12px;background:color-mix(in srgb,#3b6fd8 6%,var(--rn-bg));border:1px solid color-mix(in srgb,#3b6fd8 18%,var(--rn-bg))}
+.rnw .rn-insight-summary{padding:14px 16px;margin-bottom:14px;border-radius:var(--rn-r);background:color-mix(in srgb,var(--rn-ai) 6%,var(--rn-bg))}
 .rnw .rn-insight-summary p{margin:6px 0 0}
 .rnw .rn-insight-dims{display:grid;gap:8px}
-.rnw .rn-insight-dim{border:1px solid var(--rn-line);border-radius:12px;background:var(--rn-bg);overflow:hidden}
+.rnw .rn-insight-dim{border:1px solid var(--rn-line-soft);border-radius:var(--rn-r);background:var(--rn-bg);overflow:hidden;transition:border-color .15s}
+.rnw .rn-insight-dim:hover{border-color:var(--rn-line)}
 .rnw .rn-insight-dim.open{border-color:var(--rn-brand-line)}
 .rnw .rn-insight-dim-head{display:grid!important;grid-template-columns:96px minmax(80px,1fr) 40px 250px;align-items:center;gap:6px 14px;width:100%;padding:10px 14px!important;border:0!important;border-radius:0!important;text-align:left;background:transparent}
 .rnw .rn-insight-dim-name{font-weight:650}
-.rnw .rn-insight-dim-val{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.rnw .rn-insight-dim-val{font-family:var(--rn-font-num);font-size:17px;font-weight:600;font-variant-numeric:lining-nums tabular-nums;text-align:right}
 .rnw .rn-insight-dim-meta{font-size:11.5px;color:var(--rn-sub);white-space:nowrap;text-align:right;overflow:hidden;text-overflow:ellipsis}
-.rnw .rn-insight-flag{grid-column:1/-1;justify-self:start;font-size:11.5px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,#b7791f 14%,var(--rn-bg));color:color-mix(in srgb,#b7791f 85%,var(--rn-fg))}
+.rnw .rn-insight-flag{grid-column:1/-1;justify-self:start;font-size:11.5px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--rn-amber) 14%,var(--rn-bg));color:color-mix(in srgb,var(--rn-amber) 85%,var(--rn-fg))}
 .rnw .rn-insight-bar{position:relative;height:8px;border-radius:99px;background:var(--rn-surface-2)}
 .rnw .rn-insight-bar>i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--rn-brand)}
 .rnw .rn-insight-bar.friction>i{background:var(--rn-danger)}
 .rnw .rn-insight-tick{position:absolute;top:-4px;width:2px;height:16px;border-radius:1px;transform:translateX(-1px)}
 .rnw .rn-insight-tick.rule{background:var(--rn-fg);opacity:.55}
-.rnw .rn-insight-tick.ai{background:#3b6fd8}
+.rnw .rn-insight-tick.ai{background:var(--rn-ai)}
 .rnw .rn-insight-dim-body{padding:4px 14px 14px;border-top:1px solid var(--rn-line)}
 .rnw .rn-insight-method{margin:6px 0 10px;font-size:12.5px}
 .rnw .rn-insight-refs{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--rn-sub)}
 .rnw .rn-insight-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .rnw .rn-insight-columns h4{display:flex;align-items:center;gap:6px;margin:6px 0 8px;font-size:12.5px}
 .rnw .rn-insight-quotes{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.rnw .rn-insight-quote{padding:10px 12px;border:1px solid var(--rn-line);border-radius:10px;background:var(--rn-surface)}
+.rnw .rn-insight-quote{padding:12px 14px;border:0;border-radius:12px;background:var(--rn-surface)}
 .rnw .rn-insight-quote-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
 .rnw .rn-insight-quote-head small{color:var(--rn-sub)}
 .rnw .rn-insight-quote blockquote{margin:6px 0}
 .rnw .rn-insight-note,.rnw .rn-insight-count{margin:4px 0;font-size:12.5px}
 .rnw .rn-insight-open{font-size:12px;padding:2px 12px!important;border-radius:999px!important;color:var(--rn-brand-text);border-color:var(--rn-brand-line)!important;background:transparent}
-.rnw .rn-insight-inference{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px dashed color-mix(in srgb,#b7791f 45%,var(--rn-bg));background:color-mix(in srgb,#b7791f 7%,var(--rn-bg))}
+.rnw .rn-insight-inference{margin-top:10px;padding:12px 14px;border-radius:12px;border:1px dashed color-mix(in srgb,var(--rn-amber) 45%,var(--rn-bg));background:color-mix(in srgb,var(--rn-amber) 7%,var(--rn-bg))}
 .rnw .rn-insight-inference>div{display:flex;align-items:center;gap:8px}
 .rnw .rn-insight-inference small{color:var(--rn-sub)}
 .rnw .rn-insight-inference p{margin:6px 0 0}
@@ -36278,7 +36369,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 .rnw .rn-insight-about table{margin:8px 0;font-size:12.5px}
 .rnw .rn-insight-about li{margin:6px 0;font-size:12.5px;line-height:1.7}
 @media(max-width:620px){.rnw .rn-insight-axis{font-size:20px}.rnw .rn-insight-chart{max-height:none}}
-@media(max-width:760px){.rnw .rn-insight-hero-main,.rnw .rn-insight-columns{grid-template-columns:1fr}.rnw .rn-insight-dim-head{grid-template-columns:80px minmax(60px,1fr) 34px}.rnw .rn-insight-dim-meta{grid-column:1/-1;white-space:normal;text-align:left}.rnw .rn-insight-week-pick{margin-left:0}.rnw .rn-insight-score strong{font-size:40px}}
+@media(max-width:760px){.rnw .rn-insight-facts{grid-template-columns:1fr;gap:6px}.rnw .rn-insight-facts li{grid-template-columns:1fr auto;align-items:baseline;padding:10px 14px}.rnw .rn-insight-facts li>small{grid-column:1/-1}.rnw .rn-insight-facts li>strong{font-size:15px}.rnw .rn-insight-hero-main,.rnw .rn-insight-columns{grid-template-columns:1fr}.rnw .rn-insight-dim-head{grid-template-columns:80px minmax(60px,1fr) 34px}.rnw .rn-insight-dim-meta{grid-column:1/-1;white-space:normal;text-align:left}.rnw .rn-insight-week-pick{margin-left:0}.rnw .rn-insight-score strong{font-size:40px}}
 `;
 
   // src/workspace-media.js
@@ -36552,7 +36643,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 ` + THEME_CSS + SESSION_LAYOUT_CSS + INSIGHT_CSS;
   var hostCss = adaptHostTokens(css);
   function createPlugin(React2, E, dictionaries) {
-    const ScoringBasisView = E.createScoringBasisView(React2, E), AutoAnalysisStatusView = E.createAutoAnalysisStatusView(React2), InterpretationView = E.createInterpretationView(React2), EvidenceContextView = E.createEvidenceContextView(React2, E), ProfileLifecycleView = E.createProfileLifecycleView(React2, E), ReplyFeedbackView = E.createReplyFeedbackView(React2, E), TopicSuggestionsView = E.createTopicSuggestionsView(React2, E), PeriodReviewView = E.createPeriodReviewView(React2, E), ShareScopeView = E.createShareScopeView(React2, E), SelfPlanView = E.createSelfPlanView(React2, E), RelationStageView = E.createRelationStageView(React2, E), RelationshipInsightView = E.createRelationshipInsightView(React2, E);
+    const ScoringBasisView = E.createScoringBasisView(React2, E), AutoAnalysisStatusView = E.createAutoAnalysisStatusView(React2), InterpretationView = E.createInterpretationView(React2), EvidenceContextView = E.createEvidenceContextView(React2, E), ProfileLifecycleView = E.createProfileLifecycleView(React2, E), ReplyFeedbackView = E.createReplyFeedbackView(React2, E), TopicSuggestionsView = E.createTopicSuggestionsView(React2, E), PeriodReviewView = E.createPeriodReviewView(React2, E), ShareScopeView = E.createShareScopeView(React2, E), SelfPlanView = E.createSelfPlanView(React2, E), RelationStageView = E.createRelationStageView(React2, E), RelationshipInsightView = E.createRelationshipInsightView(React2, E), Icon = E.createIcon(React2);
     const h = React2.createElement, id = "local-relationship-notes", emptyMessages = [];
     const localFileUrl = createMediaUrls(), mediaLabels = MEDIA_LABELS, messageMediaKind = mediaKind;
     let pdfWorkerUrl = "";
@@ -36784,7 +36875,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       function StartGuide() {
         const loadSample = () => importFile(new File([E.sampleChat], "示例对话.txt", { type: "text/plain" }), true);
         const steps = [["导入聊天", "从微信 / QQ 导出文件选择，或粘贴 TXT / JSON 文本。", () => nav("import", "file"), "导入聊天", "primary"], ["确认身份", "指定哪位是你、哪位是联系人；只有双方消息进入分析。", () => nav("import", "identity"), "确认身份", ""], ["查看评分与时间线", "完成后查看互动评分、每日历程与可行动线索。", () => nav("behavior", "metrics"), "查看评分与时间线", ""]];
-        return h("section", { className: "rn-empty", "aria-label": "三步开始" }, h("h2", null, "三步开始"), muted("还没有聊天记录。按下面三步完成首次配置，所有数据只保存在本机。"), h("ol", { className: "rn-onboarding-steps", style: { display: "grid", gap: 12, margin: "16px 0", paddingLeft: 20, textAlign: "left" } }, ...steps.map(([title, body, action, label, className], index) => h("li", { key: title }, h("strong", null, index + 1 + ". " + title), muted(body), button(label, action, { className })))), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, button("载入内置示例聊天（虚构）", loadSample)), muted("示例联系人会带「虚构示例」标记，不参与自动分析；随时可以在设置里删除。"));
+        return h("section", { className: "rn-empty", "aria-label": "三步开始" }, h("h2", null, "三步开始"), muted("还没有聊天记录。按下面三步完成首次配置，所有数据只保存在本机。"), h("ol", { className: "rn-onboarding-steps", style: { display: "grid", gap: 12, margin: "16px 0", paddingLeft: 20, textAlign: "left" } }, ...steps.map(([title, body, action, label, className], index) => h("li", { key: title }, h("strong", null, title), muted(body), button(label, action, { className })))), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, button("载入内置示例聊天（虚构）", loadSample)), muted("示例联系人会带「虚构示例」标记，不参与自动分析；随时可以在设置里删除。"));
       }
       async function parsePdfFile(file) {
         if (typeof pdf_exports === "undefined") throw new Error("PDF 解析组件未加载，请重新构建关系手记。");
@@ -37498,14 +37589,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
           if (scoreSegment.length) scoreSegments.push(scoreSegment);
           const scoreGrid = [scoreLow, Math.round((scoreLow + scoreHigh) / 2), scoreHigh].map((value) => h("g", { key: "score-grid-" + value }, h("line", { x1: 46, y1: scoreY(value), x2: 704, y2: scoreY(value), stroke: "#e7ece8" }), h("text", { x: 34, y: scoreY(value) + 5, textAnchor: "end" }, value)));
-          const scorePaths = scoreSegments.filter((segment) => segment.length > 1).map((segment, index) => h("path", { key: "score-line-" + index, d: segment.map((point, position) => (position ? "L" : "M") + chartX(point.index) + " " + scoreY(point.value)).join(" "), fill: "none", stroke: "#68aa70", strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" }));
-          const scorePoints = buckets.map((bucket, index) => bucket.averageAffinity === null ? null : h("circle", { key: "score-point-" + index, ...bucketActions(bucket), cx: chartX(index), cy: scoreY(bucket.averageAffinity), r: granularity === "day" ? 2.2 : 4, fill: "#68aa70" }, h("title", null, bucket.label + "：" + bucket.averageAffinity + " 分" + (bucket.scoreDays > 1 ? " · " + bucket.scoreDays + " 个有效记录日" : "") + (bucket.turns ? " · 对方 " + bucket.turns + " 个回合" : "")))).filter(Boolean);
+          const scorePaths = scoreSegments.filter((segment) => segment.length > 1).map((segment, index) => h("path", { key: "score-line-" + index, d: segment.map((point, position) => (position ? "L" : "M") + chartX(point.index) + " " + scoreY(point.value)).join(" "), fill: "none", stroke: "var(--rn-chart-line,#68aa70)", strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" }));
+          const scorePoints = buckets.map((bucket, index) => bucket.averageAffinity === null ? null : h("circle", { key: "score-point-" + index, ...bucketActions(bucket), cx: chartX(index), cy: scoreY(bucket.averageAffinity), r: granularity === "day" ? 2.2 : 4, fill: "var(--rn-chart-line,#68aa70)" }, h("title", null, bucket.label + "：" + bucket.averageAffinity + " 分" + (bucket.scoreDays > 1 ? " · " + bucket.scoreDays + " 个有效记录日" : "") + (bucket.turns ? " · 对方 " + bucket.turns + " 个回合" : "")))).filter(Boolean);
           const labelStep = Math.max(1, Math.ceil(buckets.length / (granularity === "day" ? 7 : 10))), labelIndexes = buckets.map((_, index) => index).filter((index) => granularity === "month" || index === 0 || index === buckets.length - 1 || index % labelStep === 0), axisLabel = (label) => granularity === "day" ? Number(label.slice(5, 7)) + "/" + Number(label.slice(8, 10)) : label.replace(" 月", "").replace(" 年", "");
           const scoreLabels = labelIndexes.map((index) => h("text", { key: "score-label-" + index, x: chartX(index), y: 278, textAnchor: "middle" }, axisLabel(buckets[index].label)));
-          const scoreValueLabels = buckets.map((b, i) => b.averageAffinity === null || granularity === "day" && !labelIndexes.includes(i) ? null : h("text", { key: "score-value-" + i, x: chartX(i), y: scoreY(b.averageAffinity) - 9, textAnchor: "middle", fontSize: granularity === "day" ? 10 : 11, fontWeight: 600, fill: "#3f5f45" }, b.averageAffinity)).filter(Boolean);
-          const gapIndexes = buckets.map((bucket, index) => bucket.averageAffinity === null ? index : -1).filter((index) => index >= 0), gapMarkers = gapIndexes.map((index) => h("g", { key: "score-gap-" + index }, h("circle", { cx: chartX(index), cy: 290, r: 3.6, fill: "#fff", stroke: "#9db3a4", strokeWidth: 1.4, strokeDasharray: "2 2" }, h("title", null, buckets[index].label + "：" + (scoreBucketState(buckets[index]) === "gap" ? "无记录（缺口），不代表分数下降" : "有记录但暂无评分线索"))))), scoreStats = scoreValues.length ? Math.min(...scoreValues) + "–" + Math.max(...scoreValues) : "暂无", scoreSummary = "共 " + buckets.length + " 个时段，有记录 " + (buckets.length - gapIndexes.length) + " 个、均分 " + scoreStats + "，" + gapIndexes.length + " 个无记录（缺口不代表分数下降）";
+          const scoreValueLabels = buckets.map((b, i) => b.averageAffinity === null || granularity === "day" && !labelIndexes.includes(i) ? null : h("text", { key: "score-value-" + i, x: chartX(i), y: scoreY(b.averageAffinity) - 9, textAnchor: "middle", fontSize: granularity === "day" ? 10 : 11, fontWeight: 600, fill: "var(--rn-chart-text,#3f5f45)" }, b.averageAffinity)).filter(Boolean);
+          const gapIndexes = buckets.map((bucket, index) => bucket.averageAffinity === null ? index : -1).filter((index) => index >= 0), gapMarkers = gapIndexes.map((index) => h("g", { key: "score-gap-" + index }, h("circle", { cx: chartX(index), cy: 290, r: 3.6, fill: "var(--rn-bg,#fff)", stroke: "#9db3a4", strokeWidth: 1.4, strokeDasharray: "2 2" }, h("title", null, buckets[index].label + "：" + (scoreBucketState(buckets[index]) === "gap" ? "无记录（缺口），不代表分数下降" : "有记录但暂无评分线索"))))), scoreStats = scoreValues.length ? Math.min(...scoreValues) + "–" + Math.max(...scoreValues) : "暂无", scoreSummary = "共 " + buckets.length + " 个时段，有记录 " + (buckets.length - gapIndexes.length) + " 个、均分 " + scoreStats + "，" + gapIndexes.length + " 个无记录（缺口不代表分数下降）";
           const scoreGraphic = h("svg", { className: "rn-annual-chart", viewBox: "0 0 720 300", role: "img", "aria-labelledby": "rn-score-chart-title rn-score-chart-desc", "aria-label": scopeLabel + periodLabel + "好感线索分趋势：" + scoreSummary }, h("title", { id: "rn-score-chart-title" }, scopeLabel + periodLabel + "好感线索分趋势"), h("desc", { id: "rn-score-chart-desc" }, scoreSummary), ...scoreGrid, ...scorePaths, ...scoreValueLabels, ...scorePoints, ...gapMarkers, ...scoreLabels);
-          const scoreLegend = h("div", { className: "rn-annual-note" }, h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "#68aa70" } }), "实心点与实线：有记录时段的均分，低分同样是实线"), h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-bg)", border: "1px dashed #9db3a4" } }), "空心点：无记录（缺口）"), h("span", null, "缺口 = 该时段没有聊天记录，不代表分数下降。"));
+          const scoreLegend = h("div", { className: "rn-annual-note" }, h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-line,#68aa70)" } }), "实心点与实线：有记录时段的均分，低分同样是实线"), h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-bg)", border: "1px dashed #9db3a4" } }), "空心点：无记录（缺口）"), h("span", null, "缺口 = 该时段没有聊天记录，不代表分数下降。"));
           const barMax = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.self, bucket.target))), barTop = 30, barHeight = 210, barBottom = barTop + barHeight, barTicks = [.../* @__PURE__ */ new Set([0, Math.round(barMax / 2), barMax])], slot = buckets.length > 1 ? chartWidth / (buckets.length - 1) : chartWidth, barWidth = Math.max(2, Math.min(16, slot * 0.34));
           const barGrid = barTicks.map((value) => {
             const y = barBottom - value / barMax * barHeight;
@@ -37513,7 +37604,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           });
           const barGroups = buckets.map((bucket, index) => {
             const center = chartX(index), selfHeight = bucket.self / barMax * barHeight, targetHeight = bucket.target / barMax * barHeight;
-            return h("g", { key: "bar-period-" + index, ...bucketActions(bucket) }, h("rect", { x: center - barWidth - 1, y: barBottom - selfHeight, width: barWidth, height: selfHeight, rx: 2, fill: "#8acb8e" }, h("title", null, bucket.label + " " + contact.self + "：" + bucket.self + " 条")), h("rect", { x: center + 1, y: barBottom - targetHeight, width: barWidth, height: targetHeight, rx: 2, fill: "#8da3b3" }, h("title", null, bucket.label + " " + contact.target + "：" + bucket.target + " 条")), bucket.self || bucket.target ? h("text", { x: center - barWidth / 2 - 1, y: barBottom - selfHeight - 4, textAnchor: "middle", fontSize: 8.5, fill: "#4d8f55" }, bucket.self) : null, bucket.self || bucket.target ? h("text", { x: center + barWidth / 2 + 1, y: barBottom - targetHeight - 4, textAnchor: "middle", fontSize: 8.5, fill: "#5b7285" }, bucket.target) : null, labelIndexes.includes(index) && h("text", { x: center, y: 278, textAnchor: "middle" }, axisLabel(bucket.label)));
+            return h("g", { key: "bar-period-" + index, ...bucketActions(bucket) }, h("rect", { x: center - barWidth - 1, y: barBottom - selfHeight, width: barWidth, height: selfHeight, rx: 2, fill: "var(--rn-chart-self,#8acb8e)" }, h("title", null, bucket.label + " " + contact.self + "：" + bucket.self + " 条")), h("rect", { x: center + 1, y: barBottom - targetHeight, width: barWidth, height: targetHeight, rx: 2, fill: "var(--rn-chart-target,#8da3b3)" }, h("title", null, bucket.label + " " + contact.target + "：" + bucket.target + " 条")), bucket.self || bucket.target ? h("text", { x: center - barWidth / 2 - 1, y: barBottom - selfHeight - 4, textAnchor: "middle", fontSize: 8.5, fill: "var(--rn-chart-line-strong,#4d8f55)" }, bucket.self) : null, bucket.self || bucket.target ? h("text", { x: center + barWidth / 2 + 1, y: barBottom - targetHeight - 4, textAnchor: "middle", fontSize: 8.5, fill: "var(--rn-chart-target-text,#5b7285)" }, bucket.target) : null, labelIndexes.includes(index) && h("text", { x: center, y: 278, textAnchor: "middle" }, axisLabel(bucket.label)));
           });
           const barGraphic = h("svg", { className: "rn-annual-chart", viewBox: "0 0 720 300", role: "img", "aria-labelledby": "rn-bar-chart-title rn-bar-chart-desc", "aria-label": scopeLabel + periodLabel + "双方消息量柱状图：绿色为" + contact.self + "，蓝色为" + contact.target }, h("title", { id: "rn-bar-chart-title" }, scopeLabel + periodLabel + "双方消息量"), h("desc", { id: "rn-bar-chart-desc" }, "每个时段两根柱，绿色为" + contact.self + "的消息条数，蓝色为" + contact.target + "的消息条数。"), ...barGrid, ...barGroups);
           const selfTotal = buckets.reduce((sum, bucket) => sum + bucket.self, 0), targetTotal = buckets.reduce((sum, bucket) => sum + bucket.target, 0), shareTotal = selfTotal + targetTotal, pieCenterX = 120, pieCenterY = 86, pieRadius = 62;
@@ -37524,14 +37615,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             return "M " + pieCenterX + " " + pieCenterY + " L " + x1 + " " + y1 + " A " + pieRadius + " " + pieRadius + " 0 " + (fraction > 0.5 ? 1 : 0) + " 1 " + x2 + " " + y2 + " Z";
           };
           const selfShare = shareTotal ? selfTotal / shareTotal : 0, targetStart = -Math.PI / 2 + selfShare * Math.PI * 2;
-          const pieGraphic = shareTotal ? h("svg", { className: "rn-annual-chart", viewBox: "0 0 240 172", role: "img", "aria-labelledby": "rn-pie-chart-title rn-pie-chart-desc", "aria-label": scopeLabel + "双方消息占比：" + contact.self + " " + Math.round(selfTotal / shareTotal * 100) + "%，" + contact.target + " " + Math.round(targetTotal / shareTotal * 100) + "%" }, h("title", { id: "rn-pie-chart-title" }, scopeLabel + "双方消息占比"), h("desc", { id: "rn-pie-chart-desc" }, "圆形图按消息条数拆分：" + contact.self + " " + selfTotal.toLocaleString() + " 条，" + contact.target + " " + targetTotal.toLocaleString() + " 条。"), selfTotal > 0 && h("path", { d: piePath(selfShare, -Math.PI / 2), fill: "#8acb8e" }), targetTotal > 0 && h("path", { d: piePath(targetTotal / shareTotal, targetStart), fill: "#8da3b3" })) : muted("当前范围暂无双方消息。");
-          const pieLegend = h("div", { className: "rn-annual-pie-legend" }, [[contact.self, selfTotal, "#8acb8e"], [contact.target, targetTotal, "#8da3b3"]].map(([name, count, color]) => h("div", { className: "rn-annual-pie-row", key: name }, h("span", { className: "rn-annual-swatch", style: { background: color } }), h("span", null, name), h("strong", null, shareTotal ? Math.round(count / shareTotal * 100) + "%" : "—"), h("small", null, count.toLocaleString() + " 条"))));
+          const pieGraphic = shareTotal ? h("svg", { className: "rn-annual-chart", viewBox: "0 0 240 172", role: "img", "aria-labelledby": "rn-pie-chart-title rn-pie-chart-desc", "aria-label": scopeLabel + "双方消息占比：" + contact.self + " " + Math.round(selfTotal / shareTotal * 100) + "%，" + contact.target + " " + Math.round(targetTotal / shareTotal * 100) + "%" }, h("title", { id: "rn-pie-chart-title" }, scopeLabel + "双方消息占比"), h("desc", { id: "rn-pie-chart-desc" }, "圆形图按消息条数拆分：" + contact.self + " " + selfTotal.toLocaleString() + " 条，" + contact.target + " " + targetTotal.toLocaleString() + " 条。"), selfTotal > 0 && h("path", { d: piePath(selfShare, -Math.PI / 2), fill: "var(--rn-chart-self,#8acb8e)" }), targetTotal > 0 && h("path", { d: piePath(targetTotal / shareTotal, targetStart), fill: "var(--rn-chart-target,#8da3b3)" })) : muted("当前范围暂无双方消息。");
+          const pieLegend = h("div", { className: "rn-annual-pie-legend" }, [[contact.self, selfTotal, "var(--rn-chart-self,#8acb8e)"], [contact.target, targetTotal, "var(--rn-chart-target,#8da3b3)"]].map(([name, count, color]) => h("div", { className: "rn-annual-pie-row", key: name }, h("span", { className: "rn-annual-swatch", style: { background: color } }), h("span", null, name), h("strong", null, shareTotal ? Math.round(count / shareTotal * 100) + "%" : "—"), h("small", null, count.toLocaleString() + " 条"))));
           const granularityOptions = [["day", "日"], ["month", "月"], ["year", "年"]].map(([key, label]) => button(label, () => setGranularity(key), { key, "aria-pressed": granularity === key }));
           const selectedRange = granularity === "year" ? yearlyBuckets.length + " 个年份" : annualDays.length + " 个有记录日 · " + annualDays.filter((day) => day.affinityScore !== null).length + " 天出现新评分线索";
           const periodRows = buckets.map((bucket, index) => h("tr", { key: "period-row-" + index }, h("td", null, button(bucket.label, () => selectBucket(bucket), { disabled: !bucket.messages })), h("td", null, bucket.self.toLocaleString()), h("td", null, bucket.target.toLocaleString()), h("td", null, bucket.messages.toLocaleString()), h("td", null, bucket.averageAffinity === null ? "—" : bucket.averageAffinity), h("td", null, bucket.scoreDays.toLocaleString())));
           const fullTable = h("details", { className: "rn-annual-data" }, h("summary", null, "查看完整数据表（" + buckets.length + " 行）"), h("div", { className: "rn-annual-data-scroll" }, h("table", null, h("thead", null, h("tr", null, ...["日期 / 时段", contact.self, contact.target, "双方消息", "好感线索分", "评分记录日"].map((label, index) => h("th", { key: "data-head-" + index }, label)))), h("tbody", null, ...periodRows))));
           const scoreAverage = scoreValues.length ? Math.round(scoreValues.reduce((sum, value) => sum + value, 0) / scoreValues.length) : null, keyFigures = h("div", { className: "rn-metrics rn-annual-figures" }, ...[[annualDays.length + " 天", "有记录日"], [annualDays.reduce((sum, day) => sum + day.messages.length, 0).toLocaleString() + " 条", "双方消息"], [scoreAverage === null ? "—" : scoreAverage + " / 100", "互动投入均分"], [gapIndexes.length + " 个", "无记录时段（缺口）"]].map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value))));
-          const buildAnnualPanel = () => box("好感度与互动趋势", h("div", { className: "rn-annual-head" }, muted(selectedRange), h("div", { className: "rn-annual-controls" }, h("div", { className: "rn-annual-granularity", "aria-label": "图表时间粒度" }, ...granularityOptions), granularity !== "year" && select("年份", chartYear, yearSelectOptions, setYear))), keyFigures, h("div", { className: "rn-annual-top" }, h("section", { className: "rn-annual-card rn-annual-trend" }, h("h3", null, periodLabel + "好感线索分趋势"), muted(granularity === "day" ? "按每日记录显示；无新线索时沿用最近一次评分；缺口=无记录，不代表分数下降" : granularity === "month" ? "按有聊天日期计算月均；无新线索时沿用最近一次评分；缺口=无记录，不代表分数下降" : "按每年有聊天日期计算年均；无新线索时沿用最近一次评分；缺口=无记录，不代表分数下降"), buckets.some((bucket) => bucket.averageAffinity !== null) ? scoreGraphic : muted("当前范围暂无可用评分线索。"), scoreLegend), h("section", { className: "rn-annual-card" }, h("h3", null, periodLabel + "双方消息量"), h("div", { className: "rn-annual-legend" }, h("span", { className: "rn-annual-legend-item" }, h("i", { className: "rn-annual-swatch", style: { background: "#8acb8e" } }), contact.self), h("span", { className: "rn-annual-legend-item" }, h("i", { className: "rn-annual-swatch", style: { background: "#8da3b3" } }), contact.target)), barGraphic)), h("details", { className: "rn-more", open: moreOpen, onToggle: (e) => setMoreOpen(e.currentTarget.open) }, h("summary", null, "展开更多分析（消息占比 · 完整数据表 · 每日日历）"), h("div", { className: "rn-annual-grid" }, h("section", { className: "rn-annual-card rn-annual-pie-card" }, h("h3", null, "当前范围消息占比"), pieGraphic, pieLegend), fullTable), h("div", { className: "rn-calendar-detail-layout" }, calendar, h("aside", { className: "rn-calendar-detail-panel" }, details))));
+          const buildAnnualPanel = () => box("好感度与互动趋势", h("div", { className: "rn-annual-head" }, muted(selectedRange), h("div", { className: "rn-annual-controls" }, h("div", { className: "rn-annual-granularity", "aria-label": "图表时间粒度" }, ...granularityOptions), granularity !== "year" && select("年份", chartYear, yearSelectOptions, setYear))), keyFigures, h("div", { className: "rn-annual-top" }, h("section", { className: "rn-annual-card rn-annual-trend" }, h("h3", null, periodLabel + "好感线索分趋势"), muted(granularity === "day" ? "按每日记录显示；无新线索时沿用最近一次评分；缺口=无记录，不代表分数下降" : granularity === "month" ? "按有聊天日期计算月均；无新线索时沿用最近一次评分；缺口=无记录，不代表分数下降" : "按每年有聊天日期计算年均；无新线索时沿用最近一次评分；缺口=无记录，不代表分数下降"), buckets.some((bucket) => bucket.averageAffinity !== null) ? scoreGraphic : muted("当前范围暂无可用评分线索。"), scoreLegend), h("section", { className: "rn-annual-card" }, h("h3", null, periodLabel + "双方消息量"), h("div", { className: "rn-annual-legend" }, h("span", { className: "rn-annual-legend-item" }, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-self,#8acb8e)" } }), contact.self), h("span", { className: "rn-annual-legend-item" }, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-target,#8da3b3)" } }), contact.target)), barGraphic)), h("details", { className: "rn-more", open: moreOpen, onToggle: (e) => setMoreOpen(e.currentTarget.open) }, h("summary", null, "展开更多分析（消息占比 · 完整数据表 · 每日日历）"), h("div", { className: "rn-annual-grid" }, h("section", { className: "rn-annual-card rn-annual-pie-card" }, h("h3", null, "当前范围消息占比"), pieGraphic, pieLegend), fullTable), h("div", { className: "rn-calendar-detail-layout" }, calendar, h("aside", { className: "rn-calendar-detail-panel" }, details))));
           const calendar = h("section", { ref: calendarRef }, box("每日互动日历", muted(`识别到的聊天日期：${recognizedRange} · 共 ${timeline.days.length} 个有记录日期；活跃度按每天消息数和轮次数相对比较。`), h("div", { className: "rn-calendar-wrap" }, h("div", { className: "rn-calendar-head" }, button("上个月", () => moveMonth(-1)), h("strong", null, monthLabel), button("下个月", () => moveMonth(1))), h("div", { className: "rn-calendar" }, ...weekdays, ...dayCells)), h("div", { className: "rn-calendar-legend" }, h("span", null, "颜色深浅：当天聊天活跃度"), h("span", null, "当天无新线索时沿用最近一次好感线索，并标注“延续”；首次出现线索前显示“尚无历史分”。"), h("span", null, "虚线空心格：当天无记录（缺口），不代表分数下降。"))));
           let details;
           if (shown) {
@@ -38156,7 +38247,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             ref2.current?.querySelectorAll("button")[next]?.focus();
           }
         };
-        return h("div", { className: "rn-tabs " + className, role: "tablist", "aria-label": label, ref: ref2, onKeyDown }, ...items.map(([key, text]) => button(text, () => onSelect(key, false), { key, role: "tab", id: "rn-tab-" + className + "-" + key, "aria-controls": "rn-panel", "aria-selected": selected3 === key, tabIndex: selected3 === key ? 0 : -1 })));
+        return h("div", { className: "rn-tabs " + className, role: "tablist", "aria-label": label, ref: ref2, onKeyDown }, ...items.map(([key, text, icon]) => button(icon ? h(React2.Fragment, null, h(Icon, { name: icon, size: 20 }), h("span", null, text)) : text, () => onSelect(key, false), { key, role: "tab", id: "rn-tab-" + className + "-" + key, "aria-controls": "rn-panel", "aria-selected": selected3 === key, tabIndex: selected3 === key ? 0 : -1 })));
       }
       function SettingsMenu() {
         const detailsRef = React2.useRef(null), summaryRef = React2.useRef(null), [open, setOpen] = React2.useState(false);
@@ -38204,7 +38295,33 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           }
           return { count: msgs.length, last };
         }, [contact.messages]);
-        return h("p", { className: "rn-head-sub" }, h("span", null, contact.target + (contact.isSample ? "（虚构示例）" : "")), h("span", null, `${info2.count} 条消息`), info2.last && h("span", null, "最近 " + info2.last));
+        return h("p", { className: "rn-head-sub" }, contact.isSample && h("span", { className: "rn-chip" }, "虚构示例"), h("span", null, `${info2.count} 条消息`), info2.last && h("span", null, "最近聊天 " + info2.last.slice(5)));
+      }
+      const PULSE_MAX_MESSAGES = 4e4;
+      function HeadAvatar({ contact }) {
+        const data = contact.targetAvatarData || contact.targetAvatarFile, src = typeof data === "string" ? data : data ? localFileUrl(data) : "";
+        return h("span", { className: "rn-identity-avatar", "aria-hidden": true }, src ? h("img", { src, alt: "" }) : Array.from(contact.target || "?")[0]);
+      }
+      function Pulse({ contact }) {
+        const analysis = (contact.messages?.length || 0) <= PULSE_MAX_MESSAGES ? E.analyzeRelationshipCached(contact) : null;
+        if (!analysis?.current) return null;
+        const pts = analysis.points.slice(-20), W = 112, H = 30, x = (i) => pts.length < 2 ? W / 2 : 3 + i * (W - 6) / (pts.length - 1), y = (v) => H - 3 - v / 100 * (H - 6);
+        const segs = [];
+        let cur = [];
+        pts.forEach((p, i) => {
+          if (p.gap) {
+            if (cur.length) segs.push(cur);
+            cur = [];
+          } else cur.push([x(i), y(p.index)]);
+        });
+        if (cur.length) segs.push(cur);
+        const last = pts.map((p, i) => [p, i]).filter(([p]) => !p.gap).at(-1), value = Math.round(analysis.current.ewma ?? analysis.current.index);
+        return h(
+          "button",
+          { type: "button", className: "rn-pulse", onClick: () => nav("behavior", "insight"), "aria-label": `关系互动指数 ${value}，查看关系分析`, title: "最近 20 周的关系互动指数，点击查看关系分析" },
+          h("svg", { className: "rn-pulse-line", width: W, height: H, viewBox: `0 0 ${W} ${H}`, "aria-hidden": true }, h("line", { x1: 0, x2: W, y1: y(50), y2: y(50), className: "rn-pulse-mid" }), ...segs.map((seg, i) => h("polyline", { key: i, points: seg.map((p) => p.join(",")).join(" ") })), last && h("circle", { cx: x(last[1]), cy: y(last[0].index), r: 3 })),
+          h("span", { className: "rn-pulse-copy" }, h("strong", { className: "rn-num" }, value), h("small", null, "互动指数"))
+        );
       }
       function StatusToast({ text, busy, onClose }) {
         React2.useEffect(() => {
@@ -38255,7 +38372,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         });
       }
       function Page() {
-        const s = useState(), contact = selected2(s), route = E.resolveNavigation(s.feature, s.tab), n = route.item, panelRef = React2.useRef(null), focusMode = React2.useRef("panel"), firstRender = React2.useRef(true);
+        const s = useState(), contact = selected2(s), route = E.resolveNavigation(s.feature, s.tab), n = route.item, panelRef = React2.useRef(null), focusMode = React2.useRef("panel"), firstRender = React2.useRef(true), firstMotion = React2.useRef(true);
+        React2.useEffect(() => {
+          if (firstMotion.current) {
+            firstMotion.current = false;
+            return;
+          }
+          const node = panelRef.current;
+          if (!node?.animate || typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          node.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.7,.2,1)" });
+        }, [route.group.id, n.id, route.tab]);
         React2.useEffect(() => {
           if (n.id === "replies" || n.id === "behavior" && route.tab === "insight") models();
         }, [n.id, route.tab]);
@@ -38279,14 +38405,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (n.id === "goals") content = h(Goals, { s, contact, tab: route.tab });
         if (n.id === "replies") content = h(Replies, { s, contact, tab: route.tab });
         if (n.id === "settings") content = h(Settings, { s, tab: route.tab });
-        const groupItems = E.NAVIGATION.map((group) => [group.id, group.label]), contextItems = E.groupTabs(route.group).map((tab) => [tab.key, tab.label]), selectedContextKey = n.id + "__" + route.tab;
-        return h("main", { className: "rnw", style: { "--rn-font": (s.displayFontSize || 13) + "px", "--rn-gap": s.displayDensity === "compact" ? "8px" : "14px" } }, h("style", null, hostCss), h("header", { className: "rn-head" }, h("div", null, h("div", { className: "rn-breadcrumb" }, "关系手记 / " + route.group.label), h("h1", null, n.label), contact && h(HeadSummary, { contact })), h("div", { style: { display: "flex", alignItems: "flex-end", gap: 12 } }, !s.contacts.length && button("导入聊天", () => nav("import", "file"), { className: "primary" }), select("当前联系人", s.selectedId, [["", "请选择联系人"], ...s.contacts.map((c) => [c.id, c.target + (c.isSample ? "（示例）" : "")])], chooseContact, { disabled: !s.contacts.length }), h(SettingsMenu, {}))), h(TabStrip, { label: "主导航", items: groupItems, selected: route.group.id, onSelect: (key, fromKeyboard) => {
+        const groupItems = E.NAVIGATION.map((group) => [group.id, group.label, group.id]), contextItems = E.groupTabs(route.group).map((tab) => [tab.key, tab.label]), selectedContextKey = n.id + "__" + route.tab;
+        return h("main", { className: "rnw", style: { "--rn-font": (s.displayFontSize || 13) + "px", "--rn-gap": s.displayDensity === "compact" ? "8px" : "14px" } }, h("style", null, hostCss), h("header", { className: "rn-head" }, h("div", { className: "rn-identity-strip" }, contact ? h(HeadAvatar, { contact }) : h("span", { className: "rn-identity-avatar brand", "aria-hidden": true }, h(Icon, { name: "book", size: 22 })), h("div", { className: "rn-identity" }, h("div", { className: "rn-breadcrumb" }, "关系手记 / " + route.group.label), h("strong", { className: "rn-identity-name" }, contact ? contact.target : "关系手记"), contact ? h(HeadSummary, { contact }) : h("p", { className: "rn-head-sub" }, h("span", null, "导入一段聊天，开始记录你们的关系")))), h("div", { className: "rn-head-tools" }, contact && h(Pulse, { contact }), !s.contacts.length && button(h(React2.Fragment, null, h(Icon, { name: "import", size: 18 }), "导入聊天"), () => nav("import", "file"), { className: "primary" }), s.contacts.length > 1 ? select("切换联系人", s.selectedId, [["", "请选择联系人"], ...s.contacts.map((c) => [c.id, c.target + (c.isSample ? "（示例）" : "")])], chooseContact, {}) : null, h(SettingsMenu, {}))), h(TabStrip, { label: "主导航", items: groupItems, selected: route.group.id, onSelect: (key, fromKeyboard) => {
           const group = E.NAVIGATION.find((item) => item.id === key), first = group?.items.find((item) => !item.hidden);
           if (first) {
             focusMode.current = fromKeyboard ? "group" : "none";
             nav(first.id, first.tabs[0][0]);
           }
-        }, className: "rn-group-tabs" }), contextItems.length > 1 && h(TabStrip, { label: route.group.label + "页面", items: contextItems, selected: selectedContextKey, onSelect: (key, fromKeyboard) => {
+        }, className: "rn-group-tabs" }), h("div", { className: "rn-page-head" }, h("h1", null, n.label)), contextItems.length > 1 && h(TabStrip, { label: route.group.label + "页面", items: contextItems, selected: selectedContextKey, onSelect: (key, fromKeyboard) => {
           const [feature, tab] = key.split("__");
           focusMode.current = fromKeyboard ? "context" : "none";
           nav(feature, tab);

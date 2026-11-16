@@ -93,3 +93,14 @@ export function analyzeRelationship(contact={}){
  return {modelVersion:MODEL_VERSION,turns,weeks:scored,...series,pending,coverage,boundaryWeeks:scored.filter(s=>s.boundary.rule).map(s=>s.start),reviewWeeks:scored.filter(s=>s.boundary.needsReview).map(s=>s.start)};
 }
 export function currentWeekKey(now=Date.now()){return weekStartKey(shanghaiDateKey(now));}
+
+// 页头“关系脉搏”与关系分析页共用：以消息数组为键缓存，档案、纠正或 AI 结果变化时重算。
+const analysisCache=new WeakMap();
+export function analyzeRelationshipCached(contact={}){
+ const messages=contact.messages;if(!messages||typeof messages!=='object')return analyzeRelationship(contact);
+ const hit=analysisCache.get(messages);
+ if(hit&&hit.v3===contact.affinityV3&&hit.corrections===contact.interactionCorrections&&hit.self===contact.self&&hit.target===contact.target)return hit.result;
+ const result=analyzeRelationship(contact);
+ analysisCache.set(messages,{v3:contact.affinityV3,corrections:contact.interactionCorrections,self:contact.self,target:contact.target,result});
+ return result;
+}

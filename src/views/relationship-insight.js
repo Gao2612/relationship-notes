@@ -66,7 +66,7 @@ export function createRelationshipInsightView(React,E){
  }
 
  return function RelationshipInsightView({contact,busy,progress,error,modelReady,onRun,onCancel,onEvidence,onConfigure}){
-  const analysis=React.useMemo(()=>contact?E.analyzeRelationship(contact):null,[contact?.messages,contact?.affinityV3,contact?.interactionCorrections,contact?.self,contact?.target]);
+  const analysis=contact?E.analyzeRelationshipCached(contact):null;
   const [selected,setSelected]=React.useState(null),[openDim,setOpenDim]=React.useState('responsiveness');
   if(!analysis||!analysis.weeks.length)return h('section',{className:'rn-box'},h('h2',null,'关系分析'),h('p',{className:'rn-muted'},'还没有双方可分析的聊天记录。'));
   const weeks=analysis.weeks,current=analysis.current,pick=weeks.find(w=>w.start===selected)||current;
