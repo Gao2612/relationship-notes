@@ -9,7 +9,7 @@ export function createRelationStageView(React,E){
   const [note,setNote]=React.useState(profile.stageOverride?profile.stageOverride.note:'');
   React.useEffect(()=>{const next=E.relationProfile(contact);setLabel(next.label);setContext(next.context);setExpectation(next.expectation);setStage(next.stageOverride?next.stageOverride.stage:'');setNote(next.stageOverride?next.stageOverride.note:'');},[contact?.id]);
   const result=E.buildRelationStage(contact,{now}),percent=Math.round(result.confidence*100);
-  const metrics=[['互动天数',result.metrics.days],['回合数',result.metrics.turns],['平均线索分',result.metrics.averageScore===null?'—':result.metrics.averageScore],['对方主动占比',Math.round(result.metrics.targetInitRatio*100)+'%'],['情绪分享轮次',result.metrics.emotionalSharingTurns],['事后解释',result.metrics.repairs]];
+  const metrics=[['互动天数',result.metrics.days],['回合数',result.metrics.turns],['近 30 天关系指数（v3）',result.metrics.averageScore===null?'—':result.metrics.averageScore],['对方主动占比',Math.round(result.metrics.targetInitRatio*100)+'%'],['情绪分享轮次',result.metrics.emotionalSharingTurns],['事后解释',result.metrics.repairs]];
   return h('section',{className:'rn-box'},
    h('h2',null,'关系画像与阶段'),
    h('p',{className:'rn-stage-current'},'当前阶段：',h('strong',null,result.label),result.manual?' · 你手动设定':' · 自动判定 · 可信度 '+percent+'%'),
@@ -17,7 +17,7 @@ export function createRelationStageView(React,E){
    result.stage==='unknown'
     ?h('p',{role:'status'},'还没有确认两个不同的发言人，无法判定阶段。')
     :h('div',null,
-     h('p',null,'证据区间：线索分 '+(result.band?result.band[0]+'–'+result.band[1]:'—')+(result.metrics.averageScore===null?'':'（本次 '+result.metrics.averageScore+'）')),
+     h('p',null,'参考区间：关系指数 '+(result.band?result.band[0]+'–'+result.band[1]:'—')+(result.metrics.averageScore===null?'':'（本次 '+result.metrics.averageScore+'）')),
      h('ul',{className:'rn-stage-reasons'},...result.reasons.map((reason,index)=>h('li',{key:index},reason.text,reason.evidence&&onEvidence&&h('button',{type:'button',onClick:()=>onEvidence(reason.evidence)},'查看原文')))),
      h('dl',{className:'rn-stage-metrics'},...metrics.flatMap(([key,value])=>[h('dt',{key},key),h('dd',{key:key+'-value'},String(value))]))),
    h('div',{className:'rn-form'},

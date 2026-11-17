@@ -56,11 +56,13 @@ test('对话段按场景分组，保留同段普通回复',()=>{
  assert.equal(messages.length,3);
 });
 
-test('投入分排除明确正向项，正向证据独立保留',()=>{
+test('排除正向识别后关系指数下降，正向证据独立保留',()=>{
  const messages=[message('我','一起出门吧','09:00'),message('对方','喜欢你','09:01'),message('我','聊聊近况','09:02'),message('对方','我最近喜欢看电影','09:03')];
  const result=analyzeInteractionMetrics({messages,self:'我',target:'对方'});
  assert.equal(result.indicators.find(item=>item.kind==='positive').count,1);
- assert.ok(result.engagementScore<result.score);
+ const positive=result.indicators.find(item=>item.kind==='positive').evidence[0];
+ const without=analyzeInteractionMetrics({messages,self:'我',target:'对方',interactionCorrections:[{key:positive.key,kind:'positive',excluded:true}]});
+ assert.ok(without.score<result.score);
  assert.equal(result.scenes.daily+result.scenes.work+result.scenes.mixed+result.scenes.unknown,result.targetTurns);
 });
 

@@ -95,7 +95,10 @@ export function fuseDimension(rule,ai,{prior=PRIOR}={}){
   disagreement:rule.value!==null&&rule.n>=3&&Math.abs(aiUnit-rule.value)>DISAGREE_AT};
 }
 
-/** 单周评分：维度融合 → 综合指数（0–100）与 80% 区间 → 摩擦折减 → 边界封顶。 */
+/**
+ * 时段评分（日、周、月、年或全部记录通用）：维度融合 → 综合指数（0–100）与 80% 区间 → 摩擦折减 → 边界封顶。
+ * 对方在该时段没有任何回合时，互动过程无从观察：index / low / high 为 null（未评分），而不是给出先验值 50。
+ */
 export function scoreWeek(week,aiResult=null){
  const rule=ruleDimensions(week),ai=aiResult?.dimensions||{},dims={};
  for(const d of DIMENSIONS)dims[d.key]=fuseDimension(rule[d.key],d.llm?ai[d.key]:null);
@@ -114,9 +117,13 @@ export function scoreWeek(week,aiResult=null){
  const boundary=rule.boundary.present,aiBoundary=Boolean(aiResult?.boundary?.present&&aiResult.boundary.evidence?.length);
  if(boundary){index=Math.min(index,BOUNDARY_CAP);low=Math.min(low,BOUNDARY_CAP);high=Math.min(high,BOUNDARY_CAP);}
  const evidenceN=DIMENSIONS.reduce((s,d)=>s+dims[d.key].n,0);
- return {start:week.start,end:week.end,index:Math.round(index),low:Math.round(low),high:Math.round(high),se:100*seP*factor,
+ const scored=week.target.turns>0;
+ return {key:week.key??week.start,granularity:week.granularity||'week',start:week.start,end:week.end,scored,index:scored?Math.round(index):null,low:scored?Math.round(low):null,high:scored?Math.round(high):null,se:100*seP*factor,factor,
   dims,friction:{estimate:friction,rule:fr.value,raw:fr.raw,repair:fr.repair,ai:frAi,n:fr.n},
   boundary:{rule:boundary,count:rule.boundary.count,ai:aiBoundary,needsReview:aiBoundary&&!boundary},
   // 可信度按对方回合数与连接邀请数判断（各维度共享同一批回合，不能简单相加）。
-  reliability:week.target.turns>=20&&dims.responsiveness.n>=5?'high':week.target.turns>=8?'medium':'low',evidenceN,targetTurns:week.target.turns,aiUsed:Boolean(aiResult),messages:week.messages};
+  reliability:!scored?'none':week.target.turns>=20&&dims.responsiveness.n>=5?'high':week.target.turns>=8?'medium':'low',evidenceN,targetTurns:week.target.turns,aiUsed:Boolean(aiResult),messages:week.messages};
 }
+
+/** 与 scoreWeek 相同，名称更通用：任意时段的 v3 评分。 */
+export const scorePeriod=scoreWeek;

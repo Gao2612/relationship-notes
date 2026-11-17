@@ -4,13 +4,15 @@ import {analyzeInteractionMetrics,correctInteraction,interactionEvidenceKey,lega
 import {analyzeDailyTimeline} from './analysis.js';
 test('correction excludes a signal without editing evidence and survives reordering',()=>{
  const message={sender:'你',text:'喜欢你',timestamp:'2026-11-01'},contact={self:'我',target:'你',messages:[message]};
- const original=analyzeInteractionMetrics(contact);assert.equal(original.score,34);
+ // 关系分析 v3：正向亲近表达抬高积极回应维度；排除后指数下降，恢复后回到原值。
+ const original=analyzeInteractionMetrics(contact);assert.equal(original.score,50);
  const corrected=correctInteraction(contact,{key:interactionEvidenceKey(message),kind:'positive',excluded:true,note:'引用台词'});
- assert.equal(analyzeInteractionMetrics(corrected).score,32);assert.equal(corrected.messages[0].text,'喜欢你');
- const restored=correctInteraction({...corrected,messages:[{sender:'我',text:'你好'},message]},{key:interactionEvidenceKey(message),kind:'positive',excluded:false});
- assert.equal(analyzeInteractionMetrics(restored).score,34);assert.equal(restored.interactionCorrections.length,2);
+ assert.equal(analyzeInteractionMetrics(corrected).score,47);assert.equal(corrected.messages[0].text,'喜欢你');
+ const restored=correctInteraction({...corrected,messages:[{sender:'我',text:'你好',timestamp:'2026-11-01'},message]},{key:interactionEvidenceKey(message),kind:'positive',excluded:false});
+ assert.ok(analyzeInteractionMetrics(restored).score>analyzeInteractionMetrics({...restored,interactionCorrections:corrected.interactionCorrections}).score);assert.equal(restored.interactionCorrections.length,2);
  assert.throws(()=>correctInteraction(contact,{key:'missing',kind:'positive'}));
- assert.equal(analyzeDailyTimeline(corrected.messages,corrected.self,corrected.target,corrected.interactionCorrections).days[0].affinityScore,32);
+ // 同一套纠正同时作用于每日历程：单日记录时，当天指数与全部记录指数一致。
+ assert.equal(analyzeDailyTimeline(corrected.messages,corrected.self,corrected.target,corrected.interactionCorrections).days[0].affinityScore,47);
 });
 test('explicit dislike is not counted as positive wording',()=>{
  const contact={self:'我',target:'你',messages:[{sender:'你',text:'不喜欢你',timestamp:'2026-11-01'}]};
@@ -30,6 +32,7 @@ test('daily and overall metrics share vocabulary, exclusions and contextual caut
 test('persistent message IDs separate identical events; legacy corrections migrate only when unique',()=>{
  const a={messageId:'a',sender:'你',text:'喜欢你',timestamp:'2026-11-01'},b={...a,messageId:'b'},contact={self:'我',target:'你',messages:[a,b]};
  const changed=correctInteraction(contact,{key:interactionEvidenceKey(a),kind:'positive',excluded:true});assert.equal(analyzeInteractionMetrics(changed).indicators.find(i=>i.kind==='positive').count,1);
- const old={key:legacyInteractionEvidenceKey(a),kind:'positive',excluded:true};assert.equal(analyzeInteractionMetrics({...contact,messages:[a],interactionCorrections:[old]}).score,32);
+ const old={key:legacyInteractionEvidenceKey(a),kind:'positive',excluded:true};assert.equal(analyzeInteractionMetrics({...contact,messages:[a],interactionCorrections:[old]}).score,47);
+ assert.equal(analyzeInteractionMetrics({...contact,messages:[a]}).score,50);
  assert.equal(analyzeInteractionMetrics({...contact,interactionCorrections:[old]}).indicators.find(i=>i.kind==='positive').count,2);
 });

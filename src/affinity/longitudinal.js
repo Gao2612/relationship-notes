@@ -15,10 +15,12 @@ export function withGaps(scored){
  }
  return out;
 }
+// 有效点：既不是缺口，也不是“对方没有发言”的未评分时段。
+export const isScored=p=>Boolean(p)&&!p.gap&&Number.isFinite(p.index);
 export function ewma(values,lambda=EWMA_LAMBDA){let level=null;return values.map(v=>{if(v===null||!Number.isFinite(v))return level;level=level===null?v:lambda*v+(1-lambda)*level;return level;});}
 
 export function trend(points){
- const data=points.filter(p=>!p.gap).slice(-TREND_WINDOW);
+ const data=points.filter(isScored).slice(-TREND_WINDOW);
  if(data.length<MIN_TREND_WEEKS)return {direction:'insufficient',weeks:data.length};
  const t0=Date.parse(data[0].start+'T00:00:00Z'),xs=data.map(p=>(Date.parse(p.start+'T00:00:00Z')-t0)/(7*86400000)),ys=data.map(p=>p.index),ws=data.map(p=>1/Math.max(4,(p.se||10)**2));
  const W=ws.reduce((s,w)=>s+w,0),mx=xs.reduce((s,x,i)=>s+ws[i]*x,0)/W,my=ys.reduce((s,y,i)=>s+ws[i]*y,0)/W;
@@ -32,7 +34,7 @@ export function trend(points){
 }
 
 export function changePoints(points,{k=CUSUM_K,h=CUSUM_H}={}){
- const data=points.filter(p=>!p.gap);if(data.length<MIN_CUSUM_WEEKS)return [];
+ const data=points.filter(isScored);if(data.length<MIN_CUSUM_WEEKS)return [];
  // 噪声尺度用相邻周差（移动极差，MSSD）估计，而不是整体标准差——后者会把要检测的变化本身算进噪声里。
  const ys=data.map(p=>p.index);
  const mssd=Math.sqrt(ys.slice(1).reduce((s,y,i)=>s+(y-ys[i])**2,0)/(2*(ys.length-1)));
@@ -55,7 +57,7 @@ export function changePoints(points,{k=CUSUM_K,h=CUSUM_H}={}){
 }
 
 export function phases(points,cps){
- const data=points.filter(p=>!p.gap);if(!data.length)return [];
+ const data=points.filter(isScored);if(!data.length)return [];
  const cuts=[0,...cps.map(c=>c.index).filter(i=>i>0),data.length],out=[];
  for(let i=0;i<cuts.length-1;i++){
   const slice=data.slice(cuts[i],cuts[i+1]);if(!slice.length)continue;
@@ -75,8 +77,8 @@ export function phases(points,cps){
 
 /** 汇总：带缺口的周序列、EWMA、趋势、变化点、阶段。 */
 export function longitudinal(scored){
- const points=withGaps(scored),smooth=ewma(points.map(p=>p.gap?null:p.index));
+ const points=withGaps(scored),smooth=ewma(points.map(p=>isScored(p)?p.index:null));
  points.forEach((p,i)=>{p.ewma=smooth[i]===null?null:Math.round(smooth[i]*10)/10;});
  const cps=changePoints(points);
- return {points,trend:trend(points),changePoints:cps,phases:phases(points,cps),current:points.filter(p=>!p.gap).at(-1)||null};
+ return {points,trend:trend(points),changePoints:cps,phases:phases(points,cps),current:points.filter(isScored).at(-1)||null};
 }

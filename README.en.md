@@ -18,7 +18,6 @@ Relationship Notes 3.3.0 (including the unreleased 2026-11-16 updates). A local-
 - [Data and models](#data-and-models)
 - [Internationalization (experimental, navigation text only)](#internationalization-experimental-navigation-text-only)
 - [Development and release history](#development-and-release-history)
-- [Appendix: affinity-cue score v2.3](#appendix-affinity-cue-score-v23-still-used-by-the-daily-timeline-and-interaction-scores)
 - [Maintenance and license](#maintenance-and-license)
 
 ## Overview
@@ -41,16 +40,16 @@ Relationship Notes turns imported WeChat/QQ chat histories into contact profiles
 - Long-term change: EWMA, weighted trend with interval, change points and phases, showing which dimensions drove each change.
 - Evidence is split into source facts / AI quotes / AI inferences, all of which can open the original context. Rules and formulas: see [Scoring and analysis rules](#scoring-and-analysis-rules-relationship-analysis-v3).
 
-**Rule detection and daily scores (affinity-cue score v2.3)**
+**Rule detection and manual corrections (inputs to the v3 rule layer)**
 
 - Context-aware scoring uses the previous turn's question, suggestion and topic to detect answers, accepted suggestions and follow-ups, and counts effective-response turns.
 - A single acknowledgement or laugh is neutral. The short-reply penalty applies only after three consecutive turns without an effective response.
 - Colloquial sharing handles subject changes and natural phrasing, and excludes system messages, media and placeholder-only text.
-- The interaction-metrics page shows the engagement score, positive-expression evidence, and work / daily / mixed scene statistics separately. Positive expressions are labeled as politeness, support or closeness.
+- The interaction-scores page shows the relationship index and dimension estimates for the whole record, positive-expression evidence, and work / daily / mixed scene statistics. Positive expressions are labeled as politeness, support or closeness.
 - Supportive responses are detected against the previous turn's feelings or good news. Emotional sharing and plain factual sharing are weighted separately.
-- Ten detection types can be checked against the original text, excluded and restored. Corrections update the related counts and scores (both v2.3 and the v3 rule layer).
-- Positive signals are de-duplicated per turn and capped. Small-sample scores are shrunk toward 32. Reply latency is descriptive only, and explanations do not increase the friction penalty.
-- The additions and deductions in the score breakdown sum to the final score. Turn counts and monthly/yearly aggregation use the same definitions. Formulas: see the [appendix](#appendix-affinity-cue-score-v23-still-used-by-the-daily-timeline-and-interaction-scores).
+- Ten detection types can be checked against the original text, excluded and restored. After a correction, the relationship index on every page is recomputed immediately.
+- Positive signals are de-duplicated per turn (only the strongest level in a turn counts). Reply latency and message length are descriptive only; explanations and apologies can only reduce friction.
+- "打分依据" (scoring basis) breaks the day's index into each dimension's contribution, the friction factor and the boundary cap, and the total matches the index. Days, weeks, months, years and the whole record use the same formula (see [Scoring and analysis rules](#scoring-and-analysis-rules-relationship-analysis-v3)).
 
 ### Profile and communication features
 
@@ -70,9 +69,9 @@ Main features and where to find them:
 
 1. **Contact profile** (联系人档案): review and confirm profile facts proposed by the model; communication style, boundaries, follow-ups and inferred cues are shown separately; supports validity periods, archiving and deletion.
 2. **Relationship analysis** (关系分析; new, default page of "Records & Scores"): six-dimension weekly assessment, composite index with 80% interval, AI ratings, long-term trend and change points, three-column evidence.
-3. **Daily timeline** (每日历程): per-day interaction score, real topics and "no follow-up response" questions, with the original messages and context.
-4. **Interaction scores** (互动评分): engagement score, positive-expression count, answer and follow-up turns, and per-scene results; expand the basis to see expression levels, and exclude or restore misdetections.
-5. **Scoring rules** (评分规则): formulas, weights and clauses, with sentence-level explanations.
+3. **Daily timeline** (每日历程): per-day relationship index (v3), calendar, day/month/year trend charts, real topics and "no follow-up response" questions, with the original messages and context.
+4. **Interaction scores** (互动评分): relationship index and dimension estimates for the whole record, positive-expression count, answer and follow-up turns, and per-scene results; expand the basis to see expression levels, and exclude or restore misdetections.
+5. **Scoring rules / scoring basis** (评分规则 / 打分依据): the v3 formulas, weights, parameters and detection rules; a per-day breakdown of each dimension's contribution, friction and boundary, together with the results for the containing week and month.
 6. **Record list** (记录列表): paginated, searchable, newest-first view of all chat records, linking back to the original position.
 7. **Conversation** (会话): the full conversation per contact, including images and voice; drafts, related pages and the editor sit in a fixed right-hand pane.
 8. **Communication assistant** (沟通辅助): candidate drafts in sincere / relaxed / short styles, with citations and uncertainty notes; drafts can be saved as your own examples.
@@ -129,7 +128,7 @@ The packaging tool uses Windows PowerShell and the .NET compression library. It 
 - In the contact profile, review entries the model marked as pending, then accept, edit, archive or delete them. Communication style, boundaries, follow-ups and inferred cues are shown separately.
 - In "Records & Scores → Relationship analysis" (记录与评分 → 关系分析), see the rule-layer results. Click "AI 分析" (AI analysis) to have the DSH model rate each week (cancel at any time). Results are cached per week.
 - In settings, maintain your own tone, verbal habits, interests, plans, boundaries and approved examples. Reply generation uses these together with principles such as sincere expression, respecting boundaries and not testing the relationship with probes.
-- Interaction scores can be expanded to the original text; mark misdetections and restore them. The index summarizes expression cues; it is not an affection probability.
+- Interaction scores can be expanded to the original text; mark misdetections and restore them. The relationship index summarizes observable interaction processes; it is not an affection probability.
 - The reply pane offers sincere / relaxed / short styles and proactively generates several possible interpretations and reply ideas, with citations and uncertainty.
 - If the main DSH chat needs to read profile data, explicitly turn on "允许 DSH 读取当前联系人" (allow DSH to read the current contact). It can read confirmed profile entries, search up to the latest 500 shared messages and propose pending candidates. The sharing scope is tool conversations in the current local DSH host; see [Profile tools](docs/PROFILE-TOOLS.md) (Chinese).
 - Project backups can include or exclude media. Older backups can still be restored.
@@ -151,13 +150,13 @@ WeChat/QQ monitoring, an independent replacement for ExportWeChat reading, autom
 
 ## Scoring and analysis rules (relationship analysis v3)
 
-"Records & Scores → Relationship analysis" (记录与评分 → 关系分析) is the plugin's main analysis page, and the relationship pulse sparkline in the header uses the same result. This section matches the code item by item: `src/affinity/` (rule layer, model, long-term change) and `affinity-service.js` (AI route and validation), model version `3.0`.
+Relationship analysis v3 is the plugin's only scoring system: "关系分析" (relationship analysis), "每日历程" (daily timeline), "互动评分" (interaction scores), "打分依据" (scoring basis), "评分规则" (scoring rules), the monthly/yearly charts, the relationship pulse in the header and relationship-stage detection all use the formulas in this section (see [below](#granularity-used-by-each-page) for the granularity of each page). This section matches the code item by item: `src/affinity/` (rule layer, model, long-term change) and `affinity-service.js` (AI route and validation), model version `3.0`.
 
-v3 does not output a single "affection score". It assesses six research-based interaction processes per week, plus friction and repair, and puts rule statistics, AI context ratings, long-term change and per-item source evidence on one page. Every index summarizes **observable interaction processes**. It is not "the probability that the other person likes you", and it does not diagnose attachment style or personality.
+v3 does not output a single "affection score". It assesses six research-based interaction processes per period, plus friction and repair, and puts rule statistics, AI context ratings, long-term change and per-item source evidence on one page. Every index summarizes **observable interaction processes**. It is not "the probability that the other person likes you", and it does not diagnose attachment style or personality.
 
 ### Pipeline
 
-1. **Turns and weeks**: messages are merged into turns, and the observable interaction facts of both sides are aggregated per week (weeks start on Monday, Shanghai time).
+1. **Turns and periods**: messages are merged into turns, and the observable interaction facts of both sides are aggregated per period (day, week, month, year or the whole record; weeks start on Monday, Shanghai time).
 2. **Rule layer**: computes each of the six dimensions' raw value $x$ (0–1) and amount of evidence $n$, plus friction strength and boundaries.
 3. **Shrinkage**: each dimension is shrunk toward the neutral value 0.5 according to its amount of evidence, with a standard error.
 4. **AI layer (optional)**: after you click "AI 分析" (AI analysis), the model rates each week on anchored scales. Only ratings with verbatim quotes are fused, with limited weight.
@@ -169,8 +168,8 @@ v3 does not output a single "affection score". It assesses six research-based in
 
 - Scoring uses only text messages from the two people, and excludes system messages, non-text media records and placeholder-only text (same as the daily score).
 - Consecutive messages from the same person no more than 3 minutes apart are merged into one turn. A first message, or a gap of 120 minutes or more since the end of the previous turn, starts a new conversation segment, and that turn counts as one "initiation".
-- Times are assigned to dates in Shanghai time, then to weeks starting on Monday. Weeks without any messages get no score and appear in the series as gaps (not 0).
-- For the other person's turns, the detection of answers, follow-ups, friction, explanations, perfunctory and low-information replies, together with manual corrections, reuses the same detection as the daily score (see the [appendix](#appendix-affinity-cue-score-v23-still-used-by-the-daily-timeline-and-interaction-scores)), so the source evidence of both is consistent.
+- Times are assigned to dates in Shanghai time, then to weeks starting on Monday, months and years. Periods without any messages get no score and appear as gaps; periods in which the other person has no turns are not scored (shown as "未评分", not scored). Neither is a score of 0.
+- For the other person's turns, the detection of answers, follow-ups, friction, explanations, perfunctory and low-information replies, together with the ten types of manual correction, is inherited from the existing detection rules (the full clauses are under "识别规则" (detection rules) on the plugin's "评分规则" page). After a correction, every page is recomputed immediately.
 - On top of that, v3 adds three things: turning toward after my "bids" (including support and follow-up questions), my good-news situations, and common apologies/clarifications as repair (these can only reduce friction).
 
 **Bid**: a turn of mine that contains a question or a disclosure. The other person's next turn is classified into four types:
@@ -256,7 +255,7 @@ I=100\times P\times(1-0.6\,F)
 $$
 
 - 80% interval: $100\times\mathrm{clip}(P\mp1.2816\,\mathrm{SE}_P,\,0,\,1)\times(1-0.6F)$.
-- In weeks with a rule-layer boundary, the index and both interval bounds are at most 30. The index is rounded to an integer (0–100).
+- In periods with a rule-layer boundary, the index and both interval bounds are at most 30. The index is rounded to an integer (0–100); periods in which the other person has no turns are not scored (null).
 - Reliability: "high" when the other person has ≥ 20 turns and responsiveness evidence ≥ 5; "medium" when the other person has ≥ 8 turns; otherwise "low".
 
 The weights are ordered by theoretical importance but close to equal: responsiveness is the core mediator of the intimacy process (0.28); disclosure, reciprocity, positivity and engagement follow; linguistic coordination has the lowest weight (0.10) because the Chinese word list is approximate and the evidence comes from a single study. Without labeled data to fit, such "improper linear models" are more robust than subjective fine-tuning (Dawes 1979). The weights **have not been calibrated against real outcomes**.
@@ -309,7 +308,20 @@ All original text can be opened with its surrounding context.
 
 For the full design, research sources and calibration plans, see [Relationship analysis v3 design](docs/AFFINITY-V3.md) (Chinese).
 
-> Pages such as "每日历程" (daily timeline), "互动评分" (interaction scores), "评分规则" (scoring rules) and "打分依据" (scoring basis) still show the per-day "affinity-cue score v2.3". It is defined differently from the v3 index and should not be compared with it directly. The full formulas are in the [appendix](#appendix-affinity-cue-score-v23-still-used-by-the-daily-timeline-and-interaction-scores) at the end.
+### Granularity used by each page
+
+All granularities use the same rule-layer formulas. Bids, good-news situations and initiations are assigned to the period of the initiating turn, and LSM is computed from function-word counts, so summing per-day signals gives exactly the same result as computing directly per week, month or year.
+
+| Page / use | Granularity | Notes |
+| --- | --- | --- |
+| Relationship analysis, header relationship pulse | Week | Rule layer + cached AI ratings (AI is fused only at the week level) |
+| Daily timeline (calendar, daily trend), scoring basis | Day | The day's rule-layer index, 80% interval, reliability and six-dimension breakdown |
+| Daily timeline (monthly / yearly trend, data table) | Month, year | All day signals in the period are summed and scored together; this is not an average of daily indices |
+| Interaction scores, statistics page | Whole record | All turns merged and scored; per-scene results score each scene subset separately |
+| Relationship stage | Last 30 days | Day signals in the window are merged and scored; thresholds friend ≥ 45, close friend ≥ 55 (product settings, not calibrated) |
+| `affinityScore` in reply / daily-summary model payloads | Day | The day's rule-layer index; null when the other person has no turns that day |
+
+The old "affinity-cue score v2.x" (starting from 38, item-by-item additions and deductions, small samples shrunk toward 32) was removed on 2026-11-17. All historical curves are recomputed under v3, so old and new values should not be compared directly.
 
 ## Data and models
 
@@ -333,6 +345,7 @@ See [CHANGELOG.md](CHANGELOG.md) (Chinese) for the full record.
 
 | Date | Version | Highlights |
 | --- | --- | --- |
+| 2026-11-17 | Unreleased | Relationship analysis v3 formally adopted: daily timeline, interaction scores, scoring basis, scoring rules, monthly/yearly charts, relationship stage and model payloads all use v3; periods in which the other person has no turns are not scored; the old affinity-cue score v2.3 removed |
 | 2026-11-17 | Unreleased | Docs: the README scoring and analysis rules now follow relationship analysis v3 (formulas, indicators, weights and parameters matched to the code); v2.3 moved to an appendix |
 | 2026-11-16 | Unreleased | Visual and layout refresh: relationship identity strip and pulse, icon navigation, bottom tab bar on phones, layered cards |
 | 2026-11-16 | Unreleased | Relationship analysis v3: rule statistics + AI context ratings + long-term change + explainable evidence; new route `/affinity-analysis` |
@@ -343,145 +356,11 @@ See [CHANGELOG.md](CHANGELOG.md) (Chinese) for the full record.
 
 ### Completed verification
 
+- **2026-11-17** (unified on v3): the client builds successfully; 367 assertions across 54 test files pass, 0 fail. New coverage: the same formula for days, weeks, months, years and the whole record (summing per-day signals equals direct computation), periods without turns from the other person are not scored, the scoring-basis breakdown matches the index, corrections recompute every page, relationship stage uses the merged 30-day index, latency and message-count imbalance do not change the index, and the rules page takes its numbers from the model constants. The five score-related pages were also checked in a browser (PC light, phone dark) with no leftover old wording and no runtime errors.
 - **2026-11-16**: the client builds successfully; 362 assertions across 54 test files pass, 0 fail. New coverage includes session layout state, host token adaptation, the sidebar fallback on hosts without `subdsh`, relationship analysis v3 (signals, model, fusion, long-term change, cache), the `affinity-analysis` route with quote validation, and icons. The plugin was also installed in the npm public DSH Web 0.2.2-rc.1, confirming route registration and that all four UI combinations of light/dark × PC/phone work.
 - **2026-11-07** (scoring v2.1): the client builds successfully; 301 assertions across 46 test files pass, 0 fail. Coverage includes the effective-response union, same-turn de-duplication, small-sample scaling, neutral latency, explanations not escalating friction, the explicit-boundary cap, manual corrections, cross-midnight statistics, import, persistence, host APIs and packaging. New regression tests confirm that splitting messages does not inflate scores, and that outside pressure and conflict aimed at the other person are handled separately; the scoring-basis breakdown matches actual results.
 
 Tests verify implementation behavior; they cannot prove that the rules accurately measure real affection.
-
-## Appendix: affinity-cue score v2.3 (still used by the daily timeline and interaction scores)
-
-This appendix describes the per-day "affinity-cue score v2.3". The main relationship metric is the [v3 index](#scoring-and-analysis-rules-relationship-analysis-v3) above. v2.3 is still used by pages such as "每日历程" (daily timeline), "互动评分" (interaction scores), "评分规则" (scoring rules) and "打分依据" (scoring basis), and its detection of the other person's turns and its manual corrections are also inputs to the v3 rule layer, so the full description is kept. The two are defined differently and should not be compared directly.
-
-The affinity-cue score is computed by local rules without calling a model, and can be checked item by item (the "评分规则" (scoring rules) and "打分依据" (scoring basis) pages match this section). The current formula is v2.3 (since 2026-11: question cap +10, self-disclosure cap +12, and a separate bonus of up to +4 for explanations after friction; the v2.1 caps of 8/10 are no longer used).
-
-This score summarizes observable communication cues; it is not the probability that the other person likes you. Research on response quality, self-disclosure and conflict recovery was used to choose the signals. The numeric weights below, the 32-point reference point and the sample thresholds are product rules and have not been calibrated with emotion-labeled data. For sources, scope and design trade-offs, see [Scoring research notes](docs/SCORING-RESEARCH.md) (Chinese). After an upgrade, historical curves are recomputed under the new rules; scores from old and new rules should not be compared directly.
-
-### Formulas
-
-$$
-S_0=\mathrm{clamp}\!\left(\mathrm{round}(38+W+I-C-T+R),0,100\right)
-$$
-
-Let $T_t,T_s$ be the scorable turn counts of the other person and myself, and $n_q,n_{\mathrm{sh}},n_{\mathrm{emo}},n_{\mathrm{bnd}}$ the number of the other person's turns containing a question, a disclosure, a personal-feeling disclosure, and an explicit negative or boundary. Feeling disclosure is a subset of disclosure, so $n_{\mathrm{emo}}\le n_{\mathrm{sh}}$. Each signal type counts at most once per turn, and manually excluded evidence is not counted; the UI still keeps per-message evidence for review.
-
-Positive expressions are classified per message: ordinary politeness or emoji weighs 1, support or specific thanks directed at me weighs 4, and direct closeness weighs 6. Let $p_t$ be the highest weight among non-excluded positive expressions in the other person's turn $t$, or 0 if none; thanks and closeness in the same turn do not stack. The positive-expression count in the UI includes politeness and cannot be read as the number of closeness expressions.
-
-$n_{\mathrm{resp}}$ is the union of turns with an effective answer, an accepted suggestion or a topic follow-up; a turn that is both an answer and a follow-up counts once. Turns that still carry non-excluded friction or explicit negative evidence do not earn the effective-response bonus.
-
-$$
-\begin{aligned}
-P&=\min(18,\sum_t p_t),\quad Q=\min(10,2n_q)\\
-H&=\min(12,2.5n_{\mathrm{sh}}+1.5n_{\mathrm{emo}})\\
-A&=\min(12,12n_{\mathrm{resp}}/\max(4,T_t))\\
-W&=\min(45,P+Q+H+A)
-\end{aligned}
-$$
-
-Let $a_t,a_s$ be the number of conversation segments each side initiated, $n_{\mathrm{perf}},n_{\mathrm{low}}$ the number of perfunctory and low-information turns, $n_c$ the number of friction turns, $n_{\mathrm{rep}}$ the number of the other person's explanation or reconciliation turns, and $G$ the condition that at least two of the other person's friction turns occur in the same segment.
-
-$$
-\begin{aligned}
-I&=\begin{cases}4a_t/(a_t+a_s+4),&T_t>0\land T_s>0\\0,&\text{otherwise}\end{cases}\\
-E&=T_t>0\ ?\ \min(1,(n_{\mathrm{perf}}+n_{\mathrm{low}})/T_t):0\\
-C&=\min(60,24n_{\mathrm{bnd}}+\mathrm{round}(16E))\\
-T&=\begin{cases}\min(24,12n_c),&G\\\min(8,8n_c),&\text{otherwise}\end{cases}\\
-R&=\min(4,2n_{\mathrm{rep}})
-\end{aligned}
-$$
-
-| Item | Rule |
-| --- | --- |
-| Base | 38 |
-| Positive expression P | Only the strongest level per turn: politeness/emoji +1, support/specific thanks +4, direct closeness +6; total at most +18 |
-| Questions Q | +2 per turn, at most +10 |
-| Self-disclosure H | +2.5 per disclosure turn, +1.5 more for feeling disclosure; disclosure total at most +12 |
-| Effective response A | 12 × effective-response turns ÷ max(4, other person's turns), at most +12; the four positive items together at most +45 |
-| Explanation and reconciliation R | +2 per turn, at most +4 |
-| Negative or boundary | −24 per turn; with an explicit negative or boundary the final score is at most 32 |
-| Perfunctory and low-information | Share of the other person's turns × 16, rounded and deducted; only one type per turn; together with negatives at most −60 |
-| Reply latency and message-count imbalance | Kept as statistics, no direct addition or deduction; zero turns or a single reply from the other person is not penalized on its own |
-| Initiation I | Added by the ratio above when both sides have turns, cap below 4; no deduction for initiating less |
-| Ordinary friction T | At most −8 |
-| Strong friction T | At most −24, final score capped at 48; explanations neither increase the penalty nor trigger strong friction |
-
-Consecutive messages from the same person no more than 3 minutes apart are merged into one turn.
-A first message, or a gap of 120 minutes or more since the end of the previous turn, starts a new conversation segment.
-Reply latency is measured from the last message of my merged turn to the first message of the other person's reply turn.
-The full timeline is analyzed first, then initiations, answers and latencies are assigned to the date they occurred. Midnight splits daily turns but keeps the context of the same segment.
-Times without a time zone are interpreted as Shanghai time; Unix seconds/milliseconds and times with explicit zones are converted before sorting.
-Strong friction requires at least two of the other person's friction turns in the same segment.
-Explanations are kept as checkable context cues; they are not treated as new friction, nor as reconciliation by themselves.
-When comparable times are missing, items are handled separately to avoid inferring continuous conflict.
-Friction, explanation or explicit-negative turns are not double-counted as perfunctory or low-information.
-
-Questions are judged per clause; polite thanks do not mask an actual question in another clause.
-Manual corrections cover ten types: question, disclosure, positive, negative, perfunctory, low-information, friction, explanation, answer or accepted suggestion, and follow-up or added information.
-Turn signals show the first original message; a correction stores the turn's members and their original text. When earlier messages are added later, the correction stays linked to the original evidence; a new independent match or a change in source text triggers re-evaluation, and restoring is supported.
-Message-level corrections also store a snapshot of the original text; if the text under the same message ID changes, the exclusion made for the old text is not carried over.
-
-On a day with records, if $T_t=0$ or $T_s+T_t<4$, and there is no positive, question, disclosure, effective response, negative, friction, perfunctory or low-information signal, $S_0$ is overridden with 32 and the result is $S_1$; otherwise $S_1=S_0$. The low-frequency condition uses merged turn counts for both sides, so splitting one reply into several messages does not lift the override.
-
-When the other person has fewer than six turns, only the part above 32 is scaled by sample size:
-
-$$
-S_2=\begin{cases}
-\mathrm{round}(32+(S_1-32)\min(1,T_t/6)),&S_1>32\\
-S_1,&S_1\le32
-\end{cases}
-$$
-
-Finally, if $G$ holds then $S=\min(S_2,48)$; otherwise $S=S_2$. If $n_{\mathrm{bnd}}>0$, also apply $S\leftarrow\min(S,32)$. An explicit refusal is not masked by other bonuses, and negative scores below 32 are not raised because of a small sample. 32 is the display reference point when evidence is lacking; it does not mean 32% affection. Dates with no records at all are shown as gaps.
-
-### Context and engagement
-
-When the reply is only "随便你" (whatever you like), "都行看你" (anything, up to you) or "你看着办" (you decide), letting me choose is treated as neutral; in other cases the text is kept for review. Crossing segments does not by itself trigger a friction deduction; independent explicit accusations and requests to stop contact are still detected separately.
-
-Scoring excludes system messages, non-text media records and placeholder-only text. Media stays in the original chat view; who initiated is not inferred from file names, call placeholders or system notices, and image content is not read.
-Natural colloquial disclosure covers expressions such as "我俩吃了" (we two ate), "我老看" (I keep watching) and "我就记得" (I just remember).
-Sentences asking the other person to do something are excluded from both disclosure and positive detection; independent personal experiences or positive expressions in the same message are kept.
-"没有没有" (no, no) and sentences asking about a third person are not counted as questions to me.
-First-person actual feelings (such as happy, sad, nervous) can count as feeling disclosure; quotes, instructions to others and hypotheticals do not. The valence or intensity of a feeling earns no extra points. A polite request to stop contact is still an explicit boundary; reassurance that negates rejection, such as "不是不喜欢你" (it's not that I don't like you), is not judged as rejection.
-
-Short replies are judged against the previous turn's question, suggestion and adjacent topic. Short sentences that answer a question, accept a suggestion, add a specific evaluation or follow up a topic become effective-response candidates. A single acknowledgement or laugh is neutral; the short-reply penalty applies only when three consecutive turns of the other person lack an effective response. Normal busyness, going to sleep, good night and ending the current chat are neutral and do not add to the consecutive count. Complaints about outside pressure such as work, clients or devices are not relationship friction unless worded at me.
-When the other person answers my previous turn directly, the context of that turn is kept for answer and follow-up detection even if more than two hours passed; the two-hour segmentation is still used for initiation and same-segment friction statistics.
-Answer, accepted-suggestion and follow-up indicators can be expanded to the original text, excluded and restored.
-Time, place, quantity and yes/no questions are each matched to answer features, and checked against detected event actions.
-For example, if I ask when they left home, the time they bought a phone in the reply is not counted as an answer, while an independent short time answer is kept.
-Topic follow-up requires a lexical link or a related topic; isolated phrases such as "人多" (crowded) or "美味" (tasty) and endings with "的" do not match directly.
-If I shared a feeling or good news in the previous turn and the other person responds with understanding, support or congratulations that fit that context, it can count as a follow-up signal. It uses the follow-up correction mechanism and joins the effective-response union, without a separate duplicate bonus. Generic praise without context is not automatically upgraded to a supportive response.
-
-The interaction-metrics page shows the engagement score and the positive-expression count separately. The engagement score uses the same formula with the positive-wording item set to zero, keeping behavioral cues such as answers, questions, disclosures and turns.
-Positive expressions are listed separately with evidence and level labels. The existing affinity-cue fields and charts keep using the score that includes the positive item.
-Scenes are detected by rules as work, daily, mixed or unclassified, and the initiation count and per-scene results are shown for each.
-Scene labels are for review; the composite weights are not yet differentiated by scene. Per-scene results aggregate whole conversation segments, keeping ordinary replies in their segment. Segments that match neither work nor daily words are unclassified.
-
-| Displayed item | Computation scope |
-| --- | --- |
-| Interaction engagement score | All scorable text of the selected pair, recomputed with the positive-wording item set to zero |
-| Positive-expression count | The other person's messages matching the positive lexicon and not manually excluded, including politeness, support and direct closeness |
-| Answered-question / topic-follow-up turns | Detected with the previous turn's context; can be checked and corrected one by one |
-| Average engagement score | Simple average of engagement scores over valid record days |
-| Daily affinity-cue score and trend chart | v2.3 score including the positive item; monthly/yearly weighted by turns |
-| Per-scene engagement score | Work, daily and mixed segments each rescored |
-
-For the same records, the whole-record score, the simple daily average and the monthly/yearly weighted score use different aggregation scopes; check the page labels when comparing. Rule-based categories such as "low-information" and "work" can be checked against the original text.
-
-### Monthly and yearly aggregation
-
-$$
-w_d=\max(1,T_t^{(d)}),\quad
-R=\sum_d T_t^{(d)},\quad
-\bar S=\frac{\sum_d S_dw_d}{\sum_d w_d}
-$$
-
-$$
-M=\begin{cases}
-\mathrm{round}(32+(\bar S-32)R/20),&R<20\land\bar S>32\\
-\mathrm{round}(\bar S),&\text{otherwise}
-\end{cases}
-$$
-
-The weight sum and the other person's actual total turns $R$ are counted separately. A record day where the other person had zero turns has weight 1 but does not increase $R$. Months and years both use the same 20-turn scaling threshold. Here $S_d$ is already small-sample scaled per day; the second monthly/yearly scaling is a separate conservative aggregation rule, not a statistical confidence interval.
 
 ## Maintenance and license
 

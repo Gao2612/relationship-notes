@@ -5,7 +5,7 @@ import {question,sharing,emotionalSharing,positiveSignal,conflict,appeasement,ne
 import {interactionCorrectionIndex,isInteractionExcluded} from '../interaction-metrics.js';
 import {shanghaiTimestamp,shanghaiDateKey} from '../shared/dates.js';
 import {messageIdentity} from '../message-identity.js';
-import {languageStyleMatching} from './lsm.js';
+import {functionWordRates,lsmFromCounts,LSM_CATEGORIES} from './lsm.js';
 
 export const TURN_MERGE_MINUTES=3;      // 与现有评分一致：同一人 3 分钟内连发合并为一轮
 export const SESSION_GAP_MINUTES=120;   // 与现有评分一致：间隔 ≥2 小时开启新对话段
@@ -26,10 +26,12 @@ export function addDays(dateKey,days){const date=new Date(dateKey+'T00:00:00Z');
 const clip=(text,n)=>{const chars=Array.from(String(text||''));return chars.length>n?chars.slice(0,n).join('')+'…':chars.join('');};
 function evidenceOf(turn,kind,label){const message=turn.messages.find(m=>m.text?.trim())||turn.messages[0];return {kind,label,messageId:messageIdentity(message),quote:clip(turn.text,140),sender:turn.role,timestamp:message.timestamp??null,source:'rule'};}
 
-function emptyWeek(start){
- return {start,end:addDays(start,6),messages:0,messageIds:[],
-  self:{turns:0,chars:0,text:'',disclosure:0,emotional:0,questions:0,bids:0,starts:0,goodNews:0},
-  target:{turns:0,chars:0,text:'',disclosure:0,emotional:0,questions:0,bids:0,starts:0,positivePoints:0,positiveTurns:0,responsive:0,conflict:0,repair:0,boundary:0,empty:0},
+const emptyWords=()=>({chars:0,counts:Object.fromEntries(Object.keys(LSM_CATEGORIES).map(key=>[key,0]))});
+/** 空的时段汇总。day / week / month / year / all 使用同一结构，计数可直接相加。 */
+export function emptyPeriod(start,end=start,key=start){
+ return {key,start,end,messages:0,messageIds:[],
+  self:{turns:0,chars:0,disclosure:0,emotional:0,questions:0,bids:0,starts:0,goodNews:0,words:emptyWords()},
+  target:{turns:0,chars:0,disclosure:0,emotional:0,questions:0,bids:0,starts:0,positivePoints:0,positiveTurns:0,responsive:0,conflict:0,repair:0,boundary:0,empty:0,words:emptyWords()},
   bids:{toward:0,away:0,against:0,unanswered:0},capitalization:{opportunities:0,constructive:0},
   evidence:{responsiveness:[],disclosure:[],reciprocity:[],positivity:[],engagement:[],friction:[],boundary:[]}};
 }
@@ -61,7 +63,7 @@ export function buildTurns(contact={}){
  }
  for(const turn of turns){
   turn.text=turn.messages.map(m=>String(m.text||'').trim()).filter(Boolean).join(' ');
-  turn.date=shanghaiDateKey(turn.messages[0].timestamp);turn.week=weekStartKey(turn.date);
+  turn.date=shanghaiDateKey(turn.messages[0].timestamp);turn.week=weekStartKey(turn.date);turn.words=functionWordRates(turn.text);
   const any=(detect,kind)=>turn.messages.some(m=>detect(m.text)&&!(turn.role==='target'&&excluded(m,kind)));
   const signals={question:any(question,'question'),disclosure:any(sharing,'sharing'),emotional:any(emotionalSharing,'sharing'),boundary:any(negative,'boundary'),
    positiveWeight:Math.max(0,...turn.messages.map(m=>turn.role==='target'&&excluded(m,'positive')?0:positiveSignal(m.text).weight))};
@@ -85,14 +87,38 @@ export function buildTurns(contact={}){
 }
 function turnInfoFor(turn,map){for(const message of turn.messages){const info=map.get(messageIdentity(message));if(info)return info;}return null;}
 
-/** 按周聚合；没有任何消息的周不生成（界面显示为缺口，而非 0 分）。 */
-export function buildWeeklySignals(contact={},turns=buildTurns(contact)){
- const weeks=new Map();
- const weekOf=key=>{if(!weeks.has(key))weeks.set(key,emptyWeek(key));return weeks.get(key);};
+/** 时段键：day = 日期，week = 周一日期，month = YYYY-MM，year = YYYY，all = 全部记录。 */
+export const PERIODS=Object.freeze(['day','week','month','year','all']);
+export function periodKey(turn,granularity){
+ if(!turn.date)return null;
+ if(granularity==='day')return turn.date;if(granularity==='week')return turn.week;
+ if(granularity==='month')return turn.date.slice(0,7);if(granularity==='year')return turn.date.slice(0,4);
+ if(granularity==='all')return 'all';throw new Error('未知时段：'+granularity);
+}
+function periodRange(key,granularity,turns){
+ if(granularity==='day')return [key,key];if(granularity==='week')return [key,addDays(key,6)];
+ if(granularity==='month'){const [y,m]=key.split('-').map(Number);return [key+'-01',new Date(Date.UTC(y,m,0)).toISOString().slice(0,10)];}
+ if(granularity==='year')return [key+'-01-01',key+'-12-31'];
+ const dates=turns.map(t=>t.date).filter(Boolean).sort();return [dates[0]||null,dates.at(-1)||null];
+}
+function addWords(into,from){into.chars+=from.chars;for(const key of Object.keys(into.counts))into.counts[key]+=from.counts[key]||0;}
+function finishPeriod(period){
+ const lsm=lsmFromCounts(period.self.words,period.target.words);period.lsm=lsm.value;period.lsmChars=Math.min(lsm.selfChars,lsm.targetChars);
+ period.evidence.reciprocity=period.evidence.reciprocity.filter(e=>e.kind!=='counts');pushReciprocityEvidence(period);
+ return period;
+}
+
+/**
+ * 按时段聚合规则层信号；没有任何消息的时段不生成（界面显示为缺口，而非 0 分）。
+ * 连接邀请、好消息情境与主动开启都归入发起回合所在的时段，因此按日汇总后再相加，与直接按周/月计算结果一致。
+ */
+export function buildPeriodSignals(contact={},{granularity='week',turns=buildTurns(contact)}={}){
+ const periods=new Map(),members=new Map();
+ const periodOf=turn=>{const key=periodKey(turn,granularity);if(!key)return null;if(!periods.has(key)){periods.set(key,emptyPeriod(null,null,key));members.set(key,[]);}members.get(key).push(turn);return periods.get(key);};
  turns.forEach((turn,i)=>{
-  if(!turn.week)return;const week=weekOf(turn.week),side=week[turn.role],s=turn.signals;
+  const week=periodOf(turn);if(!week)return;const side=week[turn.role],s=turn.signals;
   week.messages+=turn.messages.length;for(const m of turn.messages)week.messageIds.push(messageIdentity(m));
-  side.turns++;side.chars+=Array.from(turn.text).length;side.text+=turn.text+'\n';
+  side.turns++;side.chars+=Array.from(turn.text).length;addWords(side.words,turn.words||functionWordRates(turn.text));
   if(turn.newSession)side.starts++;
   if(s.disclosure)side.disclosure++;if(s.emotional)side.emotional++;if(s.question)side.questions++;if(s.bid)side.bids++;
   if(turn.role==='target'){
@@ -102,7 +128,7 @@ export function buildWeeklySignals(contact={},turns=buildTurns(contact)){
    if(s.conflict){side.conflict++;pushEvidence(week,'friction',evidenceOf(turn,'conflict','摩擦表达'));}
    if(s.repair){side.repair++;pushEvidence(week,'friction',evidenceOf(turn,'repair','解释或缓和'));}
    if(s.boundary){side.boundary++;pushEvidence(week,'boundary',evidenceOf(turn,'boundary','明确的拒绝或边界'));}
-   if(s.empty)side.empty++;
+   if(s.empty){side.empty++;pushEvidence(week,'friction',evidenceOf(turn,'empty','敷衍或低信息量回合'));}
    if(turn.newSession||s.question)pushEvidence(week,'engagement',evidenceOf(turn,turn.newSession?'start':'question',turn.newSession?'对方主动开启对话':'对方提问'));
   }else if(s.goodNews)side.goodNews++;
   // 我方连接邀请 → 下一回合对方的回应方式（toward / away / against / 未回复）。
@@ -116,12 +142,23 @@ export function buildWeeklySignals(contact={},turns=buildTurns(contact)){
    if(s.goodNews&&next?.role==='target'&&next.at-turn.lastAt<24*3600000){week.capitalization.opportunities++;if(!next.signals.conflict&&(next.signals.positiveWeight>=4||(next.signals.question&&next.signals.positiveWeight>=1)||(next.signals.responsive&&next.signals.positiveWeight>=1)))week.capitalization.constructive++;}
   }
  });
- for(const week of weeks.values()){
-  const lsm=languageStyleMatching(week.self.text,week.target.text);week.lsm=lsm.value;week.lsmChars=Math.min(lsm.selfChars,lsm.targetChars);
-  delete week.self.text;delete week.target.text;
-  pushReciprocityEvidence(week);
+ for(const [key,period] of periods){const [start,end]=periodRange(key,granularity,members.get(key));period.start=start;period.end=end;period.granularity=granularity;finishPeriod(period);}
+ return [...periods.values()].sort((a,b)=>String(a.key).localeCompare(String(b.key)));
+}
+export function buildWeeklySignals(contact={},turns=buildTurns(contact)){return buildPeriodSignals(contact,{granularity:'week',turns});}
+export function buildDailySignals(contact={},turns=buildTurns(contact)){return buildPeriodSignals(contact,{granularity:'day',turns});}
+
+/** 相加多个时段（例如按日汇总成月份或最近 30 天）。计数可加；LSM 由虚词计数重新计算；证据按同一上限重新挑选。 */
+export function mergePeriodSignals(list,{key='merged',start,end,granularity='custom'}={}){
+ const rows=(list||[]).filter(Boolean),out=emptyPeriod(start??rows[0]?.start??null,end??rows.at(-1)?.end??null,key);out.granularity=granularity;
+ for(const p of rows){
+  out.messages+=p.messages||0;out.messageIds.push(...(p.messageIds||[]));
+  for(const role of ['self','target'])for(const [field,value] of Object.entries(p[role]||{})){if(field==='words')addWords(out[role].words,value);else if(typeof value==='number')out[role][field]=(out[role][field]||0)+value;}
+  for(const field of Object.keys(out.bids))out.bids[field]+=p.bids?.[field]||0;
+  for(const field of Object.keys(out.capitalization))out.capitalization[field]+=p.capitalization?.[field]||0;
+  for(const [dim,items] of Object.entries(p.evidence||{}))if(dim!=='reciprocity')for(const item of items)pushEvidence(out,dim,item);
  }
- return [...weeks.values()].sort((a,b)=>a.start.localeCompare(b.start));
+ return finishPeriod(out);
 }
 function pushReciprocityEvidence(week){
  const s=week.self,t=week.target;

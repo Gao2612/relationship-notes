@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as E from './relation-stage.js';
+import {analyzeDailyTimeline} from './analysis.js';
+import {scoreMergedPeriods} from './affinity/index.js';
 
 const day=(date,affinityScore,extra={})=>({date,affinityScore,turns:6,targetTurns:4,selfStarts:3,targetStarts:2,emotionalSharingTurns:0,appeasementReplies:0,targetShares:1,positiveCues:1,...extra});
 const days=(count,score,extra)=>Array.from({length:count},(_,index)=>day('2026-11-'+(String(index+1).padStart(2,'0')),score,extra));
@@ -71,7 +73,7 @@ test('人工设定优先于自动判定，且重算不会把它冲掉',()=>{
  assert.equal(result.stage,'ambiguous');
  assert.equal(result.manual,true);
  assert.equal(result.confidence,1);
- assert.deepEqual(result.band,[50,100],'人工设定后证据区间改用该阶段自身的区间');
+ assert.deepEqual(result.band,[55,100],'人工设定后参考区间改用该阶段自身的区间（v3 指数）');
  assert.equal(result.autoStage,'friend');
  assert(result.reasons[0].text.includes('你手动设定'));
  const later=E.buildRelationStage(manual,{days:days(13,70,{emotionalSharingTurns:5})});
@@ -128,4 +130,13 @@ test('疑问、否定与过往表述不算关系确认，真实确认才判对�
  const mixedStage=E.buildRelationStage(mixed,{days:days(6,45)});
  assert.equal(mixedStage.stage,'partner');
  assert(mixedStage.reasons.find(r=>r.code==='commit').text.includes('已排除 1 条'),'被排除的表述要在证据句里点名');
+});
+
+test('真实聊天记录时，近 30 天关系指数 = 窗口内各日 v3 信号合并后评分',()=>{
+ const messages=[];
+ for(let d=1;d<=10;d++){const date='2026-11-'+String(d).padStart(2,'0');messages.push({sender:'我',text:'你今天忙吗？',timestamp:date+' 09:00'},{sender:'对方',text:'还好，刚开完会，你呢？',timestamp:date+' 09:02'},{sender:'我',text:'我今天去跑步了，挺开心的',timestamp:date+' 09:05'},{sender:'对方',text:'真好，跑了多远呀？',timestamp:date+' 09:06'});}
+ const person={self:'我',target:'对方',messages,profileSummary:[]};
+ const days=analyzeDailyTimeline(messages,'我','对方').days,result=E.buildRelationStage(person,{days});
+ assert.equal(result.metrics.averageScore,scoreMergedPeriods(days.map(day=>day.v3Signals)).index);
+ assert.ok(result.reasons[0].text.includes('关系指数'));
 });

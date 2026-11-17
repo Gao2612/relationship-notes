@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — 2026-11-17（正式采用关系分析 v3）
+
+- 评分统一为关系分析 v3：每日历程（日历、日/月/年趋势图、数据表）、互动评分、打分依据、评分规则、关系阶段、统计页与回复/每日总结的模型载荷都改用 v3 公式。
+- 新增通用时段评分：`buildPeriodSignals`（day / week / month / year / all）、`mergePeriodSignals`、`scorePeriod`、`analyzePeriods`、`analyzePeriodsCached`、`scoreMergedPeriods`。连接邀请、好消息情境与主动开启归入发起回合所在时段，LSM 改由虚词计数计算（`lsmFromCounts`），按日相加与直接按周/月/年计算结果一致；周结果与此前完全相同。
+- 月、年与全部记录的指数改为合并该时段各日信号后整体评分，不再对日分加权平均，也不再向 32 折算。
+- 对方在某时段没有任何回合时不评分（`index:null`），不再给出先验 50 或旧版中性 32；长期变化把未评分周当作缺口。日历不再“沿用上次分数”。
+- 「打分依据」重写：按维度列出规则观测、x、n、收缩估计、权重与贡献，加上摩擦系数和边界封顶，合计与当天指数一致，并显示所在周（含 AI 时注明）与所在月的指数。
+- 「评分规则」重写为 v3：计算流程、六维度表、摩擦与边界、区间与可信度、AI 融合、长期变化、十一条识别规则；数值取自模型常量。
+- 关系阶段改用最近 30 天合并后的 v3 指数，门槛 朋友 ≥ 45、好朋友 ≥ 55，各阶段参考区间改到 v3 标尺。
+- 摩擦维度的证据补充敷衍或低信息量回合。
+- 移除旧版 `interactionScore` / `interactionScoreBreakdown`、`AFFINITY_RULE_TEXT`、`RULE_SECTIONS` 及其拆分工具；对方回合识别与十类人工纠正保留为 v3 规则层输入。
+- 宿主错误信息改为“关系指数无效”等；回复提示词说明 `affinityScore` 为 v3 日指数。
+- 测试：`scoring-v2.test.mjs` 改为 `scoring-v3.test.mjs`，各评分测试改用 v3 断言并新增粒度一致、未评分、分项合计、阶段指数等测试（54 个文件 / 367 项）。
+- 文档：三语 README 删除 v2.3 附录，新增「各页面使用的粒度」；`docs/AFFINITY-V3.md` 新增统一说明；`docs/HOST-API.md` 更新字段含义；`docs/SCORING-RESEARCH.md`、`docs/scoring-evidence.md` 标注为历史参考。
+
 ## Unreleased — 2026-11-17（文档：README 与关系分析 v3 同步）
 
 - 三语 README 的「评分规则」改为「评分与分析规则（关系分析 v3）」：回合与周、连接邀请四分类、好消息情境、六个维度的规则层公式与证据量、摩擦与修复、收缩与区间、AI 评定与融合（输入限制、宿主校验、偏移上限、分歧阈值、缓存）、综合指数与可信度、长期变化（EWMA、趋势判定、CUSUM、阶段驱动因素）、证据展示与参数一览，均与 `src/affinity/` 和 `affinity-service.js` 逐项对应。

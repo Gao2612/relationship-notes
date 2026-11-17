@@ -1,16 +1,19 @@
 // 关系阶段：只用可观察的聊天线索做可解释判定，人工设定永远优先。
 // 判定结果不写回 contact，避免自动结果冲掉人工覆盖；每次按需重算。
 import {analyzeDailyTimeline} from './analysis.js';
+import {scoreMergedPeriods} from './affinity/index.js';
+// 区间与门槛使用关系分析 v3 指数（50 = 没有证据时的中性值）。门槛是产品设定，未经真实结果校准。
+export const STAGE_THRESHOLDS=Object.freeze({friend:45,closeFriend:55});
 
 export const RELATION_STAGES=[
- {key:'stranger',label:'陌生人',band:[0,32],hint:'还没有形成持续互动'},
- {key:'acquaintance',label:'路人',band:[20,40],hint:'偶尔说两句，没有稳定往来'},
- {key:'colleague',label:'同事',band:[30,48],hint:'话题集中在工作与事务'},
- {key:'friend',label:'朋友',band:[40,58],hint:'有来有回，能聊日常'},
- {key:'closeFriend',label:'好朋友',band:[52,100],hint:'长期稳定，互相主动'},
- {key:'crush',label:'暗恋',band:[45,100],hint:'我方表达明显，对方没有同类信号'},
- {key:'ambiguous',label:'暧昧',band:[50,100],hint:'双方都有超越朋友的信号，关系没有说破'},
- {key:'partner',label:'对象',band:[55,100],hint:'出现明确的情侣称呼或关系确认'},
+ {key:'stranger',label:'陌生人',band:[0,45],hint:'还没有形成持续互动'},
+ {key:'acquaintance',label:'路人',band:[35,50],hint:'偶尔说两句，没有稳定往来'},
+ {key:'colleague',label:'同事',band:[40,55],hint:'话题集中在工作与事务'},
+ {key:'friend',label:'朋友',band:[45,62],hint:'有来有回，能聊日常'},
+ {key:'closeFriend',label:'好朋友',band:[55,100],hint:'长期稳定，互相主动'},
+ {key:'crush',label:'暗恋',band:[50,100],hint:'我方表达明显，对方没有同类信号'},
+ {key:'ambiguous',label:'暧昧',band:[55,100],hint:'双方都有超越朋友的信号，关系没有说破'},
+ {key:'partner',label:'对象',band:[60,100],hint:'出现明确的情侣称呼或关系确认'},
 ];
 const STAGE_BY_KEY=new Map(RELATION_STAGES.map(stage=>[stage.key,stage]));
 const PROFILE_FIELDS=[['label',60],['context',300],['expectation',300]];
@@ -80,9 +83,10 @@ function recentMetrics(days,anchorDate){
   emotional+=Number(day.emotionalSharingTurns)||0;repairs+=Number(day.appeasementReplies)||0;
   targetShares+=Number(day.targetShares)||0;positiveCues+=Number(day.positiveCues)||0;
  }
- let averageScore=weight?weighted/weight:null;
- // 与月/年桶同一收缩规则：回合太少时把高分往 32 收，避免单日高分被当成长期关系。
- if(averageScore!==null&&turns<20&&averageScore>32)averageScore=32+(averageScore-32)*turns/20;
+ // v3：把窗口内各日的规则层信号相加后整体评分（与月/年图表同一口径），小样本由维度收缩自然处理。
+ // 只有外部传入的简化日记录（没有 v3 信号）才退回按对方回合加权平均日指数。
+ const withSignals=used.filter(day=>day.v3Signals);
+ let averageScore=withSignals.length&&withSignals.length===used.length?scoreMergedPeriods(used.map(day=>day.v3Signals)).index:weight?weighted/weight:null;
  const initiatives=selfStarts+targetStarts;
  return {days:used.length,turns,targetTurns,selfStarts,targetStarts,emotionalSharingTurns:emotional,repairs,targetShares,positiveCues,averageScore:averageScore===null?null:Math.round(averageScore*10)/10,targetInitRatio:initiatives?Math.round(targetStarts/initiatives*100)/100:0,anchor:anchorDate||used.at(-1)?.date||null};
 }
@@ -121,7 +125,7 @@ export function buildRelationStage(contact,options={}){
 
  const reasons=[];
  const push=(code,text,evidence)=>{reasons.push(evidence?{code,text,evidence}:{code,text});};
- push('window',`近 30 天有 ${metrics.days} 天可评分互动、${metrics.turns} 个回合，平均线索分 ${metrics.averageScore===null?'—':metrics.averageScore}（按对方回合加权，样本少于 20 回合时沿用月/年桶的收缩规则）。`);
+ push('window',`近 30 天有 ${metrics.days} 天可评分互动、${metrics.turns} 个回合，关系指数 ${metrics.averageScore===null?'—':metrics.averageScore}（关系分析 v3，把窗口内各日信号合并后评分）。`);
  let stage='acquaintance',confidence=0.35;
  const commitHits=theirs.commit.length+mine.commit.length,excluded=(theirs.excluded||0)+(mine.excluded||0);
  if(theirs.commit.length||commitHits>=2){
@@ -136,12 +140,12 @@ export function buildRelationStage(contact,options={}){
  }else if(workRatio>=0.6&&metrics.emotionalSharingTurns<=1&&!theirs.strong.length){
   stage='colleague';confidence=0.55;
   push('work_context',`近 30 天 ${Math.round(workRatio*100)}% 的消息围绕工作事务，情绪性分享 ${metrics.emotionalSharingTurns} 轮。`);
- }else if(metrics.days>=12&&metrics.averageScore!==null&&metrics.averageScore>=55&&metrics.targetInitRatio>=0.25&&(metrics.emotionalSharingTurns>=3||metrics.repairs>=1||metrics.targetShares>=5)){
+ }else if(metrics.days>=12&&metrics.averageScore!==null&&metrics.averageScore>=STAGE_THRESHOLDS.closeFriend&&metrics.targetInitRatio>=0.25&&(metrics.emotionalSharingTurns>=3||metrics.repairs>=1||metrics.targetShares>=5)){
   stage='closeFriend';confidence=0.65;
-  push('stable',`互动覆盖 ${metrics.days} 天、平均线索分 ${metrics.averageScore}，对方主动发起占比 ${Math.round(metrics.targetInitRatio*100)}%，情绪分享 ${metrics.emotionalSharingTurns} 轮、事后解释 ${metrics.repairs} 次。`);
- }else if(metrics.days>=5&&metrics.turns>=30&&metrics.averageScore!==null&&metrics.averageScore>=40){
+  push('stable',`互动覆盖 ${metrics.days} 天、关系指数 ${metrics.averageScore}，对方主动发起占比 ${Math.round(metrics.targetInitRatio*100)}%，情绪分享 ${metrics.emotionalSharingTurns} 轮、事后解释 ${metrics.repairs} 次。`);
+ }else if(metrics.days>=5&&metrics.turns>=30&&metrics.averageScore!==null&&metrics.averageScore>=STAGE_THRESHOLDS.friend){
   stage='friend';confidence=0.55;
-  push('regular',`互动覆盖 ${metrics.days} 天、${metrics.turns} 个回合，平均线索分 ${metrics.averageScore}。`);
+  push('regular',`互动覆盖 ${metrics.days} 天、${metrics.turns} 个回合，关系指数 ${metrics.averageScore}。`);
  }else if(metrics.days<=1||metrics.turns<8){
   stage='stranger';confidence=0.7;
   push('thin',`只有 ${metrics.days} 天可评分互动、${metrics.turns} 个回合，样本不足以说明稳定往来。`);

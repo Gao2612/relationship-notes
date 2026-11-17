@@ -3,7 +3,7 @@
 //   fact      规则层统计与原文（可点击回到上下文）
 //   ai-quote  AI 引用的原文（宿主已逐字校验）及其对该句的客观描述
 //   inference AI 的解释性推断，附置信度与替代解释，界面以不同样式标出
-import {buildWeeklySignals,buildTurns} from './weekly-signals.js';
+import {buildWeeklySignals,buildTurns,buildPeriodSignals,mergePeriodSignals,PERIODS} from './weekly-signals.js';
 import {scoreWeek,DIMENSIONS,FRICTION,MODEL_VERSION} from './model.js';
 import {longitudinal} from './longitudinal.js';
 import {messageIdentity} from '../message-identity.js';
@@ -11,9 +11,10 @@ import {shanghaiDateKey} from '../shared/dates.js';
 import {weekStartKey} from './weekly-signals.js';
 export {DIMENSIONS,FRICTION,MODEL_VERSION} from './model.js';
 export {languageStyleMatching,functionWordRates} from './lsm.js';
-export {buildWeeklySignals,buildTurns,weekStartKey} from './weekly-signals.js';
-export {scoreWeek,ruleDimensions,fuseDimension,shrink} from './model.js';
-export {longitudinal,trend,changePoints,ewma} from './longitudinal.js';
+export {buildWeeklySignals,buildDailySignals,buildPeriodSignals,mergePeriodSignals,emptyPeriod,periodKey,PERIODS,buildTurns,weekStartKey} from './weekly-signals.js';
+export {scoreWeek,scorePeriod,ruleDimensions,fuseDimension,shrink,PRIOR,PRIOR_STRENGTH,MAX_SHIFT,DISAGREE_AT,LLM_CONFIDENCE,LLM_PSEUDO_COUNT,BOUNDARY_CAP} from './model.js';
+export {longitudinal,trend,changePoints,ewma,isScored} from './longitudinal.js';
+export {lsmFromCounts,LSM_MIN_CHARS} from './lsm.js';
 
 export const AI_RESULT_VERSION=1;
 export const AI_MAX_MESSAGES=80,AI_MAX_CHARS=300,AI_DIMENSIONS=['responsiveness','disclosure','reciprocity','positivity','engagement','friction'];
@@ -103,4 +104,28 @@ export function analyzeRelationshipCached(contact={}){
  const result=analyzeRelationship(contact);
  analysisCache.set(messages,{v3:contact.affinityV3,corrections:contact.interactionCorrections,self:contact.self,target:contact.target,result});
  return result;
+}
+
+/**
+ * 任意粒度的 v3 评分：day / week / month / year / all。
+ * AI 评定按周缓存，因此只在 week 粒度融合；其他粒度使用同一套规则层公式（日、月、年、全部记录口径一致）。
+ */
+export function analyzePeriods(contact={},granularity='week',{turns=buildTurns(contact)}={}){
+ if(!PERIODS.includes(granularity))throw new Error('未知时段：'+granularity);
+ return buildPeriodSignals(contact,{granularity,turns}).map(period=>{
+  const cached=granularity==='week'?cachedAiWeek(contact,period.start,weekFingerprint(contact,period.start,turns)):null;
+  const result=scoreWeek(period,cached?.result||null);result.period=period;result.ai=cached?{provider:cached.provider,model:cached.model,analyzedAt:cached.analyzedAt}:null;return result;
+ });
+}
+/** 合并若干日（或其他时段）的信号后按 v3 规则层评分，例如“最近 30 天”。 */
+export function scoreMergedPeriods(list,options={}){const period=mergePeriodSignals(list,options);const result=scoreWeek(period,null);result.period=period;return result;}
+
+const periodCache=new WeakMap();
+/** 以消息数组为键缓存各粒度结果；纠正、身份或 AI 结果变化时重算。 */
+export function analyzePeriodsCached(contact={},granularity='week'){
+ const messages=contact.messages;if(!messages||typeof messages!=='object')return analyzePeriods(contact,granularity);
+ let hit=periodCache.get(messages);
+ if(!hit||hit.v3!==contact.affinityV3||hit.corrections!==contact.interactionCorrections||hit.self!==contact.self||hit.target!==contact.target){hit={v3:contact.affinityV3,corrections:contact.interactionCorrections,self:contact.self,target:contact.target,results:{}};periodCache.set(messages,hit);}
+ if(!hit.results[granularity])hit.results[granularity]=analyzePeriods(contact,granularity);
+ return hit.results[granularity];
 }

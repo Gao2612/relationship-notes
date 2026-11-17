@@ -21,7 +21,7 @@
 
 - `messages` 最多20条、`relatedMessages` 最多8条，消息为 `{sender,text,timestamp?}`；sender 必须等于 self 或 target，正文最多1000字符。双方名称最多100字符且必须不同。
 - `facts` 最多30项，形状 `{field,value}`，长度分别100/500字符。
-- `dailyTimeline` 最多800项，形状 `{date,messages,self,target,turns,activityScore,affinityScore,affinityChange,reason,affinityEvidence}`。日期 `YYYY-MM-DD`，计数0–10000；活跃度0–100，线索分允许null或0–100整数，变化允许null或−100–100整数；reason最多360字符，原文证据最多3条、每条100字符。
+- `dailyTimeline` 最多800项，形状 `{date,messages,self,target,turns,activityScore,affinityScore,affinityChange,reason,affinityEvidence}`。日期 `YYYY-MM-DD`，计数0–10000；活跃度0–100，`affinityScore` 为当天关系指数（关系分析 v3 规则层，对方当天无回合时为 null）允许null或0–100整数，`affinityChange` 为相较上一个已评分日的变化，允许null或−100–100整数；reason最多360字符，原文证据最多3条、每条100字符。
 - `scenario,tone,intent` 均为不超过500字符的字符串。`selfProfile` 是不超过10000序列化字符的对象，宿主使用 `normalizeSelfProfile` 规范化；`suggestions` 最多5项且整体不超过8000字符，免责声明不超过500字符。
 
 ### 日期、画像和媒体批次

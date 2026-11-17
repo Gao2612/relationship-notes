@@ -2,8 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
- AFFINITY_RULE_TEXT,RULE_SECTIONS,parseAffinityRule,joinAffinityRule,splitRuleClauses,splitRuleTerms,splitRuleLines,joinRuleLines,scoreBucketState
+ scoreBucketState
 } from './workspace.js';
+import {RECOGNITION_RULES} from './views/scoring-rules.js';
+import * as E from './client-engine.js';
+// 无 DOM 的最小 React：createElement 生成树，renderToStaticMarkup 输出带 class 的文本，足以核对文案与结构。
+const React={createElement:(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity)})};
+const renderToStaticMarkup=node=>node===null||node===undefined||node===false?'':typeof node!=='object'?String(node):typeof node.type==='function'?renderToStaticMarkup(node.type(node.props)):'<'+node.type+(node.props.className?' class="'+node.props.className+'"':'')+'>'+node.children.map(renderToStaticMarkup).join('')+'</'+node.type+'>';
 
 const source=readFileSync(new URL('./workspace.js',import.meta.url),'utf8');
 
@@ -17,7 +22,7 @@ test('无记录缺口与「有记录但低分」在趋势判定上分开，低�
  assert.match(source,/bucket\.recorded=bucket\.messages>0;return bucket;\}\);/);
  assert.match(source,/gapIndexes=buckets\.map\(\(bucket,index\)=>bucket\.averageAffinity===null\?index:-1\)/);
  assert.match(source,/strokeDasharray:'2 2'/,'缺口用空心虚线点，不落在分数线的连续实线上');
- assert.match(source,/实心点与实线：有记录时段的均分，低分同样是实线/);
+ assert.match(source,/实心点与实线：已评分时段的关系指数，低分同样是实线/);
  assert.match(source,/缺口 = 该时段没有聊天记录，不代表分数下降。/);
 });
 
@@ -42,60 +47,46 @@ test('三个图表都带 role=img 与可读标签，数据表兜底保留',()=>{
  assert.match(source,/查看完整数据表（'\+buckets\.length\+' 行）/);
 });
 
-test('评分规则 v2.1 逐项卡片与展示措辞可原样拼回',()=>{
- assert.equal(RULE_SECTIONS.length,11);
- assert.deepEqual(RULE_SECTIONS.map(section=>section.title),['好感线索分','互动均衡分','主动开口','回复间隔','敷衍程度','单方独白','摩擦/冷战','交流轮次','直接提问','第一人称分享','明确边界']);
- assert.equal(RULE_SECTIONS[1].value,'round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))');
- const parsed=parseAffinityRule();
- assert.equal(parsed.terms.length,8,'公式包括基础分、五项加分和两组扣分');
- assert.equal(parsed.notes.length,5,'上限、折算、低频、汇总与纠正说明');
- assert.equal(joinAffinityRule(parsed),AFFINITY_RULE_TEXT,'拆项拼回必须与原规则逐字一致');
- assert.equal(splitRuleClauses(AFFINITY_RULE_TEXT).length,6);
- for(const term of parsed.terms)assert.ok(term.text.length<=60,'公式单项过长：'+term.text);
- assert.deepEqual(splitRuleTerms('38 + 1 × A − 2 × B').map(term=>term.sign+':'+term.text),[':38','+:1 × A','−:2 × B']);
- for(const note of parsed.notes){
-  const lines=splitRuleLines(note);
-  assert.equal(joinRuleLines(lines),note,'断行不得改动原文');
-  for(const line of lines)assert.ok(line.length<=70,'口径断行过长：'+line);
- }
- for(const section of RULE_SECTIONS.filter(item=>item.detail)){
-  assert.equal(splitRuleClauses(section.detail).join('；'),section.detail);
-  for(const clause of splitRuleClauses(section.detail)){
-   const lines=splitRuleLines(clause);
-   assert.equal(joinRuleLines(lines),clause);
-   for(const line of lines)assert.ok(line.length<=70,'说明断行过长：'+line);
-  }
- }
- for(const rule of ['正向四项合计最多 +45','结果限制在 0–100','直接记中性 32 分','解释不升级摩擦','时延、条数失衡与单方连发不直接扣分','不足 6 回合','总分封顶 48','明确边界总分封顶 32','好感概率','历史曲线按新规则重新计算'])assert.ok(AFFINITY_RULE_TEXT.includes(rule)||RULE_SECTIONS.some(section=>(section.detail||'').includes(rule)),'规则措辞缺失：'+rule);
+test('评分规则页展示 v3 公式：数值取自模型常量，不另写一份数字',()=>{
+ const Rules=E.createScoringRulesView(React,E),html=renderToStaticMarkup(React.createElement(Rules,{onRegenerate(){},onOpenInsight(){}}));
+ assert.match(html,/评分规则（关系分析 v3）/);
+ for(const d of E.DIMENSIONS){assert.ok(html.includes(d.label),d.label);assert.ok(html.includes(Math.round(d.weight*100)+'%'),d.key);}
+ assert.ok(html.includes('d = (n·x + '+E.PRIOR_STRENGTH+'·'+E.PRIOR+')'));
+ assert.ok(html.includes('不超过 '+E.BOUNDARY_CAP));
+ assert.ok(html.includes('±'+E.MAX_SHIFT));
+ assert.ok(html.includes('不是“对方喜欢你的概率”'));
+ assert.equal(RECOGNITION_RULES.length,11);
+ for(const rule of RECOGNITION_RULES)assert.ok(html.includes(rule.title),rule.id);
+ // 旧版 v2.3 的计分口径不再出现在规则页。
+ for(const legacy of ['38 分起算','直接记中性 32 分','总分封顶 48','正向四项合计最多 +45'])assert.ok(!html.includes(legacy),legacy);
+ assert.match(source,/if\(tab==='rules'\)return h\(ScoringRulesView,/);
 });
 
-test('评分规则页不再用两列表格，公式单独成等宽块',()=>{
- assert.doesNotMatch(source,/if\(tab==='rules'\)return box\('评分与识别规则',h\('table'/);
- assert.match(source,/className:'rn-rules'/);
- assert.match(source,/className:'rn-rule-card'/);
- assert.match(source,/className:'rn-rule-formula'/);
- assert.match(source,/className:'rn-rule-value'/);
+test('评分规则页使用卡片布局，公式单独成块',()=>{
  assert.match(source,/\.rn-rule-value\{font-family:ui-monospace/);
- assert.match(source,/\.rn-rule-formula li\{font-family:ui-monospace/);
  assert.equal((source.match(/\.rn-rule-card\{/g)||[]).length>=1,true);
+ const html=renderToStaticMarkup(React.createElement(E.createScoringRulesView(React,E),{}));
+ assert.match(html,/class="rn-rules"/);
+ assert.match(html,/class="rn-rule-card"/);
+ assert.match(html,/class="rn-rule-value"/);
 });
 
-test('互动投入均分与互动均衡分各带口径说明，并声明不是同一标尺',()=>{
+test('关系指数与互动均衡分各带口径说明，并声明不是同一标尺',()=>{
  assert.match(source,/'口径：只比较双方发言条数是否接近，100 表示条数持平。'/);
- assert.match(source,/'口径：按回应、提问、分享及回合计算投入，38 分起算，正向表达按礼貌、支持与亲近分层列出证据。'/);
- assert.match(source,/互动均衡分与互动投入均分不是同一标尺，不可直接相比/);
+ assert.match(source,/'口径：关系分析 v3 规则层，把全部回合合并后评分；50 为缺少证据时的中性值。'/);
+ assert.match(source,/互动均衡分与关系指数不是同一标尺，不可直接相比/);
  const why=source.indexOf("className:'rn-metric-why'");
- const note=source.indexOf('互动均衡分按双方发言条数计算；投入分结合上下文');
+ const note=source.indexOf('互动均衡分按双方发言条数计算；关系指数（关系分析 v3）');
  assert.ok(why>0&&note>why,'口径解释应贴在指标附近');
- assert.equal((source.match(/互动均衡分按双方发言条数计算；投入分结合上下文/g)||[]).length,1,'解释从页底移走后不应重复');
+ assert.equal((source.match(/互动均衡分按双方发言条数计算；关系指数（关系分析 v3）/g)||[]).length,1,'解释从页底移走后不应重复');
  const box=source.slice(source.indexOf("box('统计依据'"),source.indexOf("button('查看每日历程'"));
  assert.ok(!box.includes('互动均衡分按双方发言条数计算'),'「统计依据」不再重复口径解释');
 });
 
 test('每日历程首屏只留主趋势图与关键数字，日历和其余图表默认收起',()=>{
  assert.match(source,/const \[moreOpen,setMoreOpen\]=React\.useState\(false\);/);
- assert.match(source,/const buildAnnualPanel=\(\)=>box\('好感度与互动趋势'/);
- const panel=source.slice(source.indexOf("const buildAnnualPanel=()=>box('好感度与互动趋势'"));
+ assert.match(source,/const buildAnnualPanel=\(\)=>box\('关系指数与互动趋势'/);
+ const panel=source.slice(source.indexOf("const buildAnnualPanel=()=>box('关系指数与互动趋势'"));
  const fold=panel.indexOf("h('details',{className:'rn-more',open:moreOpen,onToggle:");
  assert.ok(fold>0,'缺少「展开更多分析」折叠');
  assert.ok(panel.indexOf('keyFigures')>0&&panel.indexOf('keyFigures')<fold,'关键数字留在首屏');

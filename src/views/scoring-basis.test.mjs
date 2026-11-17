@@ -8,64 +8,61 @@ function contact(){
  return E.ensureContactMessageIds({id:'person',self:'我',target:'对方',messages,profileSummary:[]});
 }
 const timelineOf=c=>E.analyzeDailyTimeline(c.messages,c.self,c.target,c.interactionCorrections||[]);
-const countsOf=d=>({positivePoints:d.positivePoints,emotionalSharingTurns:d.emotionalSharingTurns,positiveTurns:d.positiveTurns,questionTurns:d.questionTurns,sharingTurns:d.sharingTurns,boundaryTurns:d.boundaryTurns,responsiveTurns:d.responsiveTurns,answeredTurns:d.answeredTurns,continuedTurns:d.continuedTurns,strongConflict:d.strongConflict,positive:d.positiveCues,boundary:d.negativeCues,question:d.targetQuestions,sharing:d.targetShares,selfStarts:d.selfStarts,targetStarts:d.targetStarts,medianMinutes:d.medianReplyMinutes,slowReplies:d.slowReplies,perfunctoryReplies:d.perfunctoryReplies,lowContentReplies:d.lowContentReplies,targetTurns:d.targetTurns,selfTurns:d.selfTurns,conflictReplies:d.conflictReplies,appeasementReplies:d.appeasementReplies,messages:d.messages.length,selfMessages:d.selfMessages,targetMessages:d.targetMessages});
-test('逐项拆解与单日总分同源，且各项增减分相加等于当天分',()=>{
+const statusText=nodes=>nodes.filter(node=>node.props.role==='status').flatMap(node=>node.children).filter(child=>typeof child==='string').join('');
+
+test('逐项拆解与单日指数同源：维度贡献之和 × 摩擦系数（边界封顶）等于当天指数',()=>{
  const c=contact(),days=timelineOf(c).days;
  assert(days.length>=3);
  for(const d of days){
-  const result=E.interactionScoreBreakdown(countsOf(d));
-  assert.equal(result.score,d.affinityScore,'拆解分必须等于每日分 '+d.date);
-  const total=result.items.reduce((sum,item)=>sum+item.delta,0);
-  assert.ok(Math.abs(total-result.score)<1e-9,'各项相加必须等于总分 '+d.date);
-  assert(result.items.some(item=>item.key==='quiet'));
-  assert(result.items.some(item=>item.key==='coldCap'));
+  if(d.affinityScore===null)continue;
+  const basis=E.basisRows(d.v3,E.DIMENSIONS);
+  assert.equal(basis.rows.length,E.DIMENSIONS.length);
+  for(const row of basis.rows)assert.ok(Math.abs(row.contribution-100*row.weight*row.estimate)<1e-9);
+  assert.equal(Math.round(d.affinityBoundary?Math.min(basis.raw,E.BOUNDARY_CAP):basis.raw),d.affinityScore,'拆解必须等于当天指数 '+d.date);
  }
 });
-test('对方整天零回合记中性 32，不再虚设静默扣分',()=>{
- const c=contact(),zero=timelineOf(c).days.find(d=>d.date==='2026-06-04'),result=E.interactionScoreBreakdown(countsOf(zero));
+test('对方整天零回合不评分，不再使用旧版的中性 32',()=>{
+ const c=contact(),zero=timelineOf(c).days.find(d=>d.date==='2026-06-04');
  assert.equal(zero.targetTurns,0);
- assert.equal(result.quiet,true);
- assert.equal(result.score,32);
- assert.ok(!result.items.some(item=>item.key==='silent'&&item.delta<0));
- assert.equal(result.items.find(item=>item.key==='quiet').delta,32-result.computed);
+ assert.equal(zero.affinityScore,null);
+ const nodes=harness(E.createScoringBasisView).render({contact:c,date:'2026-06-04',onDateChange(){},onOpenDaily(){},onOpenRules(){}});
+ assert.match(statusText(nodes),/对方当天没有可评分的回合/);
+ assert.ok(!statusText(nodes).includes('32'));
 });
 test('跨对话段的有效短答保留回应依据，慢回复只作统计',()=>{
- const c=contact(),days=timelineOf(c).days,day=days.find(d=>d.date==='2026-06-06'),result=E.interactionScoreBreakdown(countsOf(day));
- assert.equal(result.quiet,false);
+ const c=contact(),days=timelineOf(c).days,day=days.find(d=>d.date==='2026-06-06');
  assert.equal(day.responsiveTurns,1);
- assert.ok(result.score>32);
- assert.equal(result.items.find(item=>item.key==='empty').hit,false);
  assert.equal(day.slowReplies,1);
- assert.ok(!result.items.some(item=>['slow','latency','latencyOverlap'].includes(item.key)&&item.delta!==0));
- const conclusion=harness(E.createScoringBasisView).render({contact:c,date:'2026-06-06',onDateChange(){},onOpenDaily(){},onOpenRules(){}});
- assert(conclusion.some(node=>node.props.role==='status'&&node.children.some(child=>typeof child==='string'&&child.includes('有效回应'))));
+ assert.notEqual(day.affinityScore,null);
+ assert.equal(day.v3Signals.bids.toward,1,'“嗯”接住了跨段的提问');
+ const nodes=harness(E.createScoringBasisView).render({contact:c,date:'2026-06-06',onDateChange(){},onOpenDaily(){},onOpenRules(){}});
+ assert.match(statusText(nodes),/^当天关系指数 \d+/);
+ assert.ok(JSON.stringify(nodes.map(node=>node.children)).includes('转向 1'));
 });
-test('打分依据页展示条数回合与最终分，可翻日和回链每日历程',()=>{
+test('打分依据页展示条数回合与关系指数，可翻日和回链每日历程与规则',()=>{
  const c=contact(),days=timelineOf(c).days,last=days.at(-1);
- let changed,opened,rules=0;
+ let changed,opened,rules=0,insight=0;
  const app=harness(E.createScoringBasisView);
- const nodes=app.render({contact:c,date:'',onDateChange:value=>changed=value,onOpenDaily:value=>opened=value,onOpenRules:()=>rules++});
+ const nodes=app.render({contact:c,date:'',onDateChange:value=>changed=value,onOpenDaily:value=>opened=value,onOpenRules:()=>rules++,onOpenInsight:()=>insight++});
  const text=JSON.stringify(nodes.map(node=>node.children));
- assert(text.includes('当天条数')&&text.includes('交流轮次')&&text.includes('最终分'));
+ assert(text.includes('当天条数')&&text.includes('交流轮次')&&text.includes('关系指数')&&text.includes('80% 区间'));
  const rows=nodes.filter(node=>node.type==='tr');
- assert.equal(rows.length,E.interactionScoreBreakdown(countsOf(last)).items.length+1,'表头及所有实际计分项均应呈现');
- assert(JSON.stringify(nodes.map(node=>node.children)).includes('未命中'),'未命中的项也要列出并标注');
+ assert.equal(rows.length,1+E.DIMENSIONS.length+2,'表头、六个维度、摩擦与边界');
+ for(const d of E.DIMENSIONS)assert(text.includes(d.label),d.label);
+ assert(text.includes('所在周')&&text.includes('所在月'));
  const prev=nodes.find(node=>node.props['aria-label']==='前一天'),next=nodes.find(node=>node.props['aria-label']==='后一天');
- assert.equal(prev.props.style.minHeight,44);assert(prev.props.style.minWidth>=44);
+ assert.equal(prev.props.style.minHeight,44);assert(prev.props.style.minWidth>=44);assert(next);
  if(days.length>1){prev.props.onClick();assert.equal(changed,days.at(-2).date);}
- const open=nodes.find(node=>node.type==='button'&&node.children.includes('查看当天聊天记录'));
- open.props.onClick();assert.equal(opened,last.date);
- const ruleButton=nodes.find(node=>node.type==='button'&&node.children.includes('查看完整评分规则'));
- ruleButton.props.onClick();assert.equal(rules,1);
+ nodes.find(node=>node.type==='button'&&node.children.includes('查看当天聊天记录')).props.onClick();assert.equal(opened,last.date);
+ nodes.find(node=>node.type==='button'&&node.children.includes('查看完整评分规则')).props.onClick();assert.equal(rules,1);
+ nodes.find(node=>node.type==='button'&&node.children.includes('查看关系分析（含 AI 评定）')).props.onClick();assert.equal(insight,1);
 });
 test('指定没有记录的日期时退回最近有记录日并说明',()=>{
  const c=contact(),app=harness(E.createScoringBasisView),nodes=app.render({contact:c,date:'2026-08-08',onDateChange(){},onOpenDaily(){},onOpenRules(){}});
  const text=JSON.stringify(nodes.map(node=>node.children));
  assert(text.includes('没有可识别的记录'));
 });
-
-
-test('依据页传入回合与有效回应，与日分保持一致',()=>{
+test('依据页的规则观测与每日历程同源（回应、开示、主动开启）',()=>{
  const messages=Array.from({length:6},(_,i)=>[
   {sender:'我',text:'你几点出门？',timestamp:'2026-11-07 09:'+String(i*2).padStart(2,'0')},
   {sender:'对方',text:'八点',timestamp:'2026-11-07 09:'+String(i*2+1).padStart(2,'0')}
@@ -73,33 +70,24 @@ test('依据页传入回合与有效回应，与日分保持一致',()=>{
  const c={self:'我',target:'对方',messages};
  const day=timelineOf(c).days[0];
  assert.equal(day.responsiveTurns,6);
- let passed,computed;
- const engine={...E,interactionScoreBreakdown(counts){passed=counts;computed=E.interactionScoreBreakdown(counts);return computed;}};
- const React={createElement:(type,props,...children)=>({type,props:props||{},children:children.flat(Infinity)})};
- E.createScoringBasisView(React,engine)({contact:c,date:day.date});
- assert.equal(passed.responsiveTurns,6);
- for(const field of ['positiveTurns','positivePoints','questionTurns','sharingTurns','emotionalSharingTurns','boundaryTurns'])assert.equal(passed[field],day[field],field);
- assert.equal(computed.score,day.affinityScore);
- assert.ok(computed.items.some(item=>item.key==='response'&&item.delta>0));
+ assert.equal(day.v3Signals.bids.toward,6);
+ assert.equal(day.v3.dims.responsiveness.rule,1);
+ const text=JSON.stringify(harness(E.createScoringBasisView).render({contact:c,date:day.date}).map(node=>node.children));
+ assert(text.includes('转向 6'));
+ assert(text.includes('关系指数 '+day.affinityScore));
 });
-
-
 test('分项显示两位小数，原始分项仍精确合计',()=>{
  const c={self:'我',target:'对方',messages:[
   {sender:'对方',text:'我今天买了一本书',timestamp:'2026-11-07 07:00'},
   {sender:'我',text:'你几点出门？',timestamp:'2026-11-07 09:30'},
   {sender:'对方',text:'八点',timestamp:'2026-11-07 09:31'}
  ]};
- const day=timelineOf(c).days[0],breakdown=E.interactionScoreBreakdown(countsOf(day));
- assert.equal(breakdown.items.find(item=>item.key==='initiative').delta,2/3);
- assert.ok(Math.abs(breakdown.items.reduce((sum,item)=>sum+item.delta,0)-day.affinityScore)<1e-9);
+ const day=timelineOf(c).days[0],basis=E.basisRows(day.v3,E.DIMENSIONS);
+ assert.equal(Math.round(basis.raw),day.affinityScore);
  const result=JSON.stringify(harness(E.createScoringBasisView).render({contact:c}));
- assert.ok(result.includes('+0.67'));
- assert.ok(!result.includes('+0.666666'));
+ assert.ok(!/\d\.\d{3,}/.test(result.replace(/"[^"]*\d{4}-\d{2}-\d{2}[^"]*"/g,'')),'显示值最多两位小数');
 });
-
-
-test('拆分消息气泡仍按回合解释低频日',()=>{
+test('拆分消息气泡仍按回合解释，样本少时可信度低',()=>{
  const c={self:'我',target:'对方',messages:[
   {sender:'我',text:'天气变化很大',timestamp:'2026-11-07 09:00'},
   ...['嗯','嗯','嗯'].map((text,i)=>({sender:'对方',text,timestamp:'2026-11-07 09:0'+(i+1)}))
@@ -107,7 +95,8 @@ test('拆分消息气泡仍按回合解释低频日',()=>{
  const day=timelineOf(c).days[0];
  assert.equal(day.messages.length,4);
  assert.equal(day.turns,2);
- assert.equal(day.affinityScore,32);
+ assert.equal(day.targetTurns,1);
+ assert.equal(day.affinityReliability,'low');
  const nodes=harness(E.createScoringBasisView).render({contact:c});
- assert.ok(nodes.some(node=>node.props.role==='status'&&node.children.some(child=>typeof child==='string'&&child.includes('双方合计只有 2 个回合'))));
+ assert.match(statusText(nodes),/样本少，可信度低/);
 });

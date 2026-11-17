@@ -1,20 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {interactionScoreBreakdown,engagementSignals,question,conflict,appeasement} from './interaction-signals.js';
+import {engagementSignals,question,conflict,appeasement} from './interaction-signals.js';
+import {analyzePeriods,DIMENSIONS} from './affinity/index.js';
+import {basisRows} from './views/scoring-basis.js';
 import {analyzeDailyTimeline,analyzeConversation} from './analysis.js';
 import {analyzeInteractionMetrics,correctInteraction} from './interaction-metrics.js';
 
 const message=(sender,text,time)=>({sender,text,timestamp:'2026-11-06 '+time});
 
-test('封顶、去重、低频覆盖的展示明细之和等于最终分',()=>{
- const base={messages:20,selfMessages:10,targetMessages:10,targetTurns:5,selfTurns:5};
- for(const boundary of [0,1,4])for(const conflictReplies of [0,1,3])for(const slowReplies of [0,1,4]){
-  const result=interactionScoreBreakdown({...base,boundary,conflictReplies,appeasementReplies:2,slowReplies,medianMinutes:400,positive:4,question:5,sharing:3});
-  assert.equal(result.items.reduce((total,item)=>total+item.delta,0),result.score);
- }
- for(const counts of [{messages:1,selfMessages:1},{messages:2,selfMessages:1,targetMessages:1,targetTurns:1,selfTurns:1}]){
-  const result=interactionScoreBreakdown(counts);
-  assert.equal(result.items.reduce((total,item)=>total+item.delta,0),result.score);
+test('打分依据明细（维度贡献 × 摩擦系数，边界封顶）与当天指数一致',()=>{
+ for(const reply of ['好的','你什么意思','不要再联系我','谢谢你，我也很开心','收到']){
+  const messages=[message('我','你周末有空吗？','09:00'),message('对方',reply,'09:01'),message('我','我今天去跑步了','09:10'),message('对方',reply,'09:11')];
+  const [day]=analyzePeriods({self:'我',target:'对方',messages},'day'),basis=basisRows(day,DIMENSIONS);
+  assert.equal(Math.round(day.boundary.rule?Math.min(basis.raw,30):basis.raw),day.index,reply);
  }
 });
 
@@ -25,8 +23,9 @@ test('日历与依据页的回合、有效回应采用同一输入',()=>{
  assert.equal(day.selfTurns,3);
  assert.equal(day.turns,4);
  assert.equal(analyzeConversation(messages,'我','对方').scoringTurns,day.turns);
- const result=interactionScoreBreakdown({messages:day.messages.length,selfMessages:day.selfMessages,targetMessages:day.targetMessages,selfTurns:day.selfTurns,targetTurns:day.targetTurns,responsiveTurns:day.responsiveTurns,positiveTurns:day.positiveTurns,questionTurns:day.questionTurns,sharingTurns:day.sharingTurns,boundaryTurns:day.boundaryTurns,selfStarts:day.selfStarts,targetStarts:day.targetStarts,medianMinutes:day.medianReplyMinutes,strongConflict:day.strongConflict});
- assert.equal(result.score,day.affinityScore);
+ // 依据页直接读取当天的 v3 结果，与日历同源。
+ assert.equal(day.v3.index,day.affinityScore);
+ assert.equal(day.v3Signals.target.turns,day.targetTurns);
 });
 
 test('引用和转述不构成摩擦或解释，保留自己的独立表达',()=>{
@@ -52,13 +51,10 @@ test('较强摩擦要求同段重复，解释不升级冲突',()=>{
 });
 
 test('时延仅展示，不直接处罚异步沟通',()=>{
- const base={messages:20,selfMessages:10,targetMessages:10,targetTurns:5,selfTurns:5};
- const normal=interactionScoreBreakdown(base);
- for(const slowReplies of [1,4]){
-  const delayed=interactionScoreBreakdown({...base,slowReplies,medianMinutes:400});
-  assert.equal(delayed.score,normal.score);
-  assert.equal(delayed.items.find(item=>item.key==='latency').delta,0);
- }
+ const pairs=delay=>[message('我','你几点出门？','09:00'),message('对方','明天八点出门','09:'+String(delay).padStart(2,'0')),message('我','我今天去跑步了','13:00'),message('对方','跑了多远呀？','13:'+String(delay).padStart(2,'0'))];
+ const fast=analyzeInteractionMetrics({self:'我',target:'对方',messages:pairs(1)});
+ const slow=analyzeInteractionMetrics({self:'我',target:'对方',messages:pairs(55)});
+ assert.equal(slow.score,fast.score);
 });
 
 test('明确负向、摩擦和解释不重复计入低信息量',()=>{

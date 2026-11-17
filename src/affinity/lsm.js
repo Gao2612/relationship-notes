@@ -31,12 +31,16 @@ export function functionWordRates(text){
  const rates=Object.fromEntries(Object.entries(counts).map(([key,value])=>[key,chars?100*value/chars:0]));
  return {chars,counts,rates};
 }
-/** 双方 LSM：各类别 1−|p1−p2|/(p1+p2+ε) 的平均值，0–1。 */
-export function languageStyleMatching(selfText,targetText,{minChars=LSM_MIN_CHARS}={}){
- const a=functionWordRates(selfText),b=functionWordRates(targetText);
+/** 由双方虚词计数计算 LSM（计数可按回合相加，因此按日汇总后再合并与直接合并文本的结果相同）。 */
+export function lsmFromCounts(self,target,{minChars=LSM_MIN_CHARS}={}){
+ const a=self||{chars:0,counts:{}},b=target||{chars:0,counts:{}};
  if(a.chars<minChars||b.chars<minChars)return {value:null,selfChars:a.chars,targetChars:b.chars,categories:{}};
  const categories={};
- for(const key of Object.keys(LSM_CATEGORIES)){const p1=a.rates[key],p2=b.rates[key];categories[key]=1-Math.abs(p1-p2)/(p1+p2+0.0001);}
+ for(const key of Object.keys(LSM_CATEGORIES)){const p1=100*(a.counts[key]||0)/a.chars,p2=100*(b.counts[key]||0)/b.chars;categories[key]=1-Math.abs(p1-p2)/(p1+p2+0.0001);}
  const values=Object.values(categories);
  return {value:values.reduce((sum,v)=>sum+v,0)/values.length,selfChars:a.chars,targetChars:b.chars,categories};
+}
+/** 双方 LSM：各类别 1−|p1−p2|/(p1+p2+ε) 的平均值，0–1。 */
+export function languageStyleMatching(selfText,targetText,options={}){
+ return lsmFromCounts(functionWordRates(selfText),functionWordRates(targetText),options);
 }

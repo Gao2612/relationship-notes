@@ -8,17 +8,18 @@ export function createRelationshipInsightView(React,E){
  const pct=v=>v===null||v===undefined||!Number.isFinite(v)?'—':Math.round(v*100);
  const fmt=(v,d=1)=>v===null||v===undefined||!Number.isFinite(v)?'—':(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(d);
  const TREND={rising:['上升','rn-tone-up'],falling:['下降','rn-tone-down'],stable:['大致稳定','rn-tone-flat'],insufficient:['数据不足','rn-tone-flat']};
- const RELIABILITY={high:'证据较充分',medium:'证据一般',low:'证据较少'};
+ const RELIABILITY={high:'证据较充分',medium:'证据一般',low:'证据较少',none:'未评分'};
+ const scored=p=>Boolean(p)&&!p.gap&&Number.isFinite(p.index);
  const CONF={low:'低',medium:'中',high:'高'};
  const tag=(kind,text)=>h('span',{className:'rn-tag rn-tag-'+kind},text);
  const btn=(label,onClick,props={})=>h('button',{type:'button',onClick,...props},label);
 
- function percentileOf(weeks,value){const list=weeks.map(w=>w.index);if(list.length<3||value===null)return null;return Math.round(100*list.filter(v=>v<value).length/list.length);}
+ function percentileOf(weeks,value){const list=weeks.filter(scored).map(w=>w.index);if(list.length<3||value===null)return null;return Math.round(100*list.filter(v=>v<value).length/list.length);}
 
  function TrendChart({points,changePoints,selected,onSelect}){
   const data=points;if(!data.length)return null;
   const W=720,H=220,L=36,R=12,T=14,B=30,x=i=>L+(data.length===1?(W-L-R)/2:i*(W-L-R)/(data.length-1)),y=v=>T+(100-v)*(H-T-B)/100;
-  const band=[],line=[],ew=[];data.forEach((p,i)=>{if(p.gap)return;band.push([x(i),y(p.high),y(p.low)]);line.push([x(i),y(p.index)]);if(p.ewma!==null)ew.push([x(i),y(p.ewma)]);});
+  const band=[],line=[],ew=[];data.forEach((p,i)=>{if(!scored(p))return;band.push([x(i),y(p.high),y(p.low)]);line.push([x(i),y(p.index)]);if(p.ewma!==null)ew.push([x(i),y(p.ewma)]);});
   const path=pts=>pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
   const area=band.length?'M'+band.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L')+' L'+[...band].reverse().map(p=>p[0].toFixed(1)+' '+p[2].toFixed(1)).join(' L')+' Z':'';
   const cpStarts=new Set(changePoints.map(c=>c.start)),labelEvery=Math.max(1,Math.ceil(data.length/8));
@@ -28,7 +29,7 @@ export function createRelationshipInsightView(React,E){
    ...data.map((p,i)=>cpStarts.has(p.start)?h('line',{key:'cp'+i,x1:x(i),x2:x(i),y1:T,y2:H-B,className:'rn-insight-cp'}):null),
    ew.length>1&&h('path',{d:path(ew),className:'rn-insight-ewma'}),
    line.length>1&&h('path',{d:path(line),className:'rn-insight-line'}),
-   ...data.map((p,i)=>p.gap?h('circle',{key:'p'+i,cx:x(i),cy:H-B-4,r:2.5,className:'rn-insight-gap'},h('title',null,p.start+' 无记录（缺口）')):
+   ...data.map((p,i)=>!scored(p)?h('circle',{key:'p'+i,cx:x(i),cy:H-B-4,r:2.5,className:'rn-insight-gap'},h('title',null,p.gap?p.start+' 无记录（缺口）':p.start+' 对方没有发言，未评分')):
     h('circle',{key:'p'+i,cx:x(i),cy:y(p.index),r:p.start===selected?6:4,className:'rn-insight-dot'+(p.start===selected?' selected':''),tabIndex:0,role:'button','aria-label':`${p.start} 周：${p.index}（区间 ${p.low}–${p.high}）`,
      onClick:()=>onSelect(p.start),onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(p.start);}}},h('title',null,`${p.start} 周：${p.index}（80% 区间 ${p.low}–${p.high}）`))),
    ...data.map((p,i)=>i%labelEvery===0||i===data.length-1?h('text',{key:'l'+i,x:x(i),y:H-8,textAnchor:'middle',className:'rn-insight-axis'},p.start.slice(5)):null));
@@ -69,7 +70,8 @@ export function createRelationshipInsightView(React,E){
   const analysis=contact?E.analyzeRelationshipCached(contact):null;
   const [selected,setSelected]=React.useState(null),[openDim,setOpenDim]=React.useState('responsiveness');
   if(!analysis||!analysis.weeks.length)return h('section',{className:'rn-box'},h('h2',null,'关系分析'),h('p',{className:'rn-muted'},'还没有双方可分析的聊天记录。'));
-  const weeks=analysis.weeks,current=analysis.current,pick=weeks.find(w=>w.start===selected)||current;
+  const weeks=analysis.weeks,current=analysis.current,pick=weeks.find(w=>w.start===selected)||current||weeks.at(-1);
+  if(!current)return h('section',{className:'rn-box'},h('h2',null,'关系分析'),h('p',{className:'rn-muted'},'对方还没有可评分的回合：关系指数需要观察对方的回应，暂不评分。'));
   const aiEntry=contact.affinityV3?.weeks?.[pick.start],ai=aiEntry&&pick.ai?aiEntry.result:null;
   const explain=E.explainWeek(pick,pick.week,ai,contact);
   const dims=explain.dimensions.map(d=>d.key==='friction'?{...d,friction:pick.friction}:d);
@@ -84,7 +86,7 @@ export function createRelationshipInsightView(React,E){
       h('p',{className:'rn-muted'},`本周 ${current.index}，80% 区间 ${current.low}–${current.high} · ${RELIABILITY[current.reliability]}（对方 ${current.targetTurns} 个回合）`)),
      h('ul',{className:'rn-insight-facts'},
       h('li',null,h('span',null,'长期趋势'),h('strong',{className:trendTone},trendLabel),tr.slope!==undefined&&h('small',null,`${fmt(tr.slope)} 分/周（80% 区间 ${fmt(tr.low)}～${fmt(tr.high)}，近 ${tr.weeks} 周）`)),
-      h('li',null,h('span',null,'相对你们自己的历史'),h('strong',null,rank===null?'—':`高于 ${rank}% 的周`),h('small',null,`共 ${weeks.length} 个有记录周`)),
+      h('li',null,h('span',null,'相对你们自己的历史'),h('strong',null,rank===null?'—':`高于 ${rank}% 的周`),h('small',null,`共 ${weeks.filter(scored).length} 个已评分周`)),
       h('li',null,h('span',null,'AI 上下文分析'),h('strong',null,`${weeks.filter(w=>w.ai).length} / ${weeks.length} 周`),h('small',null,pending?`${pending} 周待分析`:'全部已分析')))),
     h('div',{className:'rn-insight-actions'},
      busy?h('div',{className:'rn-insight-progress',role:'status'},h('span',null,progress||'正在分析…'),btn('取消',onCancel)):
@@ -94,14 +96,14 @@ export function createRelationshipInsightView(React,E){
     h('p',{className:'rn-insight-disclaimer'},'指数概括可观察的互动过程（回应、开示、相互性、积极回应、主动投入、语言同步与摩擦），不是“对方喜欢你的概率”。权重来自文献的理论排序，未经你们的数据校准。')),
    h('section',{className:'rn-box'},h('h2',null,'长期变化'),
     h(TrendChart,{points:analysis.points,changePoints:analysis.changePoints,selected:pick.start,onSelect:setSelected}),
-    h('p',{className:'rn-insight-chart-legend'},h('span',{className:'sw line'}),'每周指数　',h('span',{className:'sw band'}),'80% 区间　',h('span',{className:'sw ewma'}),'平滑趋势（EWMA）　',h('span',{className:'sw cp'}),'检测到的变化点　',h('span',{className:'sw gap'}),'无记录周（缺口）'),
+    h('p',{className:'rn-insight-chart-legend'},h('span',{className:'sw line'}),'每周指数　',h('span',{className:'sw band'}),'80% 区间　',h('span',{className:'sw ewma'}),'平滑趋势（EWMA）　',h('span',{className:'sw cp'}),'检测到的变化点　',h('span',{className:'sw gap'}),'无记录或未评分的周'),
     analysis.phases.length>1?h('ol',{className:'rn-insight-phases'},...analysis.phases.map((p,i)=>h('li',{key:i},h('div',null,h('strong',null,`${p.start} ～ ${p.end}`),h('small',null,`${p.weeks} 周 · 均值 ${p.index}`),p.change!==undefined&&h('span',{className:p.change>0?'rn-tone-up':'rn-tone-down'},`${fmt(p.change,0)} 分`)),
      p.drivers?.length>0&&h('p',null,'主要变化来自：',p.drivers.map(d=>`${d.label}${d.delta>0?'↑':'↓'}（${fmt(d.impact)} 分）`).join('，'))))):
-     h('p',{className:'rn-muted'},analysis.points.filter(p=>!p.gap).length<6?'至少 6 个有记录周后才进行变化点检测。':'未检测到持续的阶段性变化。')),
+     h('p',{className:'rn-muted'},analysis.points.filter(scored).length<6?'至少 6 个有记录周后才进行变化点检测。':'未检测到持续的阶段性变化。')),
    h('section',{className:'rn-box'},h('h2',null,`${pick.start} ～ ${pick.end} 的分析依据`),
-    h('div',{className:'rn-insight-week-head'},h('span',null,`指数 ${pick.index}（80% 区间 ${pick.low}–${pick.high}）`),h('span',null,`${pick.messages} 条消息 · ${RELIABILITY[pick.reliability]}`),
+    h('div',{className:'rn-insight-week-head'},h('span',null,scored(pick)?`指数 ${pick.index}（80% 区间 ${pick.low}–${pick.high}）`:'未评分：对方本周没有发言'),h('span',null,`${pick.messages} 条消息 · ${RELIABILITY[pick.reliability]}`),
      pick.ai?h('span',null,`AI：${pick.ai.model||'DSH 模型'}${pick.ai.sampled&&pick.ai.sampled.sent<pick.ai.sampled.total?`（抽样 ${pick.ai.sampled.sent}/${pick.ai.sampled.total} 条）`:''}`):h('span',null,'仅规则层'),
-     weeks.length>1&&h('label',{className:'rn-insight-week-pick'},'选择周',h('select',{value:pick.start,onChange:e=>setSelected(e.target.value)},...[...weeks].reverse().map(w=>h('option',{key:w.start,value:w.start},`${w.start}（${w.index}）`))))),
+     weeks.length>1&&h('label',{className:'rn-insight-week-pick'},'选择周',h('select',{value:pick.start,onChange:e=>setSelected(e.target.value)},...[...weeks].reverse().map(w=>h('option',{key:w.start,value:w.start},`${w.start}（${w.index??'未评分'}）`))))),
     explain.summary&&h('div',{className:'rn-insight-summary'},tag('ai','AI 摘要'),h('p',null,explain.summary),explain.uncertainties&&h('p',{className:'rn-insight-alt'},h('strong',null,'局限：'),explain.uncertainties)),
     h('div',{className:'rn-insight-dims'},...dims.map(d=>h(Dimension,{key:d.key,d,open:openDim===d.key,onToggle:()=>setOpenDim(openDim===d.key?'':d.key),onEvidence}))),
     (explain.boundary.facts.length>0||explain.boundary.ai.length>0)&&h('div',{className:'rn-insight-boundary'},h('h4',null,'边界相关原文'),h('ul',{className:'rn-insight-quotes'},...[...explain.boundary.facts,...explain.boundary.ai].map((item,i)=>h(Quote,{key:i,item,onEvidence}))))),
@@ -114,6 +116,6 @@ export function createRelationshipInsightView(React,E){
      h('li',null,'AI 评分必须逐字引用原文（宿主校验，伪造即丢弃），不能输出概率、不能诊断依恋或人格；温度 0.1。AI 只做有限权重的补充，不能单独触发边界封顶。LLM 适合零样本心理文本标注，但与人工一致性有限（Rathje 等, 2024, PNAS；Ziems 等, 2024, Computational Linguistics）。'),
      h('li',null,'趋势：近 8 个有记录周的加权最小二乘斜率；变化点：自启动 CUSUM（k=0.5σ，h=3σ，σ 取相邻周差估计）。都是统计描述，不代表原因。'),
      h('li',null,'局限：文字缺少语气与线下互动；回复慢或消息短不等于冷淡（Morey 等, 2013, Computers in Human Behavior 指出沟通方式与依恋差异有关）；中文虚词表为近似；未经你们的真实结果校准。'),
-     h('li',null,'旧版“好感线索分（v2.3）”仍保留在“每日历程 / 互动评分”中作为规则层参照，两者口径不同，不宜直接比较。'))));
+     h('li',null,'每日历程、互动评分、打分依据和月/年图表使用同一套 v3 规则层公式；AI 评定按周缓存，只融合到本页的周指数中。'))));
  };
 }

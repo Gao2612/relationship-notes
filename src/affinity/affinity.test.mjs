@@ -157,3 +157,32 @@ test('turn building merges bursts within three minutes and ignores other senders
  const turns=buildTurns({self:'我',target:'小禾',messages:[msg('我','a','2026-10-06 10:00:00'),msg('我','b','2026-10-06 10:02:00'),msg('路人','c','2026-10-06 10:03:00'),msg('小禾','d','2026-10-06 10:04:00')]});
  assert.deepEqual(turns.map(t=>[t.role,t.messages.length]),[['self',2],['target',1]]);
 });
+
+// ── 统一到 v3：任意粒度共用同一套规则层 ──
+import {analyzePeriods,buildDailySignals,buildPeriodSignals,mergePeriodSignals,scorePeriod,isScored,lsmFromCounts} from './index.js';
+test('日、周、月、年、全部记录共用同一公式：按日信号相加与直接按时段计算完全一致',()=>{
+ const c=contact([...warmWeek('2026-10-05'),...coolWeek('2026-10-12'),...warmWeek('2026-11-02')]);
+ const turns=buildTurns(c),days=buildDailySignals(c,turns);
+ const keyOf={week:key=>weekStartKey(key),month:key=>key.slice(0,7),year:key=>key.slice(0,4),all:()=> 'all'};
+ for(const granularity of ['week','month','year','all'])for(const period of buildPeriodSignals(c,{granularity,turns})){
+  const merged=mergePeriodSignals(days.filter(day=>keyOf[granularity](day.key)===period.key));
+  for(const field of ['messages','lsm','lsmChars'])assert.equal(merged[field],period[field],granularity+' '+field);
+  assert.deepEqual([merged.self.turns,merged.target.turns,merged.bids,merged.capitalization],[period.self.turns,period.target.turns,period.bids,period.capitalization]);
+  assert.equal(scorePeriod(merged).index,scorePeriod(period).index,granularity+' '+period.key);
+ }
+ const weeks=analyzePeriods(c,'week');assert.deepEqual(weeks.map(w=>w.index),analyzeRelationship(c).weeks.map(w=>w.index),'周粒度与关系分析页一致');
+ assert.equal(analyzePeriods(c,'all').length,1);
+ assert.throws(()=>analyzePeriods(c,'quarter'));
+});
+test('对方没有回合的时段不评分（不是先验 50），长期变化把它当作缺口',()=>{
+ const c=contact([...warmWeek('2026-10-05'),msg('我','在吗','2026-10-13 09:00'),msg('我','看到回我','2026-10-13 09:01'),...warmWeek('2026-10-19')]);
+ const result=analyzeRelationship(c),silent=result.weeks.find(w=>w.start==='2026-10-12');
+ assert.equal(silent.scored,false);assert.equal(silent.index,null);assert.equal(silent.reliability,'none');
+ assert.equal(isScored(silent),false);
+ assert.ok(result.points.filter(isScored).every(p=>Number.isFinite(p.index)));
+ assert.equal(result.current.start,'2026-10-19');
+});
+test('LSM 由虚词计数计算，与直接比较文本一致',()=>{
+ const a='我们今天一起去看电影吧，你觉得怎么样呢？我也很想去，可是有点累了。',b='好呀，我也想去看，不过今天有点忙，我们明天再去吧，你觉得呢？';
+ assert.deepEqual(lsmFromCounts(functionWordRates(a),functionWordRates(b)),languageStyleMatching(a,b));
+});

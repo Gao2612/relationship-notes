@@ -1,5 +1,6 @@
 import {scoringMessage} from './interaction-context.js';
-import {interactionDetectors as detectors,interactionScore,engagementSignals,positiveSignal} from './interaction-signals.js';
+import {analyzePeriods} from './affinity/index.js';
+import {interactionDetectors as detectors,engagementSignals,positiveSignal} from './interaction-signals.js';
 // Evidence keys survive message sorting and incremental import; no body is logged.
 export function interactionEvidenceKey(message){
  if(typeof message.messageId==='string'&&message.messageId)return 'interaction-id:'+message.messageId;
@@ -35,6 +36,8 @@ export function isInteractionExcluded(message,kind,corrections=[]){
  return correction?.excluded===true&&(correction.expectedText===undefined||correction.expectedText===message.text);
 }
 
+// affinity 与本模块互相引用函数声明（ESM 循环引用只在调用时求值，模块初始化时不调用）。
+function scoreAll(contact){const [all]=analyzePeriods(contact,'all');return all||null;}
 export function analyzeInteractionMetrics(contact={}){
  const messages=(contact.messages||[]).filter(m=>m&&typeof m.text==='string'&&scoringMessage(m)&&(m.sender===contact.self||m.sender===contact.target));
  const corrections=interactionCorrectionIndex(contact.interactionCorrections||[],messages);
@@ -56,7 +59,10 @@ export function analyzeInteractionMetrics(contact={}){
  const counts=Object.fromEntries(indicators.map(i=>[i.kind,i.count])),signals=Object.values(counts).reduce((a,b)=>a+b,0);
  let turns=0,prior;for(const m of messages){if(m.sender!==prior)turns++;prior=m.sender;}
  const selfMessages=messages.filter(m=>m.sender===contact.self).length;
- return {engagementScore:interactionScore({...counts,positive:0,...engagement,positiveTurns:0,positivePoints:0,messages:messages.length,selfMessages,targetMessages:messages.length-selfMessages}),messages:messages.length,turns,indicators,ambiguousCorrectionCount,...engagement,score:interactionScore({...counts,...engagement,messages:messages.length,selfMessages,targetMessages:messages.length-selfMessages}),confidence:Math.min(.8,signals/20),disclaimer:'互动线索指数仅汇总已识别表达，不是好感概率；置信度仅表示线索数量。'};
+ // 关系分析 v3（规则层，全部记录）：与关系分析页、每日历程、月/年图表同一套公式。纠正在 v3 规则层同样生效。
+ const overall=scoreAll({...contact,messages}),reliability=overall?.reliability||'none';
+ return {messages:messages.length,turns,indicators,ambiguousCorrectionCount,...engagement,score:overall?.index??null,v3:overall,reliability,
+  confidence:{high:0.8,medium:0.5,low:0.2,none:0}[reliability],disclaimer:'关系指数概括可观察的互动过程（关系分析 v3），不是好感概率；可信度取决于对方回合与连接邀请的数量。'};
 }
 export function correctInteraction(contact,action,now=Date.now()){
  if(!Object.hasOwn(labels,action.kind)||typeof action.key!=='string')throw Error('互动纠正无效。');
