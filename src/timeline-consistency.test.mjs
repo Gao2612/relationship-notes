@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as E from './client-engine.js';
+import { compactSource } from './test-support/compact-source.mjs';
 
-const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
-const start = source.indexOf('  async function analyzeTimeline(');
-const end = source.indexOf('  function commitImport()', start);
+const source = compactSource(readFileSync(new URL('./workspace.js', import.meta.url), 'utf8'));
+const start = source.indexOf('async function analyzeTimeline(');
+const end = source.indexOf('function commitImport()', start);
 const functionSource = source.slice(start, end);
 
 for (const change of ['none', 'messages', 'corrections', 'identity', 'delete']) {
@@ -61,8 +62,8 @@ for (const change of ['none', 'messages', 'corrections', 'identity', 'delete']) 
 }
 
 test('会话每日评分沿用人工纠正并随纠正刷新缓存', () => {
-  const begin = source.indexOf('   const daily=React.useMemo');
-  const finish = source.indexOf('\n', begin);
+  const begin = source.indexOf('const daily=React.useMemo');
+  const finish = source.indexOf(']);', begin) + 3;
   const statement = source.slice(begin, finish);
   let cached;
   const React = {

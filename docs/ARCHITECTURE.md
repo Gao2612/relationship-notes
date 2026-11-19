@@ -30,7 +30,7 @@
 | `src/workspace-media.js` | objectURL 注册表（每 File 一个 URL）、媒体类型判定、导出的下载 URL 回收 | 无内部依赖 |
 | `src/host-api.js` | 宿主请求适配：API 前缀、JSON POST 报文、keepalive 标志 | 无内部依赖 |
 
-拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB（2026-11-19，54 个测试文件）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
+拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB；2026-11-19 用 Prettier 格式化后为 5,536 行（逻辑不变）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
 
 ## 遗留文件归档
 
@@ -55,7 +55,7 @@
 
 ## 检查与发布
 
-当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`（含真实 DOM 冒烟测试 `workspace-dom.test.mjs`，需先 `pnpm install`）。源码格式由 Prettier 统一（`pnpm run format` / `format:check`，配置见 `.prettierrc.json`）；`src/workspace.js` 因源码文本断言暂列入 `.prettierignore`。GitHub Actions（`.github/workflows/ci.yml`）在每次推送与 PR 上运行格式检查、构建一致性检查（重新构建后 `client.js` 与 `locale/*.json` 不得有差异）、全部测试和打包预览。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
+当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`（含真实 DOM 冒烟测试 `workspace-dom.test.mjs`，需先 `pnpm install`）。源码格式由 Prettier 统一（`pnpm run format` / `format:check`，配置见 `.prettierrc.json`），全部源码（含 `src/workspace.js`）均已格式化。测试中的源码文本断言一律经 `src/test-support/compact-source.mjs` 规范化后再匹配，不依赖排版；用户可见行为优先写成真实 DOM 测试（`workspace-dom.test.mjs`、`workspace-dom-behavior.test.mjs`，环境在 `src/test-support/dom-harness.mjs`）。GitHub Actions（`.github/workflows/ci.yml`）在每次推送与 PR 上运行格式检查、构建一致性检查（重新构建后 `client.js` 与 `locale/*.json` 不得有差异）、全部测试和打包预览。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
 
 发布源码与安装产物应来自同一版本；GitHub 源码不得含真实聊天、本人样例、媒体、备份、凭据及本机日志。归档仅用于保留历史来源，安装包应按 `package.json.files` 的明确清单分发，不把归档当可执行入口。
 

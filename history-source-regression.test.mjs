@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as analysis from './src/client-engine.js';
 import { suggestNextSteps } from './src/suggestions.js';
-const text = fs.readFileSync(new URL('./src/workspace.js', import.meta.url), 'utf8'),
+import { compactSource } from './src/test-support/compact-source.mjs';
+const text = compactSource(fs.readFileSync(new URL('./src/workspace.js', import.meta.url), 'utf8')),
   body = text
-    .slice(text.indexOf('  function Replies('), text.indexOf('function Settings('))
+    .slice(text.indexOf('function Replies('), text.indexOf('function Settings('))
     .replace(
-      '  function payload(s,contact){return E.buildReplyPayload(s,{...contact,messages:s.replyContextMessages||contact.messages,facts:[...(contact.facts||[])]});}\n',
+      'function payload(s,contact){return E.buildReplyPayload(s,{...contact,messages:s.replyContextMessages||contact.messages,facts:[...(contact.facts||[])]});}',
       ''
     )
     .replace(

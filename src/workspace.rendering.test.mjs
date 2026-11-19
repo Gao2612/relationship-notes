@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { formatChatDayKey, formatChatTimestamp } from './workspace.js';
+import { compactSource } from './test-support/compact-source.mjs';
 
-const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
+const source = compactSource(readFileSync(new URL('./workspace.js', import.meta.url), 'utf8'));
 const interpretationSource = readFileSync(new URL('./interpretation-view.js', import.meta.url), 'utf8');
 const builtClient = readFileSync(new URL('../client.js', import.meta.url), 'utf8');
 
@@ -115,15 +116,9 @@ test('本批：44px 命中区不被通用收缩规则清零，焦点只在键盘
   assert.match(source, /rn-tab-rn-group-tabs-'\+route\.group\.id/);
 });
 
-test('首次使用给出可点击的三步引导并暴露内置虚构示例', () => {
-  assert.match(source, /function StartGuide\(\)/);
-  assert.match(source, /const loadSample=\(\)=>importFile\(new File\(\[E\.sampleChat\]/);
-  assert.match(source, /载入内置示例聊天（虚构）/);
-  assert.match(source, /三步开始/);
-  assert.match(source, /导入聊天'[\s\S]{0,200}?确认身份'[\s\S]{0,200}?查看评分与时间线/);
-  assert.match(source, /\(\)=>nav\('import','file'\)/);
-  assert.match(source, /\(\)=>nav\('import','identity'\)/);
-  assert.match(source, /\(\)=>nav\('behavior','metrics'\)/);
+// 三步引导（文案、三个按钮跳转、内置虚构示例）由 workspace-dom-behavior.test.mjs 的
+// “start guide steps navigate…” 与 workspace-dom.test.mjs 在真实 DOM 中验证。
+test('首次引导只在没有联系人时显示于联系人基本资料页', () => {
   assert.match(source, /!s\.contacts\.length&&route\.item\.id==='profile'&&route\.tab==='basic'&&h\(StartGuide,\{\}\)/);
 });
 
@@ -135,12 +130,8 @@ test('无数据时导入聊天进入主界面，会话侧栏去重并对齐导�
   assert.match(source, /rn-session-links'[\s\S]{0,160}?nav\('behavior','metrics'\)/);
 });
 
+// 未配置模型时的回复草稿提示与「去设置选择模型」跳转见 workspace-dom-behavior.test.mjs。
 test('未配置模型与空行动计划都给出可执行的下一步而不是空转', () => {
-  assert.match(source, /尚未配置模型，暂时不能生成 AI 草稿/);
-  assert.match(source, /未配置模型时不会调用模型，也不会推断对方的真实想法/);
-  assert.match(source, /button\('去设置选择模型',\(\)=>nav\('settings','general'\)/);
-  assert.match(source, /button\('复制提示词',copyPrompt\)/);
-  assert.match(source, /查看如何配置/);
   assert.match(interpretationSource, /未配置模型，自动分析保持等待/);
   assert.match(interpretationSource, /onOpenSettings/);
   assert.match(source, /还没有行动计划/);
@@ -150,18 +141,13 @@ test('未配置模型与空行动计划都给出可执行的下一步而不是�
   assert.match(source, /目前不会自动从聊天记录生成目标/);
 });
 
+// tab / tabpanel 的 ARIA 语义与设置菜单 Esc 关闭、焦点回到按钮见 workspace-dom-behavior.test.mjs。
 test('本批：导航压成两层、tab 语义统一、切换后焦点与设置菜单关闭', () => {
-  assert.equal((source.match(/role:'tab'/g) || []).length, 1);
-  assert.equal((source.match(/'aria-selected':/g) || []).length, 1);
-  assert.equal((source.match(/aria-controls':'rn-panel'/g) || []).length, 1);
-  assert.doesNotMatch(source, /role:'tab'[^)]*aria-pressed/);
   assert.doesNotMatch(source, /featureItems/);
   assert.match(source, /function SettingsMenu\(\)/);
-  assert.match(source, /event\.key==='Escape'/);
   assert.match(source, /document\.addEventListener\('pointerdown',onPointerDown\)/);
   assert.match(source, /details\?\.querySelector\('button'\)\?\.focus\(\)/);
   assert.match(source, /summaryRef\.current\?\.focus\(\)/);
-  assert.match(source, /id:'rn-panel',ref:panelRef,tabIndex:-1/);
   assert.match(source, /document\.getElementById\('rn-tab-rn-context-tabs-'\+n\.id\+'__'\+route\.tab\)/);
   assert.match(source, /focus\(\{preventScroll:true\}\)/);
   assert.match(source, /\.rn-settings-menu>summary\{[^}]*min-width:44px;min-height:44px/);

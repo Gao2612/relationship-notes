@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — 2026-11-19（workspace.js 格式化与 DOM 行为测试）
+
+- `src/workspace.js` 用 Prettier 格式化（722 → 5,536 行），移出 `.prettierignore`；纯排版，重新构建的 `client.js` 压缩后与此前一致。
+- 新增 `src/test-support/compact-source.mjs`：测试中的源码文本断言改为匹配规范化源码（去掉字面量之外的空白与注释），与排版无关；附单元测试。
+- 按文本截取函数再执行的测试（回复、档案提取、时间线、设置、行为页）改用无缩进的截取标记，在规范化源码上运行。
+- DOM 测试环境抽成 `src/test-support/dom-harness.mjs`；新增 `workspace-dom-behavior.test.mjs`，覆盖导航 ARIA、三步引导、身份预选与交换、提示条、来源筛选、图表可访问标签与缺口、折叠区与数据表、未配置模型提示、会话列表开关、设置菜单 Esc；删除对应的源码文本断言（57 个文件 / 380 项）。
+
 ## Unreleased — 2026-11-19（工程维护：清理、格式化、跨平台打包、DOM 测试与 CI）
 
 - 清理：删除与归档内容相同的 `src/workspace.js.before-timeline-fix`、无引用的 `locale/locale/` 嵌套目录；v2.3 公式图移入 `docs/archive/images/`。
