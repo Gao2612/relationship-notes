@@ -2,7 +2,7 @@ import { readdir, readFile, mkdir, mkdtemp, copyFile, writeFile, stat, rm } from
 import { existsSync } from 'node:fs';
 import { resolve, join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import * as zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 
 function globPattern(pattern) {
@@ -36,25 +36,95 @@ export async function collectReleaseFiles(root, pkg) {
   return selected.sort();
 }
 
-export function zipStage(stage, archive) {
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+
+export function crc32(data) {
+  if (typeof zlib.crc32 === 'function') return zlib.crc32(data) >>> 0;
+  let c = 0xffffffff;
+  for (const byte of data) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function dosDateTime(date) {
+  const year = Math.min(Math.max(date.getFullYear(), 1980), 2107);
+  return {
+    time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+    date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+  };
+}
+
+async function listStageFiles(stage) {
+  const files = [];
+  async function visit(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const absolute = join(directory, entry.name);
+      if (entry.isDirectory()) await visit(absolute);
+      else if (entry.isFile()) files.push(absolute);
+    }
+  }
+  await visit(stage);
+  return files.sort();
+}
+
+// 纯 Node 实现的 ZIP 写入（deflate，UTF-8 文件名，条目路径统一为正斜杠），不依赖 PowerShell，Windows / macOS / Linux 通用。
+export async function zipStage(stage, archive) {
   if (existsSync(archive)) throw new Error('压缩包已存在，请使用新的输出目录。');
-  const literal = value => "'" + resolve(value).replaceAll("'", "''") + "'";
-  const command = `$ErrorActionPreference='Stop'
-Add-Type -AssemblyName System.IO.Compression
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-$stage=${literal(stage)}
-$archive=${literal(archive)}
-$zip=[IO.Compression.ZipFile]::Open($archive,[IO.Compression.ZipArchiveMode]::Create)
-try {
- Get-ChildItem -LiteralPath $stage -Recurse -File | ForEach-Object {
-  $name=$_.FullName.Substring($stage.Length).TrimStart([char]92,[char]47).Replace([char]92,[char]47)
-  [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$_.FullName,$name,[IO.Compression.CompressionLevel]::Optimal) | Out-Null
- }
-} finally { $zip.Dispose() }`;
-  execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], {
-    windowsHide: true,
-    stdio: 'pipe'
-  });
+  const root = resolve(stage);
+  const local = [];
+  const central = [];
+  let offset = 0;
+  for (const file of await listStageFiles(root)) {
+    const name = Buffer.from(relative(root, file).split(sep).join('/'), 'utf8');
+    const data = await readFile(file);
+    const compressed = zlib.deflateRawSync(data, { level: 9 });
+    const stored = compressed.length >= data.length;
+    const body = stored ? data : compressed;
+    const { time, date } = dosDateTime((await stat(file)).mtime);
+    const crc = crc32(data);
+    if (offset + body.length > 0xffffffff || data.length > 0xffffffff) throw new Error('文件过大，超出 ZIP 限制。');
+    const header = Buffer.alloc(30);
+    header.writeUInt32LE(0x04034b50, 0);
+    header.writeUInt16LE(20, 4);
+    header.writeUInt16LE(0x0800, 6);
+    header.writeUInt16LE(stored ? 0 : 8, 8);
+    header.writeUInt16LE(time, 10);
+    header.writeUInt16LE(date, 12);
+    header.writeUInt32LE(crc, 14);
+    header.writeUInt32LE(body.length, 18);
+    header.writeUInt32LE(data.length, 22);
+    header.writeUInt16LE(name.length, 26);
+    header.writeUInt16LE(0, 28);
+    const entry = Buffer.alloc(46);
+    entry.writeUInt32LE(0x02014b50, 0);
+    entry.writeUInt16LE(20, 4);
+    entry.writeUInt16LE(20, 6);
+    entry.writeUInt16LE(0x0800, 8);
+    entry.writeUInt16LE(stored ? 0 : 8, 10);
+    entry.writeUInt16LE(time, 12);
+    entry.writeUInt16LE(date, 14);
+    entry.writeUInt32LE(crc, 16);
+    entry.writeUInt32LE(body.length, 20);
+    entry.writeUInt32LE(data.length, 24);
+    entry.writeUInt16LE(name.length, 28);
+    entry.writeUInt32LE(offset, 42);
+    local.push(header, name, body);
+    central.push(entry, name);
+    offset += header.length + name.length + body.length;
+  }
+  const count = central.length / 2;
+  if (count > 0xffff) throw new Error('文件过多，超出 ZIP 限制。');
+  const directory = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(count, 8);
+  end.writeUInt16LE(count, 10);
+  end.writeUInt32LE(directory.length, 12);
+  end.writeUInt32LE(offset, 16);
+  await writeFile(archive, Buffer.concat([...local, directory, end]), { flag: 'wx' });
 }
 
 async function main(args) {
@@ -94,7 +164,7 @@ async function main(args) {
       const data = await readFile(target);
       entries.push({ path: file, size: data.length, sha256: createHash('sha256').update(data).digest('hex') });
     }
-    zipStage(stage, archive);
+    await zipStage(stage, archive);
     const digest = createHash('sha256')
       .update(await readFile(archive))
       .digest('hex');

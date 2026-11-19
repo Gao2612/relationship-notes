@@ -120,7 +120,7 @@ node tools/package-release.mjs --out <new output directory> --dry-run
 node tools/package-release.mjs --out <new output directory>
 ```
 
-The packaging tool uses Windows PowerShell and the .NET compression library. It selects content by the release file list, excludes dependencies, tests and historical archives, and produces a ZIP, a SHA256 file and a per-file manifest. It refuses to overwrite existing output with the same name, and requires a rebuild first if sources are newer than the client artifact.
+The packaging tool writes the ZIP with built-in Node.js modules only, so it runs on Windows, macOS and Linux. It selects content by the release file list, excludes dependencies, tests and historical archives, and produces a ZIP, a SHA256 file and a per-file manifest. It refuses to overwrite existing output with the same name, and requires a rebuild first if sources are newer than the client artifact.
 
 ## Usage
 
