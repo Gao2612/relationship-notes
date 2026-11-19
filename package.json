@@ -48,6 +48,8 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node verify-v3.mjs",
+    "format": "prettier --write \"**/*.{js,mjs}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs}\"",
     "prepublishOnly": "node verify-v3.mjs"
   },
   "dsh": {
@@ -67,6 +69,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
-    "pdfjs-dist": "6.4.299"
+    "pdfjs-dist": "6.4.299",
+    "prettier": "3.6.2"
   }
 }

@@ -8,7 +8,7 @@ const LIMITS = {
   text: 50000,
   messages: 500,
   queue: 20,
-  request: 4000,
+  request: 4000
 };
 
 class InputError extends Error {
@@ -63,7 +63,8 @@ function validate(input) {
     if (size > 2 * 1024 * 1024) throw new InputError('聊天记录超过 2 MiB，请分段导入。');
     messages.push({ ...message, sender });
   }
-  if (!messages.some(message => message.sender === self) || !messages.some(message => message.sender === target)) throw new InputError('记录中需要有双方的发言，请核对身份。');
+  if (!messages.some(message => message.sender === self) || !messages.some(message => message.sender === target))
+    throw new InputError('记录中需要有双方的发言，请核对身份。');
   return { self, target, messages };
 }
 
@@ -81,12 +82,15 @@ function fingerprint(value) {
 function enqueue(state, value) {
   // Do not silently evict unconsumed chats when the browser is unavailable.
   // Keeping this queue volatile avoids a second host-side copy of private chat.
-  if (state.queue.length >= LIMITS.queue) throw new InputError('待导入队列已满，请打开关系手记完成现有导入后再重试。未导入的内容不会覆盖已有记录。', 409);
-  const snapshot = JSON.parse(JSON.stringify({
-    self: value.self,
-    target: value.target,
-    messages: value.messages,
-  }));
+  if (state.queue.length >= LIMITS.queue)
+    throw new InputError('待导入队列已满，请打开关系手记完成现有导入后再重试。未导入的内容不会覆盖已有记录。', 409);
+  const snapshot = JSON.parse(
+    JSON.stringify({
+      self: value.self,
+      target: value.target,
+      messages: value.messages
+    })
+  );
   // Content fingerprint keeps the version stable for the same material; the
   // per-instance sequence keeps repeated imports of that material unique.
   state.sequence += 1;
@@ -98,7 +102,8 @@ function enqueue(state, value) {
 export function createImportTool(state) {
   return {
     name: 'relationship_notes_import',
-    description: '当用户明确要求把其提供的聊天记录导入关系手记时，调用本工具导入。按原文拆分双方消息并确认双方身份；不能编造或修改内容，身份不明确时先向用户询问。工具只接收双方原文，不发送给联系人。队列只存宿主内存，DSH重启会清空未消费内容；请打开关系手记完成导入。',
+    description:
+      '当用户明确要求把其提供的聊天记录导入关系手记时，调用本工具导入。按原文拆分双方消息并确认双方身份；不能编造或修改内容，身份不明确时先向用户询问。工具只接收双方原文，不发送给联系人。队列只存宿主内存，DSH重启会清空未消费内容；请打开关系手记完成导入。',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -115,19 +120,29 @@ export function createImportTool(state) {
             properties: {
               sender: { type: 'string', description: '发言人名称，只能是 self 或 target。' },
               text: { type: 'string', description: '消息原文，保持用户提供的原样。' },
-              timestamp: { type: 'string', description: '可选的时间标记。' },
-            },
-          },
-        },
-      },
+              timestamp: { type: 'string', description: '可选的时间标记。' }
+            }
+          }
+        }
+      }
     },
     output: {
-      schema: { type:'object', properties:{count:{type:'number'}}, required:['count'], additionalProperties:false },
-      render: (_input, output) => [{type:'text',text:`已将 ${output.count} 条聊天记录发送到关系手记的临时导入队列。请打开关系手记完成本机保存；DSH 重启会清空尚未导入的内容。`}],
+      schema: {
+        type: 'object',
+        properties: { count: { type: 'number' } },
+        required: ['count'],
+        additionalProperties: false
+      },
+      render: (_input, output) => [
+        {
+          type: 'text',
+          text: `已将 ${output.count} 条聊天记录发送到关系手记的临时导入队列。请打开关系手记完成本机保存；DSH 重启会清空尚未导入的内容。`
+        }
+      ]
     },
     async execute(input) {
       return { count: enqueue(state, validate(input)) };
-    },
+    }
   };
 }
 
@@ -139,17 +154,23 @@ export function createReadHandler(state) {
       if (raw.length > LIMITS.request) throw new InputError('请求内容过长。', 413);
       let body = {};
       if (raw.trim()) {
-        try { body = JSON.parse(raw); }
-        catch { throw new InputError('读取接口只接受空 JSON 对象。'); }
+        try {
+          body = JSON.parse(raw);
+        } catch {
+          throw new InputError('读取接口只接受空 JSON 对象。');
+        }
       }
       if (!plain(body) || Object.keys(body).length) throw new InputError('读取接口不接受参数。');
       return Response.json({ ok: true, values: state.queue.map(entry => ({ ...entry })) });
     } catch (error) {
       const known = error instanceof InputError;
-      return Response.json({
-        ok: false,
-        error: known ? error.message : '暂时无法读取待导入队列，请稍后重试。',
-      }, { status: known ? error.status : 500 });
+      return Response.json(
+        {
+          ok: false,
+          error: known ? error.message : '暂时无法读取待导入队列，请稍后重试。'
+        },
+        { status: known ? error.status : 500 }
+      );
     }
   };
 }
@@ -161,16 +182,29 @@ export function createAckHandler(state) {
       const raw = await request.text();
       if (raw.length > LIMITS.request) throw new InputError('请求内容过长。', 413);
       let body;
-      try { body = JSON.parse(raw); }
-      catch { throw new InputError('确认接口需要版本号列表。'); }
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        throw new InputError('确认接口需要版本号列表。');
+      }
       shape(body, ['versions'], ['versions']);
-      if (!Array.isArray(body.versions) || body.versions.length < 1 || body.versions.length > LIMITS.queue || body.versions.some(version => typeof version !== 'string' || !version || version.length > 200) || new Set(body.versions).size !== body.versions.length) invalid();
+      if (
+        !Array.isArray(body.versions) ||
+        body.versions.length < 1 ||
+        body.versions.length > LIMITS.queue ||
+        body.versions.some(version => typeof version !== 'string' || !version || version.length > 200) ||
+        new Set(body.versions).size !== body.versions.length
+      )
+        invalid();
       const acknowledged = new Set(body.versions);
       state.queue = state.queue.filter(entry => !acknowledged.has(entry.version));
       return Response.json({ ok: true, remaining: state.queue.length });
     } catch (error) {
       const known = error instanceof InputError;
-      return Response.json({ ok: false, error: known ? error.message : '暂时无法确认导入记录，请稍后重试。' }, { status: known ? error.status : 500 });
+      return Response.json(
+        { ok: false, error: known ? error.message : '暂时无法确认导入记录，请稍后重试。' },
+        { status: known ? error.status : 500 }
+      );
     }
   };
 }
@@ -182,13 +216,13 @@ export function apply(ctx) {
       path: '/api/relationship-notes/import/read',
       methods: ['POST'],
       requestBody: 'buffered',
-      fetch: createReadHandler(state),
+      fetch: createReadHandler(state)
     });
     scoped.connection.fetch.register({
       path: '/api/relationship-notes/import/ack',
       methods: ['POST'],
       requestBody: 'buffered',
-      fetch: createAckHandler(state),
+      fetch: createAckHandler(state)
     });
     scoped.tools.register(createImportTool(state));
   });

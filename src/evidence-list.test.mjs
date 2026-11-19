@@ -11,28 +11,50 @@ import {
   normalizeQuery,
   orderLabel,
   paginateEvidence,
-  sortEvidence,
+  sortEvidence
 } from './evidence-list.js';
 
-const record = (id, type, text, timestamp) => ({ id, type, label: type, quote: text, message: { sender: '我方', text, timestamp } });
+const record = (id, type, text, timestamp) => ({
+  id,
+  type,
+  label: type,
+  quote: text,
+  message: { sender: '我方', text, timestamp }
+});
 
 // 用少量可稳定断言的样本，不引入真实聊天数据。
 const sample = [
   record('a', 'question', '你到哪了', '2026-03-14 09:00:00'),
   record('b', 'sharing', '我今天去跑步了', '2026-03-14 21:00:00'),
   record('c', 'boundary', '请不要再联系我', '2026-11-04 20:00:00'),
-  record('d', 'acknowledgment', '嗯嗯好', '2026-03-15 08:00:00'),
+  record('d', 'acknowledgment', '嗯嗯好', '2026-03-15 08:00:00')
 ];
 
 test('默认按时间倒序：最新记录在最上', () => {
-  assert.deepEqual(sortEvidence(sample).map(item => item.id), ['c', 'd', 'b', 'a']);
-  assert.deepEqual(sortEvidence(sample, 'asc').map(item => item.id), ['a', 'b', 'd', 'c']);
+  assert.deepEqual(
+    sortEvidence(sample).map(item => item.id),
+    ['c', 'd', 'b', 'a']
+  );
+  assert.deepEqual(
+    sortEvidence(sample, 'asc').map(item => item.id),
+    ['a', 'b', 'd', 'c']
+  );
 });
 
 test('时间相同或缺失时按原始顺序稳定排列', () => {
-  const items = [record('x', 'question', '一', '2026-03-14 10:00:00'), record('y', 'question', '二', '2026-03-14 10:00:00'), record('z', 'question', '三', undefined)];
-  assert.deepEqual(sortEvidence(items).map(item => item.id), ['x', 'y', 'z']);
-  assert.deepEqual(sortEvidence(items, 'asc').map(item => item.id), ['x', 'y', 'z']);
+  const items = [
+    record('x', 'question', '一', '2026-03-14 10:00:00'),
+    record('y', 'question', '二', '2026-03-14 10:00:00'),
+    record('z', 'question', '三', undefined)
+  ];
+  assert.deepEqual(
+    sortEvidence(items).map(item => item.id),
+    ['x', 'y', 'z']
+  );
+  assert.deepEqual(
+    sortEvidence(items, 'asc').map(item => item.id),
+    ['x', 'y', 'z']
+  );
 });
 
 test('识别秒级/毫秒级 Unix 时间戳与本地时间字符串', () => {
@@ -53,15 +75,26 @@ test('关键词搜索匹配消息原文，大小写与空白被归一化', () =>
 });
 
 test('类型筛选与关键词搜索可以叠加', () => {
-  assert.deepEqual(filterEvidence(sample, { type: 'question' }).map(item => item.id), ['a']);
-  assert.deepEqual(filterEvidence(sample, { type: 'all', query: '跑步' }).map(item => item.id), ['b']);
-  assert.deepEqual(filterEvidence(sample, { type: 'sharing', query: '跑步' }).map(item => item.id), ['b']);
+  assert.deepEqual(
+    filterEvidence(sample, { type: 'question' }).map(item => item.id),
+    ['a']
+  );
+  assert.deepEqual(
+    filterEvidence(sample, { type: 'all', query: '跑步' }).map(item => item.id),
+    ['b']
+  );
+  assert.deepEqual(
+    filterEvidence(sample, { type: 'sharing', query: '跑步' }).map(item => item.id),
+    ['b']
+  );
   assert.deepEqual(filterEvidence(sample, { type: 'boundary', query: '跑步' }), []);
 });
 
 test('分页每页最多 50 行，页码被夹到合法区间', () => {
   assert.equal(EVIDENCE_PAGE_SIZE, 50);
-  const many = Array.from({ length: 372 }, (_, index) => record('r' + index, 'question', '第 ' + index + ' 条', '2026-03-14 10:00:00'));
+  const many = Array.from({ length: 372 }, (_, index) =>
+    record('r' + index, 'question', '第 ' + index + ' 条', '2026-03-14 10:00:00')
+  );
   const first = paginateEvidence(many, 1);
   assert.equal(first.pageCount, 8);
   assert.equal(first.items.length, 50);
@@ -78,10 +111,16 @@ test('分页每页最多 50 行，页码被夹到合法区间', () => {
 
 test('buildEvidenceView 组合排序、筛选、搜索与分页', () => {
   const view = buildEvidenceView(sample, { order: 'desc', type: 'all', query: '', page: 1 });
-  assert.deepEqual(view.items.map(item => item.id), ['c', 'd', 'b', 'a']);
+  assert.deepEqual(
+    view.items.map(item => item.id),
+    ['c', 'd', 'b', 'a']
+  );
   assert.equal(view.total, 4);
   const filtered = buildEvidenceView(sample, { type: 'question', query: '到哪' });
-  assert.deepEqual(filtered.items.map(item => item.id), ['a']);
+  assert.deepEqual(
+    filtered.items.map(item => item.id),
+    ['a']
+  );
   assert.equal(filtered.empty, false);
   assert.equal(filtered.searching, true);
   const missing = buildEvidenceView(sample, { query: '不存在的关键词' });
@@ -93,7 +132,13 @@ test('buildEvidenceView 组合排序、筛选、搜索与分页', () => {
 test('检索防抖：连续输入只执行最后一次，且延迟不低于 200ms', () => {
   assert.ok(EVIDENCE_SEARCH_DELAY >= 200);
   const queue = [];
-  const scheduler = { set: (callback, wait) => { queue.push({ callback, wait }); return queue.length; }, clear: () => {} };
+  const scheduler = {
+    set: (callback, wait) => {
+      queue.push({ callback, wait });
+      return queue.length;
+    },
+    clear: () => {}
+  };
   const seen = [];
   const debounced = createDebounced(value => seen.push(value), EVIDENCE_SEARCH_DELAY, scheduler);
   debounced('a');

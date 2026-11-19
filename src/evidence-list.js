@@ -15,7 +15,7 @@ export const EVIDENCE_FILTERS = [
   ['question', '直接提问'],
   ['sharing', '第一人称分享'],
   ['boundary', '明确边界'],
-  ['acknowledgment', '简短确认'],
+  ['acknowledgment', '简短确认']
 ];
 
 /**
@@ -53,26 +53,27 @@ export function sortEvidence(records, order = 'desc') {
   const entries = list.map((record, index) => ({ record, index, time: evidenceTime(record) }));
   const timed = entries.filter(entry => entry.time !== null);
   const untimed = entries.filter(entry => entry.time === null);
-  timed.sort((left, right) => (left.time === right.time ? left.index - right.index : (left.time - right.time) * direction));
+  timed.sort((left, right) =>
+    left.time === right.time ? left.index - right.index : (left.time - right.time) * direction
+  );
   // 时间缺失的记录不参与方向反转，始终按导入顺序排在末尾，排序结果才可预期。
   return [...timed, ...untimed].map(entry => entry.record);
 }
 
 /** 归一化搜索词：去首尾空白并转小写，空串表示不过滤。 */
 export function normalizeQuery(value) {
-  return String(value ?? '').trim().toLowerCase();
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
 }
 
 /** 一条记录参与搜索的文本：消息原文优先，其次标签、发言人、来源文件与时间。 */
 export function evidenceSearchText(record) {
   const message = record?.message || {};
-  return [
-    record?.quote,
-    message.text,
-    record?.label,
-    message.sender,
-    message.file,
-  ].filter(Boolean).join('\n').toLowerCase();
+  return [record?.quote, message.text, record?.label, message.sender, message.file]
+    .filter(Boolean)
+    .join('\n')
+    .toLowerCase();
 }
 
 /** 关键词是否命中记录原文（空关键词一律视为命中）。 */
@@ -107,7 +108,7 @@ export function paginateEvidence(records, page = 1, pageSize = EVIDENCE_PAGE_SIZ
     total,
     start,
     end: Math.min(start + size, total),
-    items: list.slice(start, start + size),
+    items: list.slice(start, start + size)
   };
 }
 
@@ -140,7 +141,10 @@ export function orderLabel(order) {
 }
 
 /** 记录列表的整体视图：先排序，再按类型+关键词过滤，最后切页。 */
-export function buildEvidenceView(records, { order = 'desc', type = 'all', query = '', page = 1, pageSize = EVIDENCE_PAGE_SIZE } = {}) {
+export function buildEvidenceView(
+  records,
+  { order = 'desc', type = 'all', query = '', page = 1, pageSize = EVIDENCE_PAGE_SIZE } = {}
+) {
   const sorted = sortEvidence(records, order);
   const filtered = filterEvidence(sorted, { type, query });
   const paged = paginateEvidence(filtered, page, pageSize);
@@ -151,6 +155,6 @@ export function buildEvidenceView(records, { order = 'desc', type = 'all', query
     query: String(query ?? '').trim(),
     filtered,
     empty: filtered.length === 0,
-    searching: Boolean(normalizeQuery(query)),
+    searching: Boolean(normalizeQuery(query))
   };
 }

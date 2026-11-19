@@ -1,150 +1,210 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {question,sharing,engagementSignals} from './interaction-signals.js';
-import {analyzeInteractionMetrics,correctInteraction} from './interaction-metrics.js';
-import {analyzeDailyTimeline} from './analysis.js';
-import {sceneGroups,replyContext} from './interaction-context.js';
+import { question, sharing, engagementSignals } from './interaction-signals.js';
+import { analyzeInteractionMetrics, correctInteraction } from './interaction-metrics.js';
+import { analyzeDailyTimeline } from './analysis.js';
+import { sceneGroups, replyContext } from './interaction-context.js';
 
-const message=(sender,text,time)=>({sender,text,timestamp:'2026-11-01 '+time,type:1});
+const message = (sender, text, time) => ({ sender, text, timestamp: '2026-11-01 ' + time, type: 1 });
 
-test('短答案、接受建议和具体评价保留上下文依据',()=>{
- for(const [previous,reply] of [['几点出门？','八点'],['要不要试试？','可以！'],['晚饭加了点辣椒','看着都很香']]){
-  const result=engagementSignals([message('我',previous,'09:00'),message('对方',reply,'09:01')],'我');
-  assert.equal(result.perfunctoryReplies,0);
-  assert.equal(result.lowContentReplies,0);
-  assert.ok(Object.values(result.turnEvidence[0].context).some(Boolean));
- }
-});
-
-test('单次应和与笑声中性，持续无回应才触发短回复处罚',()=>{
- for(const text of ['好','可以','哈哈哈哈']){
-  const result=engagementSignals([message('我','收到资料了','09:00'),message('对方',text,'09:01')],'我');
-  assert.equal(result.perfunctoryReplies,0);
- }
- const messages=['09:00','09:02','09:04'].flatMap((time,index)=>[message('我','补充资料',time),message('对方','嗯','09:0'+(index*2+1))]);
- const result=engagementSignals(messages,'我');
- assert.equal(result.perfunctoryReplies,1);
-});
-
-test('口语经历、计划和主语变化可识别为分享',()=>{
- for(const text of ['我俩吃了面条','我老看纪录片','我就记得小时候的事情','我还减肥了','我已经好久没有吃甜食了'])assert.equal(sharing(text),true,text);
- assert.equal(sharing('他俩吃了面条'),false);
-});
-
-test('否定应答和请第三人询问不算直接提问',()=>{
- assert.equal(question('没有没有'),false);
- assert.equal(question('你问问同事要不要权限'),false);
- assert.equal(question('没有没有，你几点出门？'),true);
-});
-
-test('系统、图片和通话占位不形成主动开口或短回复',()=>{
- const messages=[{...message('对方','新增了联系人','09:00'),type:10000},{...message('对方','几点出门？','09:01'),type:3},{...message('对方','【音视频通话】','09:02'),type:50},message('我','准备出门了','09:03')];
- const contact={messages,self:'我',target:'对方'};
- const result=analyzeInteractionMetrics(contact);
- assert.equal(result.messages,1);
- assert.equal(result.targetStarts,0);
- assert.equal(result.targetTurns,0);
- assert.equal(analyzeDailyTimeline(messages,'我','对方').days[0].messages.length,1);
-});
-
-test('对话段按场景分组，保留同段普通回复',()=>{
- const messages=[message('我','交接资料准备好了','09:00'),message('对方','明天处理','09:01'),message('对方','早餐真香','12:00')];
- const groups=sceneGroups(messages);
- assert.equal(groups.work.length,2);
- assert.equal(groups.daily.length,1);
- assert.equal(groups.work[1],messages[1]);
- assert.equal(messages.length,3);
-});
-
-test('排除正向识别后关系指数下降，正向证据独立保留',()=>{
- const messages=[message('我','一起出门吧','09:00'),message('对方','喜欢你','09:01'),message('我','聊聊近况','09:02'),message('对方','我最近喜欢看电影','09:03')];
- const result=analyzeInteractionMetrics({messages,self:'我',target:'对方'});
- assert.equal(result.indicators.find(item=>item.kind==='positive').count,1);
- const positive=result.indicators.find(item=>item.kind==='positive').evidence[0];
- const without=analyzeInteractionMetrics({messages,self:'我',target:'对方',interactionCorrections:[{key:positive.key,kind:'positive',excluded:true}]});
- assert.ok(without.score<result.score);
- assert.equal(result.scenes.daily+result.scenes.work+result.scenes.mixed+result.scenes.unknown,result.targetTurns);
-});
-
-
-test('回答和承接的上下文依据支持纠正恢复',()=>{
- for(const [kind,previous,reply] of [['answer','几点出门？','八点'],['continuation','这个面条真香','面条美味']]){
-  const contact={self:'我',target:'对方',messages:[message('我',previous,'09:00'),message('对方',reply,'09:01')]};
-  const indicator=analyzeInteractionMetrics(contact).indicators.find(item=>item.kind===kind);
-  assert.equal(indicator.count,1);
-  const action={kind,key:indicator.evidence[0].key,excluded:true};
-  const corrected=correctInteraction(contact,action,0);
-  assert.equal(analyzeInteractionMetrics(corrected).indicators.find(item=>item.kind===kind).count,0);
-  const restored=correctInteraction(corrected,{...action,excluded:false},1);
-  assert.equal(analyzeInteractionMetrics(restored).indicators.find(item=>item.kind===kind).count,1);
- }
-});
-
-test('回复时延从我方合并回合最后一条开始，跨阈值也一致',()=>{
- const messages=[message('我','明天出门','09:00'),message('我','带好资料','09:03'),message('对方','收到资料了','09:04')];
- assert.equal(engagementSignals(messages,'我').medianMinutes,1);
- const later=[...messages.slice(0,2),message('对方','收到资料了','11:02')];
- const result=engagementSignals(later,'我');
- assert.equal(result.medianMinutes,119);
- assert.equal(result.slowReplies,0);
-});
-
-test('时间、地点、数量与是非问题分别核对答案',()=>{
- for(const [previous,reply] of [['几点出门？','八点'],['在哪里见面？','学校门口'],['多少钱？','二十元'],['要不要一起吃饭？','可以！']]){
-  assert.equal(replyContext(previous,reply,true).answer,true,previous);
- }
- for(const previous of ['你几点出门？','在哪里见面？','多少钱？','要不要一起吃饭？']){
-  assert.equal(replyContext(previous,'新手机挺好看',true).answer,false,previous);
- }
- const invalid=replyContext('你几点出门？','可以',true);
- assert.equal(invalid.answer,false);
- assert.equal(invalid.affirmative,false);
-});
-
-test('承接需要相同主题，独立短语和的字结尾不能直接命中',()=>{
- for(const body of ['人多','一直在拍','美味','李老师的']){
-  assert.equal(replyContext('工资审批完成了',body,false).continuation,false,body);
- }
- for(const [previous,body] of [['车站排队很久了','人多'],['相机拍摄效果不错','一直在拍'],['晚饭加了辣椒','看着都很香']]){
-  assert.equal(replyContext(previous,body,false).continuation,true,body);
- }
-});
-
-test('工作请求排除分享，自己的打算与同条独立分享保留',()=>{
- for(const text of ['我想你早点把合同签了','我希望你把资料发给我','我让你去问同事'])assert.equal(sharing(text),false,text);
- for(const text of ['我想去看电影','我想和你去爬山','我希望你把资料发来，我今天买了本书'])assert.equal(sharing(text),true,text);
-});
-
-test('复述和切换事件不算承接，相关补充保留',()=>{
- assert.equal(replyContext('晚饭加了辣椒','晚饭加了辣椒。',false).continuation,false);
- assert.equal(replyContext('明天要出门','出门前我先买手机',false).continuation,true);
- assert.equal(replyContext('明天要出门','明天买手机',false).continuation,false);
- assert.equal(replyContext('晚饭加了辣椒','看着都很香',false).continuation,true);
-});
-
-test('选择题后的简短让选保持中性，明确指责仍计摩擦',()=>{
- const run=reply=>engagementSignals([message('我','吃面还是吃饭？','09:00'),message('对方',reply,'09:01')],'我');
- assert.equal(run('随便你').conflictReplies,0);
- assert.equal(run('随便你，关你什么事').conflictReplies,1);
-});
-
-test('含糊让选保留原文待核对，不计摩擦',()=>{
- const rows=[message('我','我在整理资料','09:00'),message('对方','你看着办','09:01')];
- const result=engagementSignals(rows,'我');
- assert.equal(result.conflictReplies,0);
- assert.equal(result.turnEvidence[0].needsReview,true);
- assert.equal(result.turnEvidence[0].quote,'你看着办');
-});
-
-test('不靠时间间隔推断敌意，并保留明确边界',()=>{
- for(const text of ['随便你','都行看你','你看着办']){
-  for(const time of ['09:01','12:00']){
-   const report=analyzeInteractionMetrics({self:'我',target:'对方',messages:[message('我','资料已经整理好了','09:00'),message('对方',text,time)]});
-   assert.equal(report.conflictReplies,0);
-   assert.equal(report.turnEvidence[0].needsReview,true);
+test('短答案、接受建议和具体评价保留上下文依据', () => {
+  for (const [previous, reply] of [
+    ['几点出门？', '八点'],
+    ['要不要试试？', '可以！'],
+    ['晚饭加了点辣椒', '看着都很香']
+  ]) {
+    const result = engagementSignals([message('我', previous, '09:00'), message('对方', reply, '09:01')], '我');
+    assert.equal(result.perfunctoryReplies, 0);
+    assert.equal(result.lowContentReplies, 0);
+    assert.ok(Object.values(result.turnEvidence[0].context).some(Boolean));
   }
- }
- const report=analyzeInteractionMetrics({self:'我',target:'对方',messages:[message('对方','你看着办。请不要再联系我。','12:00')]});
- assert.equal(report.boundaryTurns,1);
- assert.ok(report.score<=32);
+});
+
+test('单次应和与笑声中性，持续无回应才触发短回复处罚', () => {
+  for (const text of ['好', '可以', '哈哈哈哈']) {
+    const result = engagementSignals([message('我', '收到资料了', '09:00'), message('对方', text, '09:01')], '我');
+    assert.equal(result.perfunctoryReplies, 0);
+  }
+  const messages = ['09:00', '09:02', '09:04'].flatMap((time, index) => [
+    message('我', '补充资料', time),
+    message('对方', '嗯', '09:0' + (index * 2 + 1))
+  ]);
+  const result = engagementSignals(messages, '我');
+  assert.equal(result.perfunctoryReplies, 1);
+});
+
+test('口语经历、计划和主语变化可识别为分享', () => {
+  for (const text of ['我俩吃了面条', '我老看纪录片', '我就记得小时候的事情', '我还减肥了', '我已经好久没有吃甜食了'])
+    assert.equal(sharing(text), true, text);
+  assert.equal(sharing('他俩吃了面条'), false);
+});
+
+test('否定应答和请第三人询问不算直接提问', () => {
+  assert.equal(question('没有没有'), false);
+  assert.equal(question('你问问同事要不要权限'), false);
+  assert.equal(question('没有没有，你几点出门？'), true);
+});
+
+test('系统、图片和通话占位不形成主动开口或短回复', () => {
+  const messages = [
+    { ...message('对方', '新增了联系人', '09:00'), type: 10000 },
+    { ...message('对方', '几点出门？', '09:01'), type: 3 },
+    { ...message('对方', '【音视频通话】', '09:02'), type: 50 },
+    message('我', '准备出门了', '09:03')
+  ];
+  const contact = { messages, self: '我', target: '对方' };
+  const result = analyzeInteractionMetrics(contact);
+  assert.equal(result.messages, 1);
+  assert.equal(result.targetStarts, 0);
+  assert.equal(result.targetTurns, 0);
+  assert.equal(analyzeDailyTimeline(messages, '我', '对方').days[0].messages.length, 1);
+});
+
+test('对话段按场景分组，保留同段普通回复', () => {
+  const messages = [
+    message('我', '交接资料准备好了', '09:00'),
+    message('对方', '明天处理', '09:01'),
+    message('对方', '早餐真香', '12:00')
+  ];
+  const groups = sceneGroups(messages);
+  assert.equal(groups.work.length, 2);
+  assert.equal(groups.daily.length, 1);
+  assert.equal(groups.work[1], messages[1]);
+  assert.equal(messages.length, 3);
+});
+
+test('排除正向识别后关系指数下降，正向证据独立保留', () => {
+  const messages = [
+    message('我', '一起出门吧', '09:00'),
+    message('对方', '喜欢你', '09:01'),
+    message('我', '聊聊近况', '09:02'),
+    message('对方', '我最近喜欢看电影', '09:03')
+  ];
+  const result = analyzeInteractionMetrics({ messages, self: '我', target: '对方' });
+  assert.equal(result.indicators.find(item => item.kind === 'positive').count, 1);
+  const positive = result.indicators.find(item => item.kind === 'positive').evidence[0];
+  const without = analyzeInteractionMetrics({
+    messages,
+    self: '我',
+    target: '对方',
+    interactionCorrections: [{ key: positive.key, kind: 'positive', excluded: true }]
+  });
+  assert.ok(without.score < result.score);
+  assert.equal(
+    result.scenes.daily + result.scenes.work + result.scenes.mixed + result.scenes.unknown,
+    result.targetTurns
+  );
+});
+
+test('回答和承接的上下文依据支持纠正恢复', () => {
+  for (const [kind, previous, reply] of [
+    ['answer', '几点出门？', '八点'],
+    ['continuation', '这个面条真香', '面条美味']
+  ]) {
+    const contact = {
+      self: '我',
+      target: '对方',
+      messages: [message('我', previous, '09:00'), message('对方', reply, '09:01')]
+    };
+    const indicator = analyzeInteractionMetrics(contact).indicators.find(item => item.kind === kind);
+    assert.equal(indicator.count, 1);
+    const action = { kind, key: indicator.evidence[0].key, excluded: true };
+    const corrected = correctInteraction(contact, action, 0);
+    assert.equal(analyzeInteractionMetrics(corrected).indicators.find(item => item.kind === kind).count, 0);
+    const restored = correctInteraction(corrected, { ...action, excluded: false }, 1);
+    assert.equal(analyzeInteractionMetrics(restored).indicators.find(item => item.kind === kind).count, 1);
+  }
+});
+
+test('回复时延从我方合并回合最后一条开始，跨阈值也一致', () => {
+  const messages = [
+    message('我', '明天出门', '09:00'),
+    message('我', '带好资料', '09:03'),
+    message('对方', '收到资料了', '09:04')
+  ];
+  assert.equal(engagementSignals(messages, '我').medianMinutes, 1);
+  const later = [...messages.slice(0, 2), message('对方', '收到资料了', '11:02')];
+  const result = engagementSignals(later, '我');
+  assert.equal(result.medianMinutes, 119);
+  assert.equal(result.slowReplies, 0);
+});
+
+test('时间、地点、数量与是非问题分别核对答案', () => {
+  for (const [previous, reply] of [
+    ['几点出门？', '八点'],
+    ['在哪里见面？', '学校门口'],
+    ['多少钱？', '二十元'],
+    ['要不要一起吃饭？', '可以！']
+  ]) {
+    assert.equal(replyContext(previous, reply, true).answer, true, previous);
+  }
+  for (const previous of ['你几点出门？', '在哪里见面？', '多少钱？', '要不要一起吃饭？']) {
+    assert.equal(replyContext(previous, '新手机挺好看', true).answer, false, previous);
+  }
+  const invalid = replyContext('你几点出门？', '可以', true);
+  assert.equal(invalid.answer, false);
+  assert.equal(invalid.affirmative, false);
+});
+
+test('承接需要相同主题，独立短语和的字结尾不能直接命中', () => {
+  for (const body of ['人多', '一直在拍', '美味', '李老师的']) {
+    assert.equal(replyContext('工资审批完成了', body, false).continuation, false, body);
+  }
+  for (const [previous, body] of [
+    ['车站排队很久了', '人多'],
+    ['相机拍摄效果不错', '一直在拍'],
+    ['晚饭加了辣椒', '看着都很香']
+  ]) {
+    assert.equal(replyContext(previous, body, false).continuation, true, body);
+  }
+});
+
+test('工作请求排除分享，自己的打算与同条独立分享保留', () => {
+  for (const text of ['我想你早点把合同签了', '我希望你把资料发给我', '我让你去问同事'])
+    assert.equal(sharing(text), false, text);
+  for (const text of ['我想去看电影', '我想和你去爬山', '我希望你把资料发来，我今天买了本书'])
+    assert.equal(sharing(text), true, text);
+});
+
+test('复述和切换事件不算承接，相关补充保留', () => {
+  assert.equal(replyContext('晚饭加了辣椒', '晚饭加了辣椒。', false).continuation, false);
+  assert.equal(replyContext('明天要出门', '出门前我先买手机', false).continuation, true);
+  assert.equal(replyContext('明天要出门', '明天买手机', false).continuation, false);
+  assert.equal(replyContext('晚饭加了辣椒', '看着都很香', false).continuation, true);
+});
+
+test('选择题后的简短让选保持中性，明确指责仍计摩擦', () => {
+  const run = reply =>
+    engagementSignals([message('我', '吃面还是吃饭？', '09:00'), message('对方', reply, '09:01')], '我');
+  assert.equal(run('随便你').conflictReplies, 0);
+  assert.equal(run('随便你，关你什么事').conflictReplies, 1);
+});
+
+test('含糊让选保留原文待核对，不计摩擦', () => {
+  const rows = [message('我', '我在整理资料', '09:00'), message('对方', '你看着办', '09:01')];
+  const result = engagementSignals(rows, '我');
+  assert.equal(result.conflictReplies, 0);
+  assert.equal(result.turnEvidence[0].needsReview, true);
+  assert.equal(result.turnEvidence[0].quote, '你看着办');
+});
+
+test('不靠时间间隔推断敌意，并保留明确边界', () => {
+  for (const text of ['随便你', '都行看你', '你看着办']) {
+    for (const time of ['09:01', '12:00']) {
+      const report = analyzeInteractionMetrics({
+        self: '我',
+        target: '对方',
+        messages: [message('我', '资料已经整理好了', '09:00'), message('对方', text, time)]
+      });
+      assert.equal(report.conflictReplies, 0);
+      assert.equal(report.turnEvidence[0].needsReview, true);
+    }
+  }
+  const report = analyzeInteractionMetrics({
+    self: '我',
+    target: '对方',
+    messages: [message('对方', '你看着办。请不要再联系我。', '12:00')]
+  });
+  assert.equal(report.boundaryTurns, 1);
+  assert.ok(report.score <= 32);
 });

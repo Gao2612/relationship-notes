@@ -32305,12 +32305,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       return Number.isFinite(millis2) && Number.isFinite(new Date(millis2).getTime()) ? millis2 : null;
     }
     if (typeof value !== "string") return null;
-    const local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/.exec(value.trim());
+    const local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/.exec(
+      value.trim()
+    );
     if (local) {
       const [, year, month, day, hour = "0", minute = "0", second = "0", fraction = "0"] = local;
       const millis2 = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second, +fraction.slice(0, 3).padEnd(3, "0"));
       const date = new Date(millis2);
-      if (date.getUTCFullYear() !== +year || date.getUTCMonth() !== +month - 1 || date.getUTCDate() !== +day || +hour > 23 || +minute > 59 || +second > 59) return null;
+      if (date.getUTCFullYear() !== +year || date.getUTCMonth() !== +month - 1 || date.getUTCDate() !== +day || +hour > 23 || +minute > 59 || +second > 59)
+        return null;
       return millis2 - 288e5;
     }
     if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim())) return null;
@@ -32322,10 +32325,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const millis = shanghaiTimestamp(value);
     if (millis === null) return null;
     const date = new Date(millis);
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(date);
   }
   function reviewPeriodRange(period = "week", anchor = shanghaiDateKey(Date.now())) {
-    if (!["week", "month"].includes(period) || !/^\d{4}-\d{2}-\d{2}$/.test(anchor || "") || shanghaiDateKey(anchor) !== anchor) throw Error("请选择有效的周/月日期。");
+    if (!["week", "month"].includes(period) || !/^\d{4}-\d{2}-\d{2}$/.test(anchor || "") || shanghaiDateKey(anchor) !== anchor)
+      throw Error("请选择有效的周/月日期。");
     const date = /* @__PURE__ */ new Date(anchor + "T00:00:00Z");
     let start, end;
     if (period === "week") {
@@ -32355,14 +32364,22 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return (h >>> 0).toString(36);
   };
   function legacyMessageId(message) {
-    return String(message?.id || "message-" + oldHash(JSON.stringify([message?.sender, message?.timestamp, message?.text, message?.file])));
+    return String(
+      message?.id || "message-" + oldHash(JSON.stringify([message?.sender, message?.timestamp, message?.text, message?.file]))
+    );
   }
   function messageIdentity(message) {
     return typeof message?.messageId === "string" && message.messageId ? message.messageId : legacyMessageId(message);
   }
   var identityKey = (m) => JSON.stringify([m.sender, m.timestamp ?? "", m.text ?? "", m.file || m.source || "", m.id ?? null]);
   function aliases(message) {
-    return [...new Set([legacyMessageId(message), ...Array.isArray(message.legacyMessageIds) ? message.legacyMessageIds : []].filter((v) => typeof v === "string" && v && v.length <= 200))];
+    return [
+      ...new Set(
+        [legacyMessageId(message), ...Array.isArray(message.legacyMessageIds) ? message.legacyMessageIds : []].filter(
+          (v) => typeof v === "string" && v && v.length <= 200
+        )
+      )
+    ];
   }
   function ensureMessageIds(messages) {
     const used = /* @__PURE__ */ new Set(), occurrences = /* @__PURE__ */ new Map();
@@ -32378,7 +32395,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       }
       used.add(messageId);
       const legacyMessageIds = aliases(message);
-      if (message.messageId && message.messageId !== messageId && !legacyMessageIds.includes(message.messageId)) legacyMessageIds.push(message.messageId);
+      if (message.messageId && message.messageId !== messageId && !legacyMessageIds.includes(message.messageId))
+        legacyMessageIds.push(message.messageId);
       return { ...message, messageId, legacyMessageIds };
     });
   }
@@ -32386,12 +32404,24 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const messages = contact?.messages || [], radius = Number.isInteger(options.radius) ? Math.max(0, Math.min(20, options.radius)) : 3;
     let ref2 = typeof reference === "string" ? { messageId: reference } : reference || {};
     if (ref2.factId) {
-      const fact = (contact?.profileSummary || contact?.facts || []).find((f) => f.uid === ref2.factId || f.id === ref2.factId);
+      const fact = (contact?.profileSummary || contact?.facts || []).find(
+        (f) => f.uid === ref2.factId || f.id === ref2.factId
+      );
       if (!fact) return { status: "missing", reason: "来源资料已不存在。" };
-      ref2 = { ...fact, ...ref2, message: ref2.message || fact.message, sourceMessageIds: ref2.sourceMessageIds || fact.sourceMessageIds, quote: ref2.quote || fact.quote };
+      ref2 = {
+        ...fact,
+        ...ref2,
+        message: ref2.message || fact.message,
+        sourceMessageIds: ref2.sourceMessageIds || fact.sourceMessageIds,
+        quote: ref2.quote || fact.quote
+      };
     }
     const quote = typeof ref2.quote === "string" ? ref2.quote : "", source = ref2.message || ref2;
-    const explicit = [ref2.messageId, ...Array.isArray(ref2.sourceMessageIds) ? ref2.sourceMessageIds : []].filter((v) => typeof v === "string" && v), ids = explicit.length ? explicit : [typeof ref2.id === "string" ? ref2.id : null, ref2.message ? messageIdentity(ref2.message) : null].filter((v) => typeof v === "string" && v);
+    const explicit = [ref2.messageId, ...Array.isArray(ref2.sourceMessageIds) ? ref2.sourceMessageIds : []].filter(
+      (v) => typeof v === "string" && v
+    ), ids = explicit.length ? explicit : [typeof ref2.id === "string" ? ref2.id : null, ref2.message ? messageIdentity(ref2.message) : null].filter(
+      (v) => typeof v === "string" && v
+    );
     const matchesSource = (message2) => (!quote || String(message2.text || "").includes(quote)) && (!source.sender || message2.sender === source.sender) && (source.timestamp == null || String(message2.timestamp) === String(source.timestamp)) && (!source.file || message2.file === source.file) && (!ref2.message?.text || message2.text === ref2.message.text);
     let matches = [];
     if (ids.length) {
@@ -32399,9 +32429,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     } else if (quote || ref2.message?.text) {
       matches = messages.map((message2, index2) => ({ message: message2, index: index2 })).filter(({ message: message2 }) => matchesSource(message2));
     }
-    if (matches.length !== 1) return { status: matches.length ? "ambiguous" : "missing", reason: matches.length ? "存在多条相同依据，请重新选择原消息。" : "原消息已删除、修改或不在当前记录中。" };
+    if (matches.length !== 1)
+      return {
+        status: matches.length ? "ambiguous" : "missing",
+        reason: matches.length ? "存在多条相同依据，请重新选择原消息。" : "原消息已删除、修改或不在当前记录中。"
+      };
     const { message, index } = matches[0];
-    return { status: "found", messageId: messageIdentity(message), index, message, context: messages.slice(Math.max(0, index - radius), index + radius + 1).map((item, offset) => ({ index: Math.max(0, index - radius) + offset, message: item, focus: item === message })) };
+    return {
+      status: "found",
+      messageId: messageIdentity(message),
+      index,
+      message,
+      context: messages.slice(Math.max(0, index - radius), index + radius + 1).map((item, offset) => ({ index: Math.max(0, index - radius) + offset, message: item, focus: item === message }))
+    };
   }
   function ensureContactMessageIds(contact) {
     const messages = ensureMessageIds(contact.messages || []), next = { ...contact, messages };
@@ -32432,7 +32472,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     text = text.replace(/^\uFEFF/, "");
     const messages = [];
     const add = (sender, body, timestamp2, line, endLine, source) => {
-      if (typeof sender !== "string" || !sender.trim() || sender.length > 100 || /[\r\n\u0000-\u001f]/.test(sender)) throw new ImportError("parse2");
+      if (typeof sender !== "string" || !sender.trim() || sender.length > 100 || /[\r\n\u0000-\u001f]/.test(sender))
+        throw new ImportError("parse2");
       if (typeof body !== "string" || !body.trim()) throw new ImportError("parse3");
       if (timestamp2 !== void 0 && typeof timestamp2 !== "string") throw new ImportError("parse4");
       messages.push({ sender: sender.trim(), text: body, timestamp: timestamp2 || "", line, endLine, source });
@@ -32445,7 +32486,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       } catch (e) {
         throw new ImportError("parse6");
       }
-      if (!data || Array.isArray(data) || Object.keys(data).length !== 1 || !Array.isArray(data.messages)) throw new ImportError("parse7");
+      if (!data || Array.isArray(data) || Object.keys(data).length !== 1 || !Array.isArray(data.messages))
+        throw new ImportError("parse7");
       const start = /"messages"\s*:\s*\[/.exec(text);
       let depth = 0, quoted = false, escaped = false, begin = 0, ranges = [];
       for (let i = start.index + start[0].length; i < text.length; i++) {
@@ -32472,9 +32514,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }
       }
       data.messages.forEach((m, i) => {
-        if (!m || Array.isArray(m) || typeof m !== "object" || Object.keys(m).some((k) => !["sender", "text", "timestamp"].includes(k))) throw new ImportError("parse9");
+        if (!m || Array.isArray(m) || typeof m !== "object" || Object.keys(m).some((k) => !["sender", "text", "timestamp"].includes(k)))
+          throw new ImportError("parse9");
         const r = ranges[i] || [0, 0];
-        add(m.sender, m.text, m.timestamp, text.slice(0, r[0]).split("\n").length, text.slice(0, r[1]).split("\n").length, "JSON messages[" + i + "]");
+        add(
+          m.sender,
+          m.text,
+          m.timestamp,
+          text.slice(0, r[0]).split("\n").length,
+          text.slice(0, r[1]).split("\n").length,
+          "JSON messages[" + i + "]"
+        );
       });
     } else if (extension === "txt") {
       const lines = text.replace(/\r\n?/g, "\n").split("\n");
@@ -32496,7 +32546,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const head = /^([^:：\r\n]{1,100})[:：](.*)$/.exec(rest);
         if (head || tm && rest.trim()) {
           finish();
-          current = { sender: head ? head[1] : rest.trim(), body: head && head[2].trim() ? [head[2].replace(/^\s/, "")] : [], timestamp: timestamp2, line: i + 1, endLine: i + 1 };
+          current = {
+            sender: head ? head[1] : rest.trim(),
+            body: head && head[2].trim() ? [head[2].replace(/^\s/, "")] : [],
+            timestamp: timestamp2,
+            line: i + 1,
+            endLine: i + 1
+          };
         } else if (current) {
           current.body.push(line);
           current.endLine = i + 1;
@@ -32516,12 +32572,37 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       for (const part of m.text.split(/[。！？!?；;\n]/)) {
         const quote = part.trim();
         if (!quote) continue;
-        if (/[?？]/.test(m.text) || /^(?:我|本人)/.test(quote) === false || /[不没未无别勿莫非否他她你您]|不是|并非|听说|据说|如果|假如|可能|也许|曾经|以前|过去|不再|想过|例如|比如|假设|梦|[“”「」『』"]/.test(quote)) continue;
-        const rules2 = [["city", new RegExp("^(?:我|本人)(?:现在|目前)?(?:住在|居住在|现居|定居在)(" + cityWords + ")(?:市)?$")], ["job", new RegExp("^(?:我|本人)(?:现在|目前)?(?:是(?:一名|个)?|的职业是|从事)(" + jobWords + ")(?:工作)?$")], ["interests", new RegExp("^(?:我|本人)(?:喜欢|爱好是|的兴趣是)(" + hobbyWords + ")(?:[、和及与](" + hobbyWords + "))*$")], ["preferences", /^(?:我|本人)(?:偏好|更喜欢)(清淡口味|清淡饮食|安静的环境|安静的地方|无糖饮料|热饮|冷饮|茶|咖啡)$/], ["plans", new RegExp("^(?:我|本人)(?:计划|打算|准备)(今天|明天|后天|这周|本周|下周|这个周末|这周末|下个月|本月)(?:去)?(" + hobbyWords + ")(?:一次)?$")]];
+        if (/[?？]/.test(m.text) || /^(?:我|本人)/.test(quote) === false || /[不没未无别勿莫非否他她你您]|不是|并非|听说|据说|如果|假如|可能|也许|曾经|以前|过去|不再|想过|例如|比如|假设|梦|[“”「」『』"]/.test(
+          quote
+        ))
+          continue;
+        const rules2 = [
+          ["city", new RegExp("^(?:我|本人)(?:现在|目前)?(?:住在|居住在|现居|定居在)(" + cityWords + ")(?:市)?$")],
+          ["job", new RegExp("^(?:我|本人)(?:现在|目前)?(?:是(?:一名|个)?|的职业是|从事)(" + jobWords + ")(?:工作)?$")],
+          [
+            "interests",
+            new RegExp("^(?:我|本人)(?:喜欢|爱好是|的兴趣是)(" + hobbyWords + ")(?:[、和及与](" + hobbyWords + "))*$")
+          ],
+          [
+            "preferences",
+            /^(?:我|本人)(?:偏好|更喜欢)(清淡口味|清淡饮食|安静的环境|安静的地方|无糖饮料|热饮|冷饮|茶|咖啡)$/
+          ],
+          [
+            "plans",
+            new RegExp(
+              "^(?:我|本人)(?:计划|打算|准备)(今天|明天|后天|这周|本周|下周|这个周末|这周末|下个月|本月)(?:去)?(" + hobbyWords + ")(?:一次)?$"
+            )
+          ]
+        ];
         for (const [field, rule] of rules2) {
           const hit = rule.exec(quote);
           if (hit) {
-            facts.push({ field, value: field === "interests" ? quote.replace(/^(?:我|本人)(?:喜欢|爱好是|的兴趣是)/, "") : field === "plans" ? hit[1] + (quote.includes("去") ? "去" : "") + hit[2] : hit[1], quote, message: m });
+            facts.push({
+              field,
+              value: field === "interests" ? quote.replace(/^(?:我|本人)(?:喜欢|爱好是|的兴趣是)/, "") : field === "plans" ? hit[1] + (quote.includes("去") ? "去" : "") + hit[2] : hit[1],
+              quote,
+              message: m
+            });
             break;
           }
         }
@@ -32530,8 +32611,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return facts;
   }
   var categories = ["emotion", "social", "duty", "boundary", "uncertain"];
-  var initialRules = { share: { cat: "emotion", manual: false }, follow: { cat: "emotion", manual: false }, greeting: { cat: "social", manual: false }, work: { cat: "duty", manual: false }, delay: { cat: "uncertain", manual: false } };
-  var defaultSettings = { globalTone: "gentle", globalDiscovery: "auto", contactTone: "inherit", contactDiscovery: "inherit" };
+  var initialRules = {
+    share: { cat: "emotion", manual: false },
+    follow: { cat: "emotion", manual: false },
+    greeting: { cat: "social", manual: false },
+    work: { cat: "duty", manual: false },
+    delay: { cat: "uncertain", manual: false }
+  };
+  var defaultSettings = {
+    globalTone: "gentle",
+    globalDiscovery: "auto",
+    contactTone: "inherit",
+    contactDiscovery: "inherit"
+  };
   function validateSettings(input) {
     const result = { ...defaultSettings };
     for (const key of Object.keys(result)) {
@@ -32558,14 +32650,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function discoverRule(rules2, settings) {
     if (rules2.global.memory) return rules2;
-    return { ...rules2, global: { ...rules2.global, memory: { cat: effective(settings, "Discovery") === "auto" ? "emotion" : "uncertain", manual: false } } };
+    return {
+      ...rules2,
+      global: {
+        ...rules2.global,
+        memory: { cat: effective(settings, "Discovery") === "auto" ? "emotion" : "uncertain", manual: false }
+      }
+    };
   }
   function demoScores(enabled, rules2, refused = false) {
     if (!enabled) return { emotional: null, interaction: null, index: null, stop: false };
     const values = Object.keys(rules2.global).map((id) => categoryFor(rules2, id));
     const count = (cat) => values.filter((x) => x === cat).length;
     const emotional = count("emotion") * 12 - count("boundary") * 20, interaction = (count("emotion") + count("social") + count("duty")) * 5;
-    return { emotional, interaction, index: Math.max(0, Math.min(100, Math.round(20 + 0.8 * emotional + 0.2 * interaction))), stop: refused };
+    return {
+      emotional,
+      interaction,
+      index: Math.max(0, Math.min(100, Math.round(20 + 0.8 * emotional + 0.2 * interaction))),
+      stop: refused
+    };
   }
   function adviceMode(demo, rules2, refused, romantic = true) {
     if (!demo) return "none";
@@ -32588,7 +32691,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function acceptImport(state, ticket, messages, file, isSample = false) {
     if (ticket !== state.epoch) return state;
-    return { ...state, loading: false, error: null, pending: { messages: ensureMessageIds(messages.map((m, index) => ({ ...m, file, messageIndex: index + 1 }))), isSample } };
+    return {
+      ...state,
+      loading: false,
+      error: null,
+      pending: {
+        messages: ensureMessageIds(messages.map((m, index) => ({ ...m, file, messageIndex: index + 1 }))),
+        isSample
+      }
+    };
   }
   function identityReady(pending, self2, target) {
     return !!pending && !!self2 && !!target && self2 !== target && pending.messages.some((m) => m.sender === self2) && pending.messages.some((m) => m.sender === target);
@@ -32596,7 +32707,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function commitImport(state, self2, target) {
     if (!identityReady(state.pending, self2, target)) throw new ImportError("identity");
     const messages = state.pending.messages.filter((m) => m.sender === target);
-    return { ...state, committed: { self: self2, target, messages, facts: extractFacts(messages), isSample: state.pending.isSample }, error: null };
+    return {
+      ...state,
+      committed: { self: self2, target, messages, facts: extractFacts(messages), isSample: state.pending.isSample },
+      error: null
+    };
   }
   function supportedProfileSummary(fact) {
     if (!fact || typeof fact.value !== "string" || typeof fact.quote !== "string") return false;
@@ -32607,7 +32722,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return ensureMessageIds(messages).map((message, index) => ({ message, index, time: time(message) })).sort((a, b) => a.time === b.time ? a.index - b.index : a.time - b.time).map((row) => row.message);
   }
   function mergeContactImport(contacts, incoming) {
-    const existing = contacts.find((item) => !item.isSample && !incoming.isSample && item.self === incoming.self && item.target === incoming.target);
+    const existing = contacts.find(
+      (item) => !item.isSample && !incoming.isSample && item.self === incoming.self && item.target === incoming.target
+    );
     if (!existing) {
       const contact2 = ensureContactMessageIds(incoming);
       return { contacts: [...contacts, contact2], contact: contact2, added: contact2.messages.length };
@@ -32621,11 +32738,22 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       return n > (counts.get(k) || 0);
     });
     const messages = sortChatMessages([...ensureMessageIds(existing.messages), ...extra]);
-    const contact = { ...existing, messages, pairCount: messages.filter((m) => m.sender === existing.self || m.sender === existing.target).length, facts: extractFacts(messages.filter((m) => m.sender === existing.target)), mediaAssets: [...existing.mediaAssets || [], ...incoming.mediaAssets || []], selfAvatarFile: existing.selfAvatarFile || incoming.selfAvatarFile, targetAvatarFile: existing.targetAvatarFile || incoming.targetAvatarFile };
+    const contact = {
+      ...existing,
+      messages,
+      pairCount: messages.filter((m) => m.sender === existing.self || m.sender === existing.target).length,
+      facts: extractFacts(messages.filter((m) => m.sender === existing.target)),
+      mediaAssets: [...existing.mediaAssets || [], ...incoming.mediaAssets || []],
+      selfAvatarFile: existing.selfAvatarFile || incoming.selfAvatarFile,
+      targetAvatarFile: existing.targetAvatarFile || incoming.targetAvatarFile
+    };
     if (extra.length) {
       const dateKey = (message) => shanghaiDateKey(message.timestamp);
       const affectedDates = new Set(extra.map(dateKey).filter(Boolean));
-      if (existing.timelineAnalysis) contact.timelineAnalysis = Object.fromEntries(Object.entries(existing.timelineAnalysis).filter(([date]) => !affectedDates.has(date)));
+      if (existing.timelineAnalysis)
+        contact.timelineAnalysis = Object.fromEntries(
+          Object.entries(existing.timelineAnalysis).filter(([date]) => !affectedDates.has(date))
+        );
       delete contact.timelineAnalysisUpdatedAt;
       contact.profileNeedsRefresh = true;
     }
@@ -32647,7 +32775,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         finish();
         const sender = match[3].replace(/\s*[（(](?:\d{5,}|[^()（）\s]+@[^()（）\s]+)[）)]$/, "").trim();
         if (!sender || sender.length > 100) throw new ImportError("parse2");
-        current = { sender, timestamp: match[1].replaceAll("/", "-") + " " + match[2], body: [], line: i + 1, endLine: i + 1, source: "QQ TXT" };
+        current = {
+          sender,
+          timestamp: match[1].replaceAll("/", "-") + " " + match[2],
+          body: [],
+          line: i + 1,
+          endLine: i + 1,
+          source: "QQ TXT"
+        };
       } else if (current) {
         current.body.push(lines[i]);
         current.endLine = i + 1;
@@ -32668,7 +32803,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     } catch {
       throw new ImportError("encoding");
     }
-    if (/\.txt$/i.test(name) && /^\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?\s+[^\r\n]+[（(](?:\d{5,}|[^()（）\s]+@[^()（）\s]+)[）)]\s*$/m.test(text)) return parseQqText(text);
+    if (/\.txt$/i.test(name) && /^\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(?::\d{2})?\s+[^\r\n]+[（(](?:\d{5,}|[^()（）\s]+@[^()（）\s]+)[）)]\s*$/m.test(
+      text
+    ))
+      return parseQqText(text);
     return parseChat(text, name.split(".").pop().toLowerCase());
   }
 
@@ -32711,7 +32849,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const part of String(text).match(/[\u4e00-\u9fff]{2,}/g) || []) {
       for (let i = 0; i < part.length - 1; i++) {
         const term = part.slice(i, i + 2);
-        if (!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term) && !(/* @__PURE__ */ new Set(["今天", "明天", "昨天", "现在", "最近", "时候", "感觉", "其实", "真的", "一点", "刚才", "已经"])).has(term)) result.add(term);
+        if (!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term) && !(/* @__PURE__ */ new Set(["今天", "明天", "昨天", "现在", "最近", "时候", "感觉", "其实", "真的", "一点", "刚才", "已经"])).has(
+          term
+        ))
+          result.add(term);
       }
     }
     return result;
@@ -32726,7 +32867,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const yesNo = /吗|嘛|是否|要不要|能不能|可不可以|会不会|是不是|有没有|行不行|好不好/.test(previous);
     const affirmative = acknowledgment2 && (yesNo || /试试|尝尝|尝一尝|一起|要不|帮我|麻烦|请|看看|发给/.test(previous));
     const prior = terms(previous), current = terms(body);
-    const events = [/出门|出发|离开|到达|见面|集合/, /买|购买|下单|购物/, /吃|喝|用餐/, /睡|起床|休息/, /开会|会议/, /完成|做好|交付|审批|处理/, /下雨|下雪|天气/];
+    const events = [
+      /出门|出发|离开|到达|见面|集合/,
+      /买|购买|下单|购物/,
+      /吃|喝|用餐/,
+      /睡|起床|休息/,
+      /开会|会议/,
+      /完成|做好|交付|审批|处理/,
+      /下雨|下雪|天气/
+    ];
     const requested = events.filter((event) => event.test(previous));
     const stated = events.filter((event) => event.test(body));
     const relatedEvent = !requested.length || !stated.length || requested.some((event) => event.test(body));
@@ -32736,9 +32885,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       /人多|排队|拥挤|客流|游客|人少/,
       /歌曲|音乐|歌手|唱|专辑/
     ];
-    const emotionalDisclosure = /我(?:今天|最近|现在|真的|很|有点|特别|其实|觉得|感到|也|还)*(?:难过|伤心|紧张|害怕|失落|委屈|焦虑|沮丧|压力很大)/.test(previous);
-    const goodNews = /我[^。！？!?]{0,24}(?:通过.{0,6}考试|考上|录取|升职|获奖|拿到.{0,6}offer|考过|成功了|毕业了)/i.test(previous);
-    const supportive = emotionalDisclosure && /我(?:能)?理解你|我(?:会|愿意)?(?:陪着你|陪你|听你说)|你(?:可以|愿意).{0,6}(?:跟我说|找我)|别怕|抱抱你/.test(body) || goodNews && /(?:恭喜|祝贺)你|(?:为你|替你)(?:高兴|开心)|你的努力.{0,6}(?:回报|值得)|你(?:一直|真的|那么).{0,6}努力/.test(body);
+    const emotionalDisclosure = /我(?:今天|最近|现在|真的|很|有点|特别|其实|觉得|感到|也|还)*(?:难过|伤心|紧张|害怕|失落|委屈|焦虑|沮丧|压力很大)/.test(
+      previous
+    );
+    const goodNews = /我[^。！？!?]{0,24}(?:通过.{0,6}考试|考上|录取|升职|获奖|拿到.{0,6}offer|考过|成功了|毕业了)/i.test(
+      previous
+    );
+    const supportive = emotionalDisclosure && /我(?:能)?理解你|我(?:会|愿意)?(?:陪着你|陪你|听你说)|你(?:可以|愿意).{0,6}(?:跟我说|找我)|别怕|抱抱你/.test(
+      body
+    ) || goodNews && /(?:恭喜|祝贺)你|(?:为你|替你)(?:高兴|开心)|你的努力.{0,6}(?:回报|值得)|你(?:一直|真的|那么).{0,6}努力/.test(
+      body
+    );
     const dismissive = /别再.{0,8}(?:说|提)|不想听|谁在乎|关我什么事|别说了/.test(body);
     const normalize = (value) => value.replace(/[\p{P}\s]/gu, "");
     const previousContent = normalize(previous), replyContent = normalize(body);
@@ -32749,16 +32906,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const continuation = !dismissive && (supportive || !echoesPrevious && relatedEvent && addsInformation && (overlaps || sameTopic));
     let answer = false;
     if (previousQuestion) {
-      if (/几点|什么时候|啥时候|何时/.test(previous)) answer = /[0-9零一二三四五六七八九十两半]+\s*(?:点|时|天|号|月)|\d{1,2}:\d{2}|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(body);
-      else if (/在哪|哪里|哪儿|去哪|什么地方/.test(previous)) answer = /家里|公司|学校|饭店|餐厅|商场|车站|地铁|[\u4e00-\u9fff]{2,}(?:路|街|市|县|区|店)/.test(body);
+      if (/几点|什么时候|啥时候|何时/.test(previous))
+        answer = /[0-9零一二三四五六七八九十两半]+\s*(?:点|时|天|号|月)|\d{1,2}:\d{2}|今天|明天|后天|早上|中午|下午|晚上|周[一二三四五六日天末]|星期/.test(
+          body
+        );
+      else if (/在哪|哪里|哪儿|去哪|什么地方/.test(previous))
+        answer = /家里|公司|学校|饭店|餐厅|商场|车站|地铁|[\u4e00-\u9fff]{2,}(?:路|街|市|县|区|店)/.test(body);
       else if (/多少|几个|几人|几位/.test(previous)) answer = /[0-9零一二三四五六七八九十百千万两]+/.test(body);
-      else if (yesNo) answer = acknowledgment2 || /^(?:我)?(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|可以|不可以)(?:的|了|啊|呀|呢|哦)?[。！!\s]*$/.test(body) || continuation;
+      else if (yesNo)
+        answer = acknowledgment2 || /^(?:我)?(?:不|没|有|能|不能|会|不会|是|不是|去|不去|要|不要|可以|不可以)(?:的|了|啊|呀|呢|哦)?[。！!\s]*$/.test(
+          body
+        ) || continuation;
       else answer = continuation || /^(?:因为|由于|主要是|原因是)/.test(body);
     }
     return { answer: answer && relatedEvent, affirmative, continuation };
   }
   function directedRequest(text) {
-    return /^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(text.trim());
+    return /^我(?:也|还|就|只是)?(?:想|希望|要求|建议|让|请)(?:让|请)?你(?:早点|晚点|先|再|尽快|赶紧|今天|明天|帮我|把|去|来|做|处理|签|确认|发|问|看|准备)/.test(
+      text.trim()
+    );
   }
 
   // src/profile-lifecycle.js
@@ -32777,7 +32943,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (typeof value !== "string") return NaN;
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
       const date = /* @__PURE__ */ new Date(value + "T00:00:00+08:00");
-      if (!Number.isFinite(date.getTime()) || new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(date) !== value) return NaN;
+      if (!Number.isFinite(date.getTime()) || new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Shanghai",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(date) !== value)
+        return NaN;
       return date.getTime() + 864e5 - 1;
     }
     const time = Date.parse(value);
@@ -32794,44 +32966,109 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return !fact.obsolete && profileFactStatus(fact, now) === "active";
   }
   function profileKind(field) {
-    return { interests: "interest", preferences: "interest", style: "style", boundary: "boundary", followup: "followup", recent: "followup", agreement: "followup", inference: "inference" }[field] || "fact";
+    return {
+      interests: "interest",
+      preferences: "interest",
+      style: "style",
+      boundary: "boundary",
+      followup: "followup",
+      recent: "followup",
+      agreement: "followup",
+      inference: "inference"
+    }[field] || "fact";
   }
   function profileRows(contact, now = Date.now()) {
-    return (contact.profileSummary || []).map((f, index) => ({ ...f, uid: f.uid || "fact-" + hash(signature(f) + "|" + index), storedStatus: f.status || (f.obsolete ? "archived" : "active"), status: profileFactStatus(f, now), effectiveAt: f.effectiveAt || f.editedAt || f.message?.timestamp || null }));
+    return (contact.profileSummary || []).map((f, index) => ({
+      ...f,
+      uid: f.uid || "fact-" + hash(signature(f) + "|" + index),
+      storedStatus: f.status || (f.obsolete ? "archived" : "active"),
+      status: profileFactStatus(f, now),
+      effectiveAt: f.effectiveAt || f.editedAt || f.message?.timestamp || null
+    }));
   }
   var canonicalProfileRows = (contact) => profileRows(contact).map(({ storedStatus, ...fact }) => ({ ...fact, status: storedStatus }));
   function changeProfile(contact, action, now = Date.now()) {
     const rows = canonicalProfileRows(contact), index = rows.findIndex((f) => f.uid === action.uid), current = rows[index], effectiveStatus = current ? profileFactStatus(current, now) : null, dismissed = new Set(contact.profileDismissed || []);
     let next = rows;
-    const newFact = (field, value, extra = {}) => ({ uid: action.newUid || "fact-" + now + "-" + Math.random().toString(36).slice(2, 9), field, kind: profileKind(field), provenance: "user", confidence: field === "inference" ? null : 1, sourceMessageIds: [], value: value.trim(), quote: "", manual: true, confirmed: true, status: "active", effectiveAt: action.effectiveAt || now, createdAt: now, ...extra });
+    const newFact = (field, value, extra = {}) => ({
+      uid: action.newUid || "fact-" + now + "-" + Math.random().toString(36).slice(2, 9),
+      field,
+      kind: profileKind(field),
+      provenance: "user",
+      confidence: field === "inference" ? null : 1,
+      sourceMessageIds: [],
+      value: value.trim(),
+      quote: "",
+      manual: true,
+      confirmed: true,
+      status: "active",
+      effectiveAt: action.effectiveAt || now,
+      createdAt: now,
+      ...extra
+    });
     if (action.type === "add" && action.value?.trim()) next = [...rows, newFact(action.field, action.value)];
     else if (current) {
-      const transition = (status, extra = {}) => rows.map((f, i) => i === index ? { ...f, status, obsolete: status !== "active", manual: true, ...extra, lifecycleHistory: [...f.lifecycleHistory || [], { from: effectiveStatus, to: status, at: now }] } : f);
-      if (["complete", "cancel"].includes(action.type) && ["active", "expired"].includes(effectiveStatus) && ["followup", "recent", "agreement", "plans"].includes(current.field)) next = transition(action.type === "complete" ? "completed" : "cancelled", { planState: action.type === "complete" ? "completed" : "cancelled", effectiveUntil: now });
-      if (action.type === "expire" && effectiveStatus === "active") next = transition("expired", { expiresAt: now - 1, effectiveUntil: now });
-      if (action.type === "reopen" && ["completed", "cancelled", "expired"].includes(effectiveStatus)) next = transition("active", { planState: "active", expiresAt: null, effectiveUntil: null });
+      const transition = (status, extra = {}) => rows.map(
+        (f, i) => i === index ? {
+          ...f,
+          status,
+          obsolete: status !== "active",
+          manual: true,
+          ...extra,
+          lifecycleHistory: [...f.lifecycleHistory || [], { from: effectiveStatus, to: status, at: now }]
+        } : f
+      );
+      if (["complete", "cancel"].includes(action.type) && ["active", "expired"].includes(effectiveStatus) && ["followup", "recent", "agreement", "plans"].includes(current.field))
+        next = transition(action.type === "complete" ? "completed" : "cancelled", {
+          planState: action.type === "complete" ? "completed" : "cancelled",
+          effectiveUntil: now
+        });
+      if (action.type === "expire" && effectiveStatus === "active")
+        next = transition("expired", { expiresAt: now - 1, effectiveUntil: now });
+      if (action.type === "reopen" && ["completed", "cancelled", "expired"].includes(effectiveStatus))
+        next = transition("active", { planState: "active", expiresAt: null, effectiveUntil: null });
       if (action.type === "setExpiry" && ["active", "expired"].includes(effectiveStatus)) {
         const expiry = profileExpiryTime(action.expiresAt);
         if (Number.isNaN(expiry)) throw new Error("到期日期无效，请选择有效日期。");
         next = rows.map((f, i) => i === index ? { ...f, expiresAt: action.expiresAt || null, editedAt: now } : f);
       }
-      if (action.type === "edit" && action.value?.trim()) next = rows.map((f, i) => i === index ? { ...f, value: action.value.trim(), status: f.status === "pending" ? "active" : f.status, manual: true, confirmed: true, editedAt: now, revisions: [...f.revisions || [], { value: f.value, status: f.status, at: now }] } : f);
+      if (action.type === "edit" && action.value?.trim())
+        next = rows.map(
+          (f, i) => i === index ? {
+            ...f,
+            value: action.value.trim(),
+            status: f.status === "pending" ? "active" : f.status,
+            manual: true,
+            confirmed: true,
+            editedAt: now,
+            revisions: [...f.revisions || [], { value: f.value, status: f.status, at: now }]
+          } : f
+        );
       if (action.type === "update" && action.value?.trim()) {
-        next = rows.map((f, i) => i === index ? { ...f, status: "superseded", obsolete: true, manual: true, effectiveUntil: action.effectiveAt || now } : f);
+        next = rows.map(
+          (f, i) => i === index ? { ...f, status: "superseded", obsolete: true, manual: true, effectiveUntil: action.effectiveAt || now } : f
+        );
         next.push(newFact(current.field, action.value, { supersedes: current.uid }));
       }
-      if (action.type === "archive" && current.status !== "deleted") next = rows.map((f, i) => i === index ? { ...f, status: "archived", archivedFrom: f.status, obsolete: true, manual: true, archivedAt: now } : f);
-      if (action.type === "restore" && current.status === "archived" && current.archivedFrom === "pending") next = rows.map((f, i) => i === index ? { ...f, status: "pending", obsolete: false, confirmed: false, restoredAt: now } : f);
+      if (action.type === "archive" && current.status !== "deleted")
+        next = rows.map(
+          (f, i) => i === index ? { ...f, status: "archived", archivedFrom: f.status, obsolete: true, manual: true, archivedAt: now } : f
+        );
+      if (action.type === "restore" && current.status === "archived" && current.archivedFrom === "pending")
+        next = rows.map(
+          (f, i) => i === index ? { ...f, status: "pending", obsolete: false, confirmed: false, restoredAt: now } : f
+        );
       else if (action.type === "restore" && ["archived", "superseded"].includes(current.status) || action.type === "accept" && current.status === "pending") {
         const successors = /* @__PURE__ */ new Set([current.uid]);
         if (action.type === "restore" && !action.keepBoth) {
           let changed = true;
           while (changed) {
             changed = false;
-            for (const fact of rows) if (fact.field === current.field && successors.has(fact.supersedes) && !successors.has(fact.uid)) {
-              successors.add(fact.uid);
-              changed = true;
-            }
+            for (const fact of rows)
+              if (fact.field === current.field && successors.has(fact.supersedes) && !successors.has(fact.uid)) {
+                successors.add(fact.uid);
+                changed = true;
+              }
           }
         }
         const replaced = action.type === "accept" && action.replaceCurrent ? rows.filter((f) => f.uid !== current.uid && f.field === current.field && f.status === "active") : [];
@@ -32842,15 +33079,30 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           return Number.isFinite(parsed) ? parsed : 0;
         };
         const latest = replaced.reduce((prior, f) => !prior || time(f) >= time(prior) ? f : prior, null), replacedIds = new Set(replaced.map((f) => f.uid));
-        next = rows.map((f, i) => i === index ? { ...f, status: "active", obsolete: false, manual: true, confirmed: true, effectiveUntil: null, restoredAt: now, ...latest ? { supersedes: latest.uid } : {} } : action.type === "restore" && !action.keepBoth && successors.has(f.uid) && f.status === "active" || replacedIds.has(f.uid) ? { ...f, status: "superseded", obsolete: true, manual: true, effectiveUntil: action.effectiveAt || now } : f);
+        next = rows.map(
+          (f, i) => i === index ? {
+            ...f,
+            status: "active",
+            obsolete: false,
+            manual: true,
+            confirmed: true,
+            effectiveUntil: null,
+            restoredAt: now,
+            ...latest ? { supersedes: latest.uid } : {}
+          } : action.type === "restore" && !action.keepBoth && successors.has(f.uid) && f.status === "active" || replacedIds.has(f.uid) ? { ...f, status: "superseded", obsolete: true, manual: true, effectiveUntil: action.effectiveAt || now } : f
+        );
       }
       if (action.type === "delete") {
         dismissed.add(current.field + "|" + current.quote);
-        next = rows.map((f, i) => i === index ? { ...f, status: "deleted", manual: true, deletedAt: now, deletedFrom: f.status } : f);
+        next = rows.map(
+          (f, i) => i === index ? { ...f, status: "deleted", manual: true, deletedAt: now, deletedFrom: f.status } : f
+        );
       }
       if (action.type === "undoDelete") {
         dismissed.delete(current.field + "|" + current.quote);
-        next = rows.map((f, i) => i === index ? { ...f, status: f.deletedFrom || "active", deletedAt: null, manual: true } : f);
+        next = rows.map(
+          (f, i) => i === index ? { ...f, status: f.deletedFrom || "active", deletedAt: null, manual: true } : f
+        );
       }
     }
     return { ...contact, profileSummary: next, profileDismissed: [...dismissed], profileSummaryUpdatedAt: now };
@@ -32858,8 +33110,21 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function mergeProfileAnalysis(contact, generated, now = Date.now()) {
     const rows = canonicalProfileRows(contact), dismissed = new Set(contact.profileDismissed || []), next = [...rows];
     for (const fact of generated) {
-      if (dismissed.has(fact.field + "|" + (fact.quote || "")) || next.some((f) => f.field === fact.field && (f.value === fact.value || f.quote && f.quote === fact.quote))) continue;
-      next.push({ ...fact, uid: "fact-" + hash(signature(fact)), kind: fact.kind || profileKind(fact.field), provenance: "model", manual: false, confidence: Number.isFinite(fact.confidence) ? Math.max(0, Math.min(1, fact.confidence)) : null, sourceMessageIds: fact.sourceMessageIds || (fact.message ? [profileMessageId(fact.message)] : []), status: "pending", confirmed: false, effectiveAt: fact.message?.timestamp || now, createdAt: now });
+      if (dismissed.has(fact.field + "|" + (fact.quote || "")) || next.some((f) => f.field === fact.field && (f.value === fact.value || f.quote && f.quote === fact.quote)))
+        continue;
+      next.push({
+        ...fact,
+        uid: "fact-" + hash(signature(fact)),
+        kind: fact.kind || profileKind(fact.field),
+        provenance: "model",
+        manual: false,
+        confidence: Number.isFinite(fact.confidence) ? Math.max(0, Math.min(1, fact.confidence)) : null,
+        sourceMessageIds: fact.sourceMessageIds || (fact.message ? [profileMessageId(fact.message)] : []),
+        status: "pending",
+        confirmed: false,
+        effectiveAt: fact.message?.timestamp || now,
+        createdAt: now
+      });
     }
     return { ...contact, profileSummary: next, profileSummaryUpdatedAt: now };
   }
@@ -32905,7 +33170,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (!PERSONAL_OBJECT.test(part.slice(match.index + match[0].length))) return true;
       }
       if (/(?:没有|没|不|不再|并不|不是).{0,3}(?:不舒服|很烦|生气)/.test(part)) return false;
-      if (/(?:没有|没|不|不再|并不|不是)(?:觉得|认为|感觉)?(?:[和跟]你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气)/.test(part)) return false;
+      if (/(?:没有|没|不|不再|并不|不是)(?:觉得|认为|感觉)?(?:[和跟]你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气)/.test(
+        part
+      ))
+        return false;
       return /(?:[和跟]你(?:聊天|见面|交流)|你让我|我对你).{0,8}(?:不舒服|很烦|生气)/.test(part);
     });
   }
@@ -32925,7 +33193,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var question = (text) => {
     text = directText(text);
     if (!text) return false;
-    const clauses2 = (text.match(/[^，,。！!；;\n?？]+[?？]?/g) || []).map((part) => part.replace(/^(?:谢谢你|谢了)[呀啊啦哦~～\s]*/, ""));
+    const clauses2 = (text.match(/[^，,。！!；;\n?？]+[?？]?/g) || []).map(
+      (part) => part.replace(/^(?:谢谢你|谢了)[呀啊啦哦~～\s]*/, "")
+    );
     return clauses2.some((clause) => {
       if (!clause.replace(/[?？\s]/g, "") || RHETORICAL.test(clause) || boundary(clause)) return false;
       const body = stripTail(clause);
@@ -32939,7 +33209,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function emotionalSharing(text) {
     return directText(text).split(/[。！？!?，,\n]/).some((part) => {
       if (question(part) || directedRequest(part) || /如果|假如|要是|假设/.test(part)) return false;
-      return /^\s*我(?:(?:最近|今天|昨天|现在|其实|真的|一直|有点|有些|很|特别|非常|感到|觉得|挺|也|还|不太|并不|不怎么|没有那么))*?(?:开心|难过|紧张|害怕|担心|失落|委屈|幸福|安心|焦虑|孤独|伤心|兴奋|沮丧|压力很大)/.test(part);
+      return /^\s*我(?:(?:最近|今天|昨天|现在|其实|真的|一直|有点|有些|很|特别|非常|感到|觉得|挺|也|还|不太|并不|不怎么|没有那么))*?(?:开心|难过|紧张|害怕|担心|失落|委屈|幸福|安心|焦虑|孤独|伤心|兴奋|沮丧|压力很大)/.test(
+        part
+      );
     });
   }
   function sharing(text) {
@@ -32947,7 +33219,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return emotionalSharing(direct) || direct.split(/[。！？!?，,\n]/).some((text2) => {
       text2 = text2.trim();
       if (question(text2) || directedRequest(text2) || /如果|假如|要是|假设/.test(text2)) return false;
-      return /(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(text2) || /(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(text2);
+      return /(?:^|[。！？!?，,\n])\s*我(?:俩|们|已经|最近|今天|昨天|老|就|还|也|只|突然|都|自己|好久|一直|现在|以前|以前在|在学校的时候)*(?:吃|喝|买|看|去|想|记得|忘了|累|饿|减肥|忍住|休息|没有吃)/.test(
+        text2
+      ) || /(?:^|[。！？!?，,\n])\s*我(?:最近|今天|昨天|刚刚|刚|正在|现在|周末|平时|已经|打算|计划|很|比较|最|一直|在)*(?:喜欢|爱好|偏好|去了|去过|参加|完成|忙着|在|住在|从事|学|买了|看了|吃了|做了|整理|拍了|写了|工作)/.test(
+        text2
+      );
     });
   }
   var acknowledgment = (text) => /^(?:(?:好(?:的|呀|啊)?|嗯+|收到|了解|明白(?:了)?|谢谢|没问题|知道了)[，,。！!\s]*)+$/.test(text.trim());
@@ -32956,14 +33232,30 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return (value.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || []).filter((part) => !/(?:她|他|朋友|同事|对方|有人).*(?:说|表示|告诉)|(?:台词|原话|引用)/.test(part)).join("");
   }
   var positivePatterns = [
-    { kind: "affection", label: "明确亲近表达", weight: 6, pattern: /(?:喜欢你(?!的|们)|爱你(?!的|们)|想你(?=了|啦|呀|啊|呢|哦|[。！!，,\s]|$)|想见你|期待(?:见你|和你见面)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|(?:愿意|想|会)(?:一直)?陪(?:着)?你)/g },
-    { kind: "support", label: "关心、支持或具体感谢", weight: 4, pattern: /(?:关心你|担心你|心疼你|我(?:能)?理解你(?:的感受|的心情|的难处)|我(?:愿意|可以)听你说|我(?:会|愿意)支持你|(?:为你|替你)(?:开心|高兴)|恭喜你|祝贺你|(?:谢谢|感谢)你(?:一直|这么|那么|愿意|耐心|特意|陪|帮|听|关心|支持)|你(?:真的|真|太|好|很)(?:好|可爱|漂亮|厉害|体贴|温柔))/g },
-    { kind: "courtesy", label: "礼貌或一般积极表达", weight: 1, pattern: /(?:谢谢(?:你)?|谢了|辛苦(?:你)?了|抱抱|亲亲|❤️|❤|🥰|😍|😘)/g }
+    {
+      kind: "affection",
+      label: "明确亲近表达",
+      weight: 6,
+      pattern: /(?:喜欢你(?!的|们)|爱你(?!的|们)|想你(?=了|啦|呀|啊|呢|哦|[。！!，,\s]|$)|想见你|期待(?:见你|和你见面)|开心(?:和你|见到你|跟你)|高兴(?:和你|见到你)|(?:愿意|想|会)(?:一直)?陪(?:着)?你)/g
+    },
+    {
+      kind: "support",
+      label: "关心、支持或具体感谢",
+      weight: 4,
+      pattern: /(?:关心你|担心你|心疼你|我(?:能)?理解你(?:的感受|的心情|的难处)|我(?:愿意|可以)听你说|我(?:会|愿意)支持你|(?:为你|替你)(?:开心|高兴)|恭喜你|祝贺你|(?:谢谢|感谢)你(?:一直|这么|那么|愿意|耐心|特意|陪|帮|听|关心|支持)|你(?:真的|真|太|好|很)(?:好|可爱|漂亮|厉害|体贴|温柔))/g
+    },
+    {
+      kind: "courtesy",
+      label: "礼貌或一般积极表达",
+      weight: 1,
+      pattern: /(?:谢谢(?:你)?|谢了|辛苦(?:你)?了|抱抱|亲亲|❤️|❤|🥰|😍|😘)/g
+    }
   ];
   function positiveSignal(text) {
     let best = { kind: "none", label: "未识别正向表达", weight: 0 };
     for (const part of directText(text).split(/[。！？!?，,\n]/)) {
-      if (directedRequest(part) || conflict(part) || /如果|假如|要是|假设/.test(part) || /^\s*(?:他|她|他们|她们|同事|朋友|小猫|小狗)/.test(part)) continue;
+      if (directedRequest(part) || conflict(part) || /如果|假如|要是|假设/.test(part) || /^\s*(?:他|她|他们|她们|同事|朋友|小猫|小狗)/.test(part))
+        continue;
       for (const signal of positivePatterns) {
         for (const match of part.matchAll(new RegExp(signal.pattern.source, "g"))) {
           const prefix = part.slice(0, match.index);
@@ -32982,7 +33274,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var emojiOnlyPattern = /^[\p{Extended_Pictographic}\p{Emoji_Component}\uFE0F\u200D\s]+$/u;
   var PLACEHOLDER_PATTERN = /^(?:【[^】]{1,8}】|\[[^\]]{1,8}\]|.*\.(?:jpg|jpeg|png|gif|webp|mp4|amr|silk|mp3))$/i;
   function isPlaceholder(text) {
-    return PLACEHOLDER_PATTERN.test(String(text ?? "").replace(/<[^>]*>/g, "").trim());
+    return PLACEHOLDER_PATTERN.test(
+      String(text ?? "").replace(/<[^>]*>/g, "").trim()
+    );
   }
   function perfunctory(text) {
     const body = String(text ?? "").replace(/\s+/g, " ").trim();
@@ -33038,17 +33332,36 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     let positiveTurns = 0, questionTurns = 0, sharingTurns = 0, boundaryTurns = 0, positivePoints = 0, emotionalSharingTurns = 0;
     const latencies = [], turnEvidence = [], events = [];
     for (const turn of turns) {
-      const before = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns, responsiveTurns, positiveTurns, questionTurns, sharingTurns, boundaryTurns, positivePoints, emotionalSharingTurns };
+      const before = {
+        selfStarts,
+        targetStarts,
+        perfunctoryReplies,
+        lowContentReplies,
+        targetTurns,
+        selfTurns,
+        conflictReplies,
+        appeasementReplies,
+        answeredTurns,
+        continuedTurns,
+        responsiveTurns,
+        positiveTurns,
+        questionTurns,
+        sharingTurns,
+        boundaryTurns,
+        positivePoints,
+        emotionalSharingTurns
+      };
       const latencyStart = latencies.length;
       let turnStrong = false;
       const excluded = (kind) => {
         const detectors = { conflict, appeasement, perfunctory, lowContent };
         let relevant = turn.messages;
         if (detectors[kind]) relevant = turn.messages.filter((message) => detectors[kind](message.text));
-        if (kind === "answer" || kind === "continuation") relevant = turn.messages.filter((message) => {
-          const context = replyContext(previousText, message.text, question(previousText));
-          return kind === "answer" ? context.answer || context.affirmative : context.continuation;
-        });
+        if (kind === "answer" || kind === "continuation")
+          relevant = turn.messages.filter((message) => {
+            const context = replyContext(previousText, message.text, question(previousText));
+            return kind === "answer" ? context.answer || context.affirmative : context.continuation;
+          });
         if (!relevant.length) relevant = turn.messages;
         return relevant.every((message) => isExcluded?.(message, kind));
       };
@@ -33062,15 +33375,24 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       }
       if (isTarget) {
         targetTurns++;
-        if (previousWasSelf && at !== null && lastSelfAt !== null && at >= lastSelfAt) latencies.push((at - lastSelfAt) / 6e4);
+        if (previousWasSelf && at !== null && lastSelfAt !== null && at >= lastSelfAt)
+          latencies.push((at - lastSelfAt) / 6e4);
         const joined = turn.messages.map((message2) => String(message2.text ?? "").trim()).filter(Boolean).join(" ");
         const message = turn.messages[0];
         const scene = assignments.get(message) || "unknown";
         scenes[scene]++;
         if (newSession) startsByScene[scene]++;
-        const rawContext = replyContext(previousWasSelf ? previousText : "", joined, previousWasSelf && question(previousText));
+        const rawContext = replyContext(
+          previousWasSelf ? previousText : "",
+          joined,
+          previousWasSelf && question(previousText)
+        );
         const excludeAnswer = excluded("answer"), excludeContinuation = excluded("continuation");
-        const context = { answer: rawContext.answer && !excludeAnswer, affirmative: rawContext.affirmative && !excludeAnswer, continuation: rawContext.continuation && !excludeContinuation };
+        const context = {
+          answer: rawContext.answer && !excludeAnswer,
+          affirmative: rawContext.affirmative && !excludeAnswer,
+          continuation: rawContext.continuation && !excludeContinuation
+        };
         if (context.answer || context.affirmative) answeredTurns++;
         if (context.continuation) continuedTurns++;
         const delegatesChoice = previousWasSelf && !newSession && /(?:还是|选哪个|选哪家|你选|你决定|哪个好)/.test(previousText) && /^(?:随便你|都行看你|你看着办)[。！!，,\s]*$/.test(joined);
@@ -33079,18 +33401,30 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const detectedAppeasement = appeasement(joined);
         const hasSpecificNegative = detectedConflict || detectedAppeasement || negative(joined);
         const laughter = /^(?:哈+|嘿嘿)[。！!\s]*$/.test(joined);
-        const ordinaryPause = /^(?:我(?:现在)?(?:在|有点)?|今天)?(?:在忙|忙|有点忙|很忙|加班|开会|没空|没时间|困了|睡了|先睡了|准备睡了|要睡了|休息了|晚安|回头再说|晚点再说|先这样|改天再聊|明天聊|晚点聊|回头聊|先忙了|稍后聊|晚点再聊|回头再聊|不聊了|再说吧)[。！!，,~～…\s]*$/.test(joined);
+        const ordinaryPause = /^(?:我(?:现在)?(?:在|有点)?|今天)?(?:在忙|忙|有点忙|很忙|加班|开会|没空|没时间|困了|睡了|先睡了|准备睡了|要睡了|休息了|晚安|回头再说|晚点再说|先这样|改天再聊|明天聊|晚点聊|回头聊|先忙了|稍后聊|晚点再聊|回头再聊|不聊了|再说吧)[。！!，,~～…\s]*$/.test(
+          joined
+        );
         const generic = !ordinaryPause && !delegatesChoice && !needsReview && (perfunctory(joined) || lowContent(joined));
         emptyStreak = generic && !context.answer && !context.affirmative && !context.continuation && !laughter ? emptyStreak + 1 : 0;
         const detectedPerfunctory = !ordinaryPause && !hasSpecificNegative && !laughter && !context.answer && !context.affirmative && emptyStreak >= 3 && perfunctory(joined);
         const detectedLowContent = !hasSpecificNegative && !detectedPerfunctory && emptyStreak >= 3 && !context.answer && !context.continuation && lowContent(joined);
-        const detected = { answer: rawContext.answer || rawContext.affirmative, continuation: rawContext.continuation, conflict: detectedConflict, appeasement: detectedAppeasement, perfunctory: detectedPerfunctory, lowContent: detectedLowContent };
+        const detected = {
+          answer: rawContext.answer || rawContext.affirmative,
+          continuation: rawContext.continuation,
+          conflict: detectedConflict,
+          appeasement: detectedAppeasement,
+          perfunctory: detectedPerfunctory,
+          lowContent: detectedLowContent
+        };
         const kinds = Object.keys(detected).filter((kind) => detected[kind]);
         const applied = kinds.filter((kind) => !excluded(kind));
         const hasSignal = (kind, detect) => turn.messages.some((message2) => detect(message2.text) && !isExcluded?.(message2, kind));
         const hasBoundary = hasSignal("boundary", negative);
         if (hasBoundary) boundaryTurns++;
-        const positiveWeight = Math.max(0, ...turn.messages.map((message2) => isExcluded?.(message2, "positive") ? 0 : positiveSignal(message2.text).weight));
+        const positiveWeight = Math.max(
+          0,
+          ...turn.messages.map((message2) => isExcluded?.(message2, "positive") ? 0 : positiveSignal(message2.text).weight)
+        );
         if (positiveWeight) {
           positiveTurns++;
           positivePoints += positiveWeight;
@@ -33098,8 +33432,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (hasSignal("question", question)) questionTurns++;
         if (hasSignal("sharing", sharing)) sharingTurns++;
         if (hasSignal("sharing", emotionalSharing)) emotionalSharingTurns++;
-        if (!hasBoundary && !applied.includes("conflict") && (applied.includes("answer") || applied.includes("continuation"))) responsiveTurns++;
-        turnEvidence.push({ message, messages: turn.messages, quote: joined, kinds, applied, scene, context, needsReview });
+        if (!hasBoundary && !applied.includes("conflict") && (applied.includes("answer") || applied.includes("continuation")))
+          responsiveTurns++;
+        turnEvidence.push({
+          message,
+          messages: turn.messages,
+          quote: joined,
+          kinds,
+          applied,
+          scene,
+          context,
+          needsReview
+        });
         if (applied.includes("perfunctory")) perfunctoryReplies++;
         if (applied.includes("lowContent")) lowContentReplies++;
         if (applied.includes("conflict")) {
@@ -33118,21 +33462,76 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         lastSelfAt = turn.at;
         previousWasSelf = true;
       }
-      const after = { selfStarts, targetStarts, perfunctoryReplies, lowContentReplies, targetTurns, selfTurns, conflictReplies, appeasementReplies, answeredTurns, continuedTurns, responsiveTurns, positiveTurns, questionTurns, sharingTurns, boundaryTurns, positivePoints, emotionalSharingTurns };
-      events.push({ date: shanghaiDateKey(turn.messages[0].timestamp), counts: Object.fromEntries(Object.keys(before).map((key) => [key, after[key] - before[key]])), latencies: latencies.slice(latencyStart), strongConflict: turnStrong, scene: assignments.get(turn.messages[0]) || "unknown" });
+      const after = {
+        selfStarts,
+        targetStarts,
+        perfunctoryReplies,
+        lowContentReplies,
+        targetTurns,
+        selfTurns,
+        conflictReplies,
+        appeasementReplies,
+        answeredTurns,
+        continuedTurns,
+        responsiveTurns,
+        positiveTurns,
+        questionTurns,
+        sharingTurns,
+        boundaryTurns,
+        positivePoints,
+        emotionalSharingTurns
+      };
+      events.push({
+        date: shanghaiDateKey(turn.messages[0].timestamp),
+        counts: Object.fromEntries(Object.keys(before).map((key) => [key, after[key] - before[key]])),
+        latencies: latencies.slice(latencyStart),
+        strongConflict: turnStrong,
+        scene: assignments.get(turn.messages[0]) || "unknown"
+      });
       previousAt = turn.at ?? previousAt;
       previousSender = turn.sender;
       previousText = turn.messages.map((message) => String(message.text ?? "")).join(" ");
     }
     const sorted = [...latencies].sort((a, b) => a - b);
     const medianMinutes = sorted.length ? Math.round(sorted[Math.floor((sorted.length - 1) / 2)]) : null;
-    return { selfStarts, targetStarts, medianMinutes, slowReplies: latencies.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length, perfunctoryReplies, lowContentReplies, targetTurns, conflictReplies, appeasementReplies, selfTurns, replySamples: latencies.length, strongConflict, turnEvidence, scenes, startsByScene, answeredTurns, continuedTurns, responsiveTurns, positiveTurns, questionTurns, sharingTurns, boundaryTurns, positivePoints, emotionalSharingTurns, events };
+    return {
+      selfStarts,
+      targetStarts,
+      medianMinutes,
+      slowReplies: latencies.filter((minutes) => minutes >= SESSION_GAP_MINUTES).length,
+      perfunctoryReplies,
+      lowContentReplies,
+      targetTurns,
+      conflictReplies,
+      appeasementReplies,
+      selfTurns,
+      replySamples: latencies.length,
+      strongConflict,
+      turnEvidence,
+      scenes,
+      startsByScene,
+      answeredTurns,
+      continuedTurns,
+      responsiveTurns,
+      positiveTurns,
+      questionTurns,
+      sharingTurns,
+      boundaryTurns,
+      positivePoints,
+      emotionalSharingTurns,
+      events
+    };
   }
   function engagementDays(result) {
     const days = /* @__PURE__ */ new Map();
     for (const event of result.events) {
       if (!event.date) continue;
-      if (!days.has(event.date)) days.set(event.date, { latencies: [], strongConflict: false, scenes: { work: 0, daily: 0, mixed: 0, unknown: 0 } });
+      if (!days.has(event.date))
+        days.set(event.date, {
+          latencies: [],
+          strongConflict: false,
+          scenes: { work: 0, daily: 0, mixed: 0, unknown: 0 }
+        });
       const day = days.get(event.date);
       for (const [key, value] of Object.entries(event.counts)) day[key] = (day[key] || 0) + value;
       day.latencies.push(...event.latencies);
@@ -33151,10 +33550,47 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   // src/affinity/lsm.js
   var LSM_CATEGORIES = Object.freeze({
     ppron: ["我们", "咱们", "你们", "他们", "她们", "我", "咱", "你", "您", "他", "她", "俺"],
-    ipron: ["这个", "那个", "这些", "那些", "这样", "那样", "什么", "哪里", "哪儿", "自己", "别人", "大家", "这", "那", "哪", "谁"],
+    ipron: [
+      "这个",
+      "那个",
+      "这些",
+      "那些",
+      "这样",
+      "那样",
+      "什么",
+      "哪里",
+      "哪儿",
+      "自己",
+      "别人",
+      "大家",
+      "这",
+      "那",
+      "哪",
+      "谁"
+    ],
     prep: ["关于", "对于", "从", "对", "向", "跟", "给", "把", "被", "往", "比", "离", "按"],
     auxverb: ["可以", "应该", "必须", "可能", "愿意", "会", "能", "要", "想", "敢"],
-    adverb: ["已经", "一直", "特别", "非常", "好像", "正在", "很", "太", "真", "挺", "都", "也", "还", "就", "才", "又", "再", "刚", "总"],
+    adverb: [
+      "已经",
+      "一直",
+      "特别",
+      "非常",
+      "好像",
+      "正在",
+      "很",
+      "太",
+      "真",
+      "挺",
+      "都",
+      "也",
+      "还",
+      "就",
+      "才",
+      "又",
+      "再",
+      "刚",
+      "总"
+    ],
     conj: ["但是", "可是", "不过", "因为", "所以", "而且", "然后", "如果", "虽然", "或者", "并且", "于是", "还是", "和"],
     negate: ["没有", "不要", "不", "没", "别", "未", "无"],
     quant: ["一些", "很多", "所有", "全部", "一点", "有点", "好多", "每", "几", "多", "少"],
@@ -33181,19 +33617,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         i++;
       }
     }
-    const rates = Object.fromEntries(Object.entries(counts).map(([key, value]) => [key, chars ? 100 * value / chars : 0]));
+    const rates = Object.fromEntries(
+      Object.entries(counts).map(([key, value]) => [key, chars ? 100 * value / chars : 0])
+    );
     return { chars, counts, rates };
   }
   function lsmFromCounts(self2, target, { minChars = LSM_MIN_CHARS } = {}) {
     const a = self2 || { chars: 0, counts: {} }, b = target || { chars: 0, counts: {} };
-    if (a.chars < minChars || b.chars < minChars) return { value: null, selfChars: a.chars, targetChars: b.chars, categories: {} };
+    if (a.chars < minChars || b.chars < minChars)
+      return { value: null, selfChars: a.chars, targetChars: b.chars, categories: {} };
     const categories2 = {};
     for (const key of Object.keys(LSM_CATEGORIES)) {
       const p1 = 100 * (a.counts[key] || 0) / a.chars, p2 = 100 * (b.counts[key] || 0) / b.chars;
       categories2[key] = 1 - Math.abs(p1 - p2) / (p1 + p2 + 1e-4);
     }
     const values = Object.values(categories2);
-    return { value: values.reduce((sum, v) => sum + v, 0) / values.length, selfChars: a.chars, targetChars: b.chars, categories: categories2 };
+    return {
+      value: values.reduce((sum, v) => sum + v, 0) / values.length,
+      selfChars: a.chars,
+      targetChars: b.chars,
+      categories: categories2
+    };
   }
   function languageStyleMatching(selfText, targetText, options = {}) {
     return lsmFromCounts(functionWordRates(selfText), functionWordRates(targetText), options);
@@ -33221,7 +33665,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   };
   function evidenceOf(turn, kind, label) {
     const message = turn.messages.find((m) => m.text?.trim()) || turn.messages[0];
-    return { kind, label, messageId: messageIdentity(message), quote: clip(turn.text, 140), sender: turn.role, timestamp: message.timestamp ?? null, source: "rule" };
+    return {
+      kind,
+      label,
+      messageId: messageIdentity(message),
+      quote: clip(turn.text, 140),
+      sender: turn.role,
+      timestamp: message.timestamp ?? null,
+      source: "rule"
+    };
   }
   var emptyWords = () => ({ chars: 0, counts: Object.fromEntries(Object.keys(LSM_CATEGORIES).map((key) => [key, 0])) });
   function emptyPeriod(start, end = start, key = start) {
@@ -33231,17 +33683,52 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       end,
       messages: 0,
       messageIds: [],
-      self: { turns: 0, chars: 0, disclosure: 0, emotional: 0, questions: 0, bids: 0, starts: 0, goodNews: 0, words: emptyWords() },
-      target: { turns: 0, chars: 0, disclosure: 0, emotional: 0, questions: 0, bids: 0, starts: 0, positivePoints: 0, positiveTurns: 0, responsive: 0, conflict: 0, repair: 0, boundary: 0, empty: 0, words: emptyWords() },
+      self: {
+        turns: 0,
+        chars: 0,
+        disclosure: 0,
+        emotional: 0,
+        questions: 0,
+        bids: 0,
+        starts: 0,
+        goodNews: 0,
+        words: emptyWords()
+      },
+      target: {
+        turns: 0,
+        chars: 0,
+        disclosure: 0,
+        emotional: 0,
+        questions: 0,
+        bids: 0,
+        starts: 0,
+        positivePoints: 0,
+        positiveTurns: 0,
+        responsive: 0,
+        conflict: 0,
+        repair: 0,
+        boundary: 0,
+        empty: 0,
+        words: emptyWords()
+      },
       bids: { toward: 0, away: 0, against: 0, unanswered: 0 },
       capitalization: { opportunities: 0, constructive: 0 },
-      evidence: { responsiveness: [], disclosure: [], reciprocity: [], positivity: [], engagement: [], friction: [], boundary: [] }
+      evidence: {
+        responsiveness: [],
+        disclosure: [],
+        reciprocity: [],
+        positivity: [],
+        engagement: [],
+        friction: [],
+        boundary: []
+      }
     };
   }
   var EVIDENCE_PER_DIMENSION = 6;
   function pushEvidence(week, dimension, item) {
     const list = week.evidence[dimension];
-    if (list.length >= EVIDENCE_PER_DIMENSION || list.filter((e) => e.kind === item.kind).length >= 2 || list.some((e) => e.messageId === item.messageId && e.kind === item.kind)) return;
+    if (list.length >= EVIDENCE_PER_DIMENSION || list.filter((e) => e.kind === item.kind).length >= 2 || list.some((e) => e.messageId === item.messageId && e.kind === item.kind))
+      return;
     list.push(item);
   }
   function buildTurns(contact = {}) {
@@ -33278,7 +33765,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         disclosure: any(sharing, "sharing"),
         emotional: any(emotionalSharing, "sharing"),
         boundary: any(negative, "boundary"),
-        positiveWeight: Math.max(0, ...turn.messages.map((m) => turn.role === "target" && excluded(m, "positive") ? 0 : positiveSignal(m.text).weight))
+        positiveWeight: Math.max(
+          0,
+          ...turn.messages.map(
+            (m) => turn.role === "target" && excluded(m, "positive") ? 0 : positiveSignal(m.text).weight
+          )
+        )
       };
       if (turn.role === "target") {
         const info2 = turnInfoFor(turn, targetTurnInfo);
@@ -33363,11 +33855,28 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (s.question) side.questions++;
       if (s.bid) side.bids++;
       if (turn.role === "target") {
-        if (s.disclosure) pushEvidence(week, "disclosure", evidenceOf(turn, s.emotional ? "emotional" : "disclosure", s.emotional ? "对方分享了自己的感受" : "对方分享了自己的经历或想法"));
+        if (s.disclosure)
+          pushEvidence(
+            week,
+            "disclosure",
+            evidenceOf(
+              turn,
+              s.emotional ? "emotional" : "disclosure",
+              s.emotional ? "对方分享了自己的感受" : "对方分享了自己的经历或想法"
+            )
+          );
         if (s.positiveWeight) {
           side.positivePoints += s.positiveWeight;
           side.positiveTurns++;
-          pushEvidence(week, "positivity", evidenceOf(turn, "positive", s.positiveWeight >= 6 ? "直接的亲近表达" : s.positiveWeight >= 4 ? "支持或具体感谢" : "礼貌或轻度积极表达"));
+          pushEvidence(
+            week,
+            "positivity",
+            evidenceOf(
+              turn,
+              "positive",
+              s.positiveWeight >= 6 ? "直接的亲近表达" : s.positiveWeight >= 4 ? "支持或具体感谢" : "礼貌或轻度积极表达"
+            )
+          );
         }
         if (s.responsive) side.responsive++;
         if (s.conflict) {
@@ -33386,7 +33895,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           side.empty++;
           pushEvidence(week, "friction", evidenceOf(turn, "empty", "敷衍或低信息量回合"));
         }
-        if (turn.newSession || s.question) pushEvidence(week, "engagement", evidenceOf(turn, turn.newSession ? "start" : "question", turn.newSession ? "对方主动开启对话" : "对方提问"));
+        if (turn.newSession || s.question)
+          pushEvidence(
+            week,
+            "engagement",
+            evidenceOf(turn, turn.newSession ? "start" : "question", turn.newSession ? "对方主动开启对话" : "对方提问")
+          );
       } else if (s.goodNews) side.goodNews++;
       if (turn.role === "self" && s.bid) {
         const next = turns[i + 1];
@@ -33399,11 +33913,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           pushEvidence(week, "responsiveness", evidenceOf(next, "toward", "回答或承接了我方的提问/分享"));
         } else {
           week.bids.away++;
-          pushEvidence(week, "responsiveness", evidenceOf(next, "away", "规则未识别为直接回应（可能是自然的话题切换，也可能漏判）"));
+          pushEvidence(
+            week,
+            "responsiveness",
+            evidenceOf(next, "away", "规则未识别为直接回应（可能是自然的话题切换，也可能漏判）")
+          );
         }
         if (s.goodNews && next?.role === "target" && next.at - turn.lastAt < 24 * 36e5) {
           week.capitalization.opportunities++;
-          if (!next.signals.conflict && (next.signals.positiveWeight >= 4 || next.signals.question && next.signals.positiveWeight >= 1 || next.signals.responsive && next.signals.positiveWeight >= 1)) week.capitalization.constructive++;
+          if (!next.signals.conflict && (next.signals.positiveWeight >= 4 || next.signals.question && next.signals.positiveWeight >= 1 || next.signals.responsive && next.signals.positiveWeight >= 1))
+            week.capitalization.constructive++;
         }
       }
     });
@@ -33428,19 +33947,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const p of rows) {
       out.messages += p.messages || 0;
       out.messageIds.push(...p.messageIds || []);
-      for (const role of ["self", "target"]) for (const [field, value] of Object.entries(p[role] || {})) {
-        if (field === "words") addWords(out[role].words, value);
-        else if (typeof value === "number") out[role][field] = (out[role][field] || 0) + value;
-      }
+      for (const role of ["self", "target"])
+        for (const [field, value] of Object.entries(p[role] || {})) {
+          if (field === "words") addWords(out[role].words, value);
+          else if (typeof value === "number") out[role][field] = (out[role][field] || 0) + value;
+        }
       for (const field of Object.keys(out.bids)) out.bids[field] += p.bids?.[field] || 0;
       for (const field of Object.keys(out.capitalization)) out.capitalization[field] += p.capitalization?.[field] || 0;
-      for (const [dim, items] of Object.entries(p.evidence || {})) if (dim !== "reciprocity") for (const item of items) pushEvidence(out, dim, item);
+      for (const [dim, items] of Object.entries(p.evidence || {}))
+        if (dim !== "reciprocity") for (const item of items) pushEvidence(out, dim, item);
     }
     return finishPeriod(out);
   }
   function pushReciprocityEvidence(week) {
     const s = week.self, t = week.target;
-    week.evidence.reciprocity.push({ kind: "counts", label: "双方分享回合", value: `我方 ${s.disclosure} / 对方 ${t.disclosure}`, source: "rule" }, { kind: "counts", label: "双方主动开启对话", value: `我方 ${s.starts} / 对方 ${t.starts}`, source: "rule" }, { kind: "counts", label: "双方提问回合", value: `我方 ${s.questions} / 对方 ${t.questions}`, source: "rule" });
+    week.evidence.reciprocity.push(
+      { kind: "counts", label: "双方分享回合", value: `我方 ${s.disclosure} / 对方 ${t.disclosure}`, source: "rule" },
+      { kind: "counts", label: "双方主动开启对话", value: `我方 ${s.starts} / 对方 ${t.starts}`, source: "rule" },
+      { kind: "counts", label: "双方提问回合", value: `我方 ${s.questions} / 对方 ${t.questions}`, source: "rule" }
+    );
   }
 
   // src/affinity/model.js
@@ -33461,7 +33986,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       llm: true,
       definition: "对方是否接住你的提问与分享：理解内容、认可、表达关心。",
       rule: "我方提问/分享（连接邀请）后，对方下一回合回答或承接的比例：toward ÷ (toward + away + against)；未回复不计入分母（文字聊天可异步）。",
-      refs: [ref("Reis, Clark & Holmes (2004). Perceived partner responsiveness as an organizing construct. Handbook of Closeness and Intimacy."), ref("Laurenceau, Barrett & Pietromonaco (1998). JPSP 74(5):1238–1251.", "https://doi.org/10.1037/0022-3514.74.5.1238"), ref("Gottman & Driver (2005). Dysfunctional marital conflict and everyday marital interaction. J Divorce & Remarriage 43(3–4):63–77.", "https://doi.org/10.1300/J087v43n03_04")]
+      refs: [
+        ref(
+          "Reis, Clark & Holmes (2004). Perceived partner responsiveness as an organizing construct. Handbook of Closeness and Intimacy."
+        ),
+        ref(
+          "Laurenceau, Barrett & Pietromonaco (1998). JPSP 74(5):1238–1251.",
+          "https://doi.org/10.1037/0022-3514.74.5.1238"
+        ),
+        ref(
+          "Gottman & Driver (2005). Dysfunctional marital conflict and everyday marital interaction. J Divorce & Remarriage 43(3–4):63–77.",
+          "https://doi.org/10.1300/J087v43n03_04"
+        )
+      ]
     },
     {
       key: "disclosure",
@@ -33470,7 +34007,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       llm: true,
       definition: "对方主动讲述自己的经历、想法与感受；感受类开示比事实类更能预测亲密感。",
       rule: "(对方分享回合 + 0.5 × 感受分享回合) ÷ (0.6 × 对方回合)，上限 1。0.6 为饱和参数（产品设定）。",
-      refs: [ref("Collins & Miller (1994). Self-disclosure and liking: A meta-analytic review. Psychological Bulletin 116(3):457–475.", "https://doi.org/10.1037/0033-2909.116.3.457"), ref("Laurenceau, Barrett & Pietromonaco (1998). JPSP 74(5):1238–1251.", "https://doi.org/10.1037/0022-3514.74.5.1238")]
+      refs: [
+        ref(
+          "Collins & Miller (1994). Self-disclosure and liking: A meta-analytic review. Psychological Bulletin 116(3):457–475.",
+          "https://doi.org/10.1037/0033-2909.116.3.457"
+        ),
+        ref(
+          "Laurenceau, Barrett & Pietromonaco (1998). JPSP 74(5):1238–1251.",
+          "https://doi.org/10.1037/0022-3514.74.5.1238"
+        )
+      ]
     },
     {
       key: "reciprocity",
@@ -33479,7 +34025,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       llm: true,
       definition: "双方在分享、提问与主动开启对话上是否大致对等。",
       rule: "分享率、提问率、主动开启次数三项各取 1 − |a−b| ÷ (a+b)，再取平均（只看对等，不看谁多）。",
-      refs: [ref("Sprecher, Treger, Wondra, Hilaire & Wallpe (2013). Taking turns: Reciprocal self-disclosure promotes liking in initial interactions. JESP 49:860–866.", "https://doi.org/10.1016/j.jesp.2013.03.017")]
+      refs: [
+        ref(
+          "Sprecher, Treger, Wondra, Hilaire & Wallpe (2013). Taking turns: Reciprocal self-disclosure promotes liking in initial interactions. JESP 49:860–866.",
+          "https://doi.org/10.1016/j.jesp.2013.03.017"
+        )
+      ]
     },
     {
       key: "positivity",
@@ -33488,7 +34039,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       llm: true,
       definition: "对方的积极、支持性表达，以及在你分享好消息时的积极建设性回应。",
       rule: "0.5 × min(1, 正向分值 ÷ (2 × 对方回合)) + 0.5 × 好消息获积极回应比例（无此情境时只用前一项）。",
-      refs: [ref("Gable, Reis, Impett & Asher (2004). What do you do when things go right? JPSP 87(2):228–245.", "https://doi.org/10.1037/0022-3514.87.2.228")]
+      refs: [
+        ref(
+          "Gable, Reis, Impett & Asher (2004). What do you do when things go right? JPSP 87(2):228–245.",
+          "https://doi.org/10.1037/0022-3514.87.2.228"
+        )
+      ]
     },
     {
       key: "engagement",
@@ -33497,7 +34053,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       llm: true,
       definition: "对方主动开启对话、提问、发出“连接邀请”的程度。",
       rule: "0.5 × 对方主动开启占比 + 0.5 × min(1, 对方邀请回合 ÷ (0.5 × 对方回合))。",
-      refs: [ref("Gottman & Driver (2005). J Divorce & Remarriage 43(3–4):63–77.", "https://doi.org/10.1300/J087v43n03_04"), ref("Stafford & Canary (1991). Maintenance strategies and romantic relationship type. JSPR 8(2):145–159.", "https://doi.org/10.1177/0265407591082001")]
+      refs: [
+        ref("Gottman & Driver (2005). J Divorce & Remarriage 43(3–4):63–77.", "https://doi.org/10.1300/J087v43n03_04"),
+        ref(
+          "Stafford & Canary (1991). Maintenance strategies and romantic relationship type. JSPR 8(2):145–159.",
+          "https://doi.org/10.1177/0265407591082001"
+        )
+      ]
     },
     {
       key: "coordination",
@@ -33506,7 +34068,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       llm: false,
       definition: "双方虚词使用风格的相似度（LSM）。只作弱信号：中文为近似词表。",
       rule: "九类虚词每 100 字使用率的 1 − |p1−p2| ÷ (p1+p2) 的平均；任一方少于 40 字不计算。",
-      refs: [ref("Ireland, Slatcher, Eastwick, Scissors, Finkel & Pennebaker (2011). Language style matching predicts relationship initiation and stability. Psychological Science 22(1):39–44.", "https://doi.org/10.1177/0956797610392928")]
+      refs: [
+        ref(
+          "Ireland, Slatcher, Eastwick, Scissors, Finkel & Pennebaker (2011). Language style matching predicts relationship initiation and stability. Psychological Science 22(1):39–44.",
+          "https://doi.org/10.1177/0956797610392928"
+        )
+      ]
     }
   ]);
   var FRICTION = {
@@ -33514,7 +34081,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     label: "摩擦与修复",
     definition: "对方的批评、防御、冷淡等摩擦表达，以及之后是否解释或缓和。摩擦按比例降低综合指数。",
     rule: "摩擦强度 = min(1, 2 × (摩擦回合 + 0.5 × 连续缺少回应回合) ÷ max(4, 对方回合))；修复后按 (1 − 0.5 × 修复比例) 减轻。综合指数 × (1 − 0.6 × 摩擦)。",
-    refs: [ref("Gottman & Levenson (1992). Marital processes predictive of later dissolution. JPSP 63(2):221–233.", "https://doi.org/10.1037/0022-3514.63.2.221"), ref("Salvatore, Kuo, Steele, Simpson & Collins (2011). Recovering from conflict in romantic relationships. Psychological Science 22(3):376–383.", "https://doi.org/10.1177/0956797610397055")]
+    refs: [
+      ref(
+        "Gottman & Levenson (1992). Marital processes predictive of later dissolution. JPSP 63(2):221–233.",
+        "https://doi.org/10.1037/0022-3514.63.2.221"
+      ),
+      ref(
+        "Salvatore, Kuo, Steele, Simpson & Collins (2011). Recovering from conflict in romantic relationships. Psychological Science 22(3):376–383.",
+        "https://doi.org/10.1177/0956797610397055"
+      )
+    ]
   };
   var BOUNDARY_CAP = 30;
   var clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -33527,15 +34103,31 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const s = week.self, t = week.target, b = week.bids, out = {};
     const bidN = b.toward + b.away + b.against;
     out.responsiveness = { value: bidN ? b.toward / bidN : null, n: bidN };
-    out.disclosure = { value: t.turns ? clamp01((t.disclosure + 0.5 * t.emotional) / (0.6 * t.turns)) : null, n: t.turns };
+    out.disclosure = {
+      value: t.turns ? clamp01((t.disclosure + 0.5 * t.emotional) / (0.6 * t.turns)) : null,
+      n: t.turns
+    };
     const rate = (x, turns) => turns ? x / turns : 0;
-    const recip = [ratio(rate(s.disclosure, s.turns), rate(t.disclosure, t.turns)), ratio(rate(s.questions, s.turns), rate(t.questions, t.turns)), ratio(s.starts, t.starts)];
-    out.reciprocity = { value: s.turns && t.turns ? mean(recip) : null, n: s.disclosure + t.disclosure + s.questions + t.questions + s.starts + t.starts };
+    const recip = [
+      ratio(rate(s.disclosure, s.turns), rate(t.disclosure, t.turns)),
+      ratio(rate(s.questions, s.turns), rate(t.questions, t.turns)),
+      ratio(s.starts, t.starts)
+    ];
+    out.reciprocity = {
+      value: s.turns && t.turns ? mean(recip) : null,
+      n: s.disclosure + t.disclosure + s.questions + t.questions + s.starts + t.starts
+    };
     const pos = t.turns ? clamp01(t.positivePoints / (2 * t.turns)) : null, cap = week.capitalization.opportunities ? week.capitalization.constructive / week.capitalization.opportunities : null;
-    out.positivity = { value: pos === null ? null : cap === null ? pos : 0.5 * pos + 0.5 * cap, n: t.turns + week.capitalization.opportunities };
+    out.positivity = {
+      value: pos === null ? null : cap === null ? pos : 0.5 * pos + 0.5 * cap,
+      n: t.turns + week.capitalization.opportunities
+    };
     const startShare = s.starts + t.starts ? t.starts / (s.starts + t.starts) : null, bidRate = t.turns ? clamp01(t.bids / (0.5 * t.turns)) : null;
     out.engagement = { value: mean([startShare, bidRate]), n: s.starts + t.starts + t.turns };
-    out.coordination = { value: week.lsm, n: week.lsm === null ? 0 : Math.min(12, Math.floor((week.lsmChars || 0) / 20)) };
+    out.coordination = {
+      value: week.lsm,
+      n: week.lsm === null ? 0 : Math.min(12, Math.floor((week.lsmChars || 0) / 20))
+    };
     const frictionRaw = t.turns ? clamp01(2 * (t.conflict + 0.5 * t.empty) / Math.max(4, t.turns)) : 0, repair = t.conflict ? clamp01(t.repair / t.conflict) : 0;
     out.friction = { value: frictionRaw * (1 - 0.5 * repair), raw: frictionRaw, repair, n: t.turns };
     out.boundary = { present: t.boundary > 0, count: t.boundary };
@@ -33550,7 +34142,17 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function fuseDimension(rule, ai, { prior = PRIOR } = {}) {
     const base = shrink(rule.value, rule.n, { prior });
     const aiUnit = ai && Array.isArray(ai.evidence) && ai.evidence.length ? ratingToUnit(ai.rating) : null;
-    if (aiUnit === null) return { ...base, rule: rule.value, ruleN: rule.n, ai: null, aiConfidence: null, source: "rule", shifted: 0, disagreement: false };
+    if (aiUnit === null)
+      return {
+        ...base,
+        rule: rule.value,
+        ruleN: rule.n,
+        ai: null,
+        aiConfidence: null,
+        source: "rule",
+        shifted: 0,
+        disagreement: false
+      };
     const m = LLM_PSEUDO_COUNT * (LLM_CONFIDENCE[ai.confidence] || LLM_CONFIDENCE.low), ruleCount = rule.value === null ? 0 : rule.n, ruleValue = rule.value === null ? prior : rule.value;
     let est = (ruleCount * ruleValue + PRIOR_STRENGTH * prior + m * aiUnit) / (ruleCount + PRIOR_STRENGTH + m);
     const shifted = Math.max(-MAX_SHIFT, Math.min(MAX_SHIFT, est - base.estimate));
@@ -33631,7 +34233,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (let i = 0; i < list.length; i++) {
       out.push(list[i]);
       const next = list[i + 1];
-      if (next) for (let w = addDays(list[i].start, 7); w < next.start; w = addDays(w, 7)) out.push({ start: w, end: addDays(w, 6), gap: true });
+      if (next)
+        for (let w = addDays(list[i].start, 7); w < next.start; w = addDays(w, 7))
+          out.push({ start: w, end: addDays(w, 6), gap: true });
     }
     return out;
   }
@@ -33709,8 +34313,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const prev = out[i - 1], cur = out[i];
       cur.change = cur.index - prev.index;
       cur.drivers = [
-        ...DIMENSIONS.map((d) => ({ key: d.key, label: d.label, delta: cur.dims[d.key] - prev.dims[d.key], impact: 100 * d.weight * (cur.dims[d.key] - prev.dims[d.key]) })),
-        { key: "friction", label: "摩擦与修复", delta: cur.friction - prev.friction, impact: -60 * (cur.friction - prev.friction) * 0.5 }
+        ...DIMENSIONS.map((d) => ({
+          key: d.key,
+          label: d.label,
+          delta: cur.dims[d.key] - prev.dims[d.key],
+          impact: 100 * d.weight * (cur.dims[d.key] - prev.dims[d.key])
+        })),
+        {
+          key: "friction",
+          label: "摩擦与修复",
+          delta: cur.friction - prev.friction,
+          impact: -60 * (cur.friction - prev.friction) * 0.5
+        }
       ].filter((x) => Math.abs(x.impact) >= 0.5).sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact)).slice(0, 3);
     }
     return out;
@@ -33721,7 +34335,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       p.ewma = smooth[i] === null ? null : Math.round(smooth[i] * 10) / 10;
     });
     const cps = changePoints(points);
-    return { points, trend: trend(points), changePoints: cps, phases: phases(points, cps), current: points.filter(isScored).at(-1) || null };
+    return {
+      points,
+      trend: trend(points),
+      changePoints: cps,
+      phases: phases(points, cps),
+      current: points.filter(isScored).at(-1) || null
+    };
   }
 
   // src/affinity/index.js
@@ -33738,7 +34358,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return h.toString(36);
   }
   var clip2 = (text, n) => {
-    const chars = Array.from(String(text || "").replace(/\s+/g, " ").trim());
+    const chars = Array.from(
+      String(text || "").replace(/\s+/g, " ").trim()
+    );
     return chars.length > n ? chars.slice(0, n).join("") : chars.join("");
   };
   function selectWeekMessages(contact, weekStart, { max = AI_MAX_MESSAGES, turns: all = buildTurns(contact) } = {}) {
@@ -33767,7 +34389,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function buildAffinityRequest(contact, weekStart, { previousSummary, turns } = {}) {
     const { rows, sampled, total } = selectWeekMessages(contact, weekStart, { turns });
     const messages = rows.map(({ m }) => ({ id: clip2(messageIdentity(m), 200), sender: m.sender, text: clip2(m.text, AI_MAX_CHARS) })).filter((m) => m.text);
-    const body = { self: clip2(contact.self, 100), target: clip2(contact.target, 100), week: { start: weekStart, end: shiftDays(weekStart, 6) }, messages, sampled: { total, sent: messages.length } };
+    const body = {
+      self: clip2(contact.self, 100),
+      target: clip2(contact.target, 100),
+      week: { start: weekStart, end: shiftDays(weekStart, 6) },
+      messages,
+      sampled: { total, sent: messages.length }
+    };
     if (previousSummary) body.previousSummary = clip2(previousSummary, 600);
     return body;
   }
@@ -33786,7 +34414,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function storeAiWeek(contact, weekStart, { result, provider, model, fingerprint, request }, now = Date.now()) {
     const weeks = { ...contact.affinityV3?.weeks || {} };
-    weeks[weekStart] = { version: AI_RESULT_VERSION, fingerprint, result, provider, model, analyzedAt: now, sampled: request?.sampled || null };
+    weeks[weekStart] = {
+      version: AI_RESULT_VERSION,
+      fingerprint,
+      result,
+      provider,
+      model,
+      analyzedAt: now,
+      sampled: request?.sampled || null
+    };
     return { ...contact, affinityV3: { modelVersion: MODEL_VERSION, weeks } };
   }
   var byId = (contact) => {
@@ -33797,17 +34433,53 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function explainWeek(scored, week, ai, contact) {
     const messages = byId(contact), one = (key) => {
       const dim = key === "friction" ? FRICTION : DIMENSIONS.find((d) => d.key === key), fused = key === "friction" ? null : scored.dims[key];
-      const facts = (week.evidence[key] || []).map((e) => ({ ...e, type: "fact", message: e.messageId ? messages.get(e.messageId) || null : null }));
+      const facts = (week.evidence[key] || []).map((e) => ({
+        ...e,
+        type: "fact",
+        message: e.messageId ? messages.get(e.messageId) || null : null
+      }));
       const aiDim = ai?.dimensions?.[key];
-      const observations = (aiDim?.evidence || []).map((e) => ({ type: "ai-quote", messageId: e.messageId, quote: e.quote, note: e.note || "", message: messages.get(e.messageId) || null }));
-      const inference = aiDim && aiDim.inference ? { type: "inference", text: aiDim.inference, alternatives: aiDim.alternatives || "", confidence: aiDim.confidence, rating: aiDim.rating } : null;
-      return { key, label: dim.label, definition: dim.definition, rule: dim.rule, refs: dim.refs, fused, facts, observations, inference };
+      const observations = (aiDim?.evidence || []).map((e) => ({
+        type: "ai-quote",
+        messageId: e.messageId,
+        quote: e.quote,
+        note: e.note || "",
+        message: messages.get(e.messageId) || null
+      }));
+      const inference = aiDim && aiDim.inference ? {
+        type: "inference",
+        text: aiDim.inference,
+        alternatives: aiDim.alternatives || "",
+        confidence: aiDim.confidence,
+        rating: aiDim.rating
+      } : null;
+      return {
+        key,
+        label: dim.label,
+        definition: dim.definition,
+        rule: dim.rule,
+        refs: dim.refs,
+        fused,
+        facts,
+        observations,
+        inference
+      };
     };
     return {
       dimensions: [...DIMENSIONS.map((d) => one(d.key)), one("friction")],
       boundary: {
-        facts: (week.evidence.boundary || []).map((e) => ({ ...e, type: "fact", message: messages.get(e.messageId) || null })),
-        ai: (ai?.boundary?.evidence || []).map((e) => ({ type: "ai-quote", messageId: e.messageId, quote: e.quote, note: e.note || "", message: messages.get(e.messageId) || null }))
+        facts: (week.evidence.boundary || []).map((e) => ({
+          ...e,
+          type: "fact",
+          message: messages.get(e.messageId) || null
+        })),
+        ai: (ai?.boundary?.evidence || []).map((e) => ({
+          type: "ai-quote",
+          messageId: e.messageId,
+          quote: e.quote,
+          note: e.note || "",
+          message: messages.get(e.messageId) || null
+        }))
       },
       summary: ai?.summary || "",
       uncertainties: ai?.uncertainties || ""
@@ -33831,7 +34503,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     const series = longitudinal(scored);
     const coverage = scored.length ? scored.filter((s) => s.ai).length / scored.length : 0;
-    return { modelVersion: MODEL_VERSION, turns, weeks: scored, ...series, pending, coverage, boundaryWeeks: scored.filter((s) => s.boundary.rule).map((s) => s.start), reviewWeeks: scored.filter((s) => s.boundary.needsReview).map((s) => s.start) };
+    return {
+      modelVersion: MODEL_VERSION,
+      turns,
+      weeks: scored,
+      ...series,
+      pending,
+      coverage,
+      boundaryWeeks: scored.filter((s) => s.boundary.rule).map((s) => s.start),
+      reviewWeeks: scored.filter((s) => s.boundary.needsReview).map((s) => s.start)
+    };
   }
   function currentWeekKey(now = Date.now()) {
     return weekStartKey(shanghaiDateKey(now));
@@ -33841,9 +34522,16 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const messages = contact.messages;
     if (!messages || typeof messages !== "object") return analyzeRelationship(contact);
     const hit = analysisCache.get(messages);
-    if (hit && hit.v3 === contact.affinityV3 && hit.corrections === contact.interactionCorrections && hit.self === contact.self && hit.target === contact.target) return hit.result;
+    if (hit && hit.v3 === contact.affinityV3 && hit.corrections === contact.interactionCorrections && hit.self === contact.self && hit.target === contact.target)
+      return hit.result;
     const result = analyzeRelationship(contact);
-    analysisCache.set(messages, { v3: contact.affinityV3, corrections: contact.interactionCorrections, self: contact.self, target: contact.target, result });
+    analysisCache.set(messages, {
+      v3: contact.affinityV3,
+      corrections: contact.interactionCorrections,
+      self: contact.self,
+      target: contact.target,
+      result
+    });
     return result;
   }
   function analyzePeriods(contact = {}, granularity = "week", { turns = buildTurns(contact) } = {}) {
@@ -33868,7 +34556,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!messages || typeof messages !== "object") return analyzePeriods(contact, granularity);
     let hit = periodCache.get(messages);
     if (!hit || hit.v3 !== contact.affinityV3 || hit.corrections !== contact.interactionCorrections || hit.self !== contact.self || hit.target !== contact.target) {
-      hit = { v3: contact.affinityV3, corrections: contact.interactionCorrections, self: contact.self, target: contact.target, results: {} };
+      hit = {
+        v3: contact.affinityV3,
+        corrections: contact.interactionCorrections,
+        self: contact.self,
+        target: contact.target,
+        results: {}
+      };
       periodCache.set(messages, hit);
     }
     if (!hit.results[granularity]) hit.results[granularity] = analyzePeriods(contact, granularity);
@@ -33886,7 +34580,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const c of text) hash4 = Math.imul(hash4 ^ c.charCodeAt(0), 16777619);
     return "interaction-" + (hash4 >>> 0).toString(36);
   }
-  var labels = { question: "对方提问", sharing: "对方自我分享", positive: "正向表达（含礼貌）", boundary: "对方明确负向表达或边界", perfunctory: "敷衍或收尾回合", lowContent: "低信息量回合", conflict: "摩擦回合", appeasement: "解释回合", answer: "回答或接受建议", continuation: "承接或补充信息" };
+  var labels = {
+    question: "对方提问",
+    sharing: "对方自我分享",
+    positive: "正向表达（含礼貌）",
+    boundary: "对方明确负向表达或边界",
+    perfunctory: "敷衍或收尾回合",
+    lowContent: "低信息量回合",
+    conflict: "摩擦回合",
+    appeasement: "解释回合",
+    answer: "回答或接受建议",
+    continuation: "承接或补充信息"
+  };
   function interactionCorrectionIndex(corrections = [], messages = []) {
     const legacy = /* @__PURE__ */ new Map();
     for (const message of messages) {
@@ -33915,13 +34620,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return all || null;
   }
   function analyzeInteractionMetrics(contact = {}) {
-    const messages = (contact.messages || []).filter((m) => m && typeof m.text === "string" && scoringMessage(m) && (m.sender === contact.self || m.sender === contact.target));
+    const messages = (contact.messages || []).filter(
+      (m) => m && typeof m.text === "string" && scoringMessage(m) && (m.sender === contact.self || m.sender === contact.target)
+    );
     const corrections = interactionCorrectionIndex(contact.interactionCorrections || [], messages);
-    const engagement = engagementSignals(messages, contact.self, (message, kind) => isInteractionExcluded(message, kind, corrections));
+    const engagement = engagementSignals(
+      messages,
+      contact.self,
+      (message, kind) => isInteractionExcluded(message, kind, corrections)
+    );
     const indicators = Object.entries(interactionDetectors).map(([kind, detect]) => {
       const evidence = messages.filter((m) => m.sender === contact.target && detect(m.text)).map((message) => {
         const key = interactionEvidenceKey(message), correction = corrections.get(key + "|" + kind);
-        return { key, kind, message, quote: message.text, excluded: isInteractionExcluded(message, kind, corrections), correction, ...kind === "positive" ? { signal: positiveSignal(message.text) } : {} };
+        return {
+          key,
+          kind,
+          message,
+          quote: message.text,
+          excluded: isInteractionExcluded(message, kind, corrections),
+          correction,
+          ...kind === "positive" ? { signal: positiveSignal(message.text) } : {}
+        };
       });
       return { kind, label: labels[kind], count: evidence.filter((e) => !e.excluded).length, evidence };
     });
@@ -33937,7 +34656,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const key = legacyInteractionEvidenceKey(message);
       legacyCounts.set(key, (legacyCounts.get(key) || 0) + 1);
     }
-    const ambiguousCorrectionCount = (contact.interactionCorrections || []).filter((c) => (legacyCounts.get(c.key) || 0) > 1).length;
+    const ambiguousCorrectionCount = (contact.interactionCorrections || []).filter(
+      (c) => (legacyCounts.get(c.key) || 0) > 1
+    ).length;
     const counts = Object.fromEntries(indicators.map((i) => [i.kind, i.count])), signals = Object.values(counts).reduce((a, b) => a + b, 0);
     let turns = 0, prior;
     for (const m of messages) {
@@ -33963,15 +34684,38 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!Object.hasOwn(labels, action.kind) || typeof action.key !== "string") throw Error("互动纠正无效。");
     const found = analyzeInteractionMetrics(contact).indicators.find((i) => i.kind === action.kind)?.evidence.find((e) => e.key === action.key);
     if (!found) throw Error("原文已不存在，无法纠正。");
-    return { ...contact, interactionCorrections: [...contact.interactionCorrections || [], { key: action.key, kind: action.kind, excluded: action.excluded === true, note: String(action.note || "").slice(0, 300), at: now, sources: (found.messages || [found.message]).map((message) => ({ key: interactionEvidenceKey(message), text: message.text })) }] };
+    return {
+      ...contact,
+      interactionCorrections: [
+        ...contact.interactionCorrections || [],
+        {
+          key: action.key,
+          kind: action.kind,
+          excluded: action.excluded === true,
+          note: String(action.note || "").slice(0, 300),
+          at: now,
+          sources: (found.messages || [found.message]).map((message) => ({
+            key: interactionEvidenceKey(message),
+            text: message.text
+          }))
+        }
+      ]
+    };
   }
 
   // src/analysis.js
   var validPair = (self2, target) => typeof self2 === "string" && typeof target === "string" && self2.trim() && target.trim() && self2.trim() !== target.trim();
-  var selected = (messages, self2, target) => validPair(self2, target) && Array.isArray(messages) ? messages.filter((m) => m && typeof m.text === "string" && scoringMessage(m) && (m.sender === self2 || m.sender === target)) : [];
+  var selected = (messages, self2, target) => validPair(self2, target) && Array.isArray(messages) ? messages.filter(
+    (m) => m && typeof m.text === "string" && scoringMessage(m) && (m.sender === self2 || m.sender === target)
+  ) : [];
   var positiveCue = { test: positive };
   var negativeCue = { test: negative };
-  var topics = [["工作", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/], ["日常", /(今天|最近|吃饭|睡觉|下班|天气|回家)/], ["周末计划", /(周末|休息日|下周|明天|约吗|有空|见面|一起去)/], ["兴趣活动", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]];
+  var topics = [
+    ["工作", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿)/],
+    ["日常", /(今天|最近|吃饭|睡觉|下班|天气|回家)/],
+    ["周末计划", /(周末|休息日|下周|明天|约吗|有空|见面|一起去)/],
+    ["兴趣活动", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展)/]
+  ];
   var dayKey = shanghaiDateKey;
   function analyzeDailyTimeline(messages, self2, target, corrections = []) {
     const list = selected(messages, self2, target), groups = /* @__PURE__ */ new Map(), rawCorrections = Array.isArray(corrections) ? corrections : [];
@@ -33981,7 +34725,23 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (!date) continue;
       let day = groups.get(date);
       if (!day) {
-        day = { date, messages: [], selfMessages: 0, targetMessages: 0, turns: 0, selfTurns: 0, targetTurns: 0, questions: 0, shares: 0, acknowledgments: 0, targetQuestions: 0, targetShares: 0, positiveCues: 0, negativeCues: 0, affinityEvidence: [] };
+        day = {
+          date,
+          messages: [],
+          selfMessages: 0,
+          targetMessages: 0,
+          turns: 0,
+          selfTurns: 0,
+          targetTurns: 0,
+          questions: 0,
+          shares: 0,
+          acknowledgments: 0,
+          targetQuestions: 0,
+          targetShares: 0,
+          positiveCues: 0,
+          negativeCues: 0,
+          affinityEvidence: []
+        };
         groups.set(date, day);
       }
       day.messages.push(message);
@@ -33993,8 +34753,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         else day.targetTurns++;
         day.lastSender = message.sender;
       }
-      if (question(message.text) && (message.sender !== target || !isInteractionExcluded(message, "question", corrections))) day.questions++;
-      if (sharing(message.text) && (message.sender !== target || !isInteractionExcluded(message, "sharing", corrections))) day.shares++;
+      if (question(message.text) && (message.sender !== target || !isInteractionExcluded(message, "question", corrections)))
+        day.questions++;
+      if (sharing(message.text) && (message.sender !== target || !isInteractionExcluded(message, "sharing", corrections)))
+        day.shares++;
       if (acknowledgment(message.text)) day.acknowledgments++;
       if (message.sender === target) {
         const asks2 = question(message.text) && !isInteractionExcluded(message, "question", corrections), shares = sharing(message.text) && !isInteractionExcluded(message, "sharing", corrections), pos = positiveCue.test(message.text) && !isInteractionExcluded(message, "positive", corrections), neg = negativeCue.test(message.text) && !isInteractionExcluded(message, "boundary", corrections);
@@ -34003,7 +34765,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (pos) day.positiveCues++;
         if (neg) day.negativeCues++;
         if (day.affinityEvidence.length < 6) {
-          if (pos || neg) day.affinityEvidence.push({ kind: pos ? "positive" : "negative", quote: message.text, message });
+          if (pos || neg)
+            day.affinityEvidence.push({ kind: pos ? "positive" : "negative", quote: message.text, message });
           else if (asks2) day.affinityEvidence.push({ kind: "question", quote: message.text, message });
           else if (shares) day.affinityEvidence.push({ kind: "sharing", quote: message.text, message });
         }
@@ -34011,7 +34774,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     const days = [...groups.values()].sort((a, b) => a.date.localeCompare(b.date));
     if (!days.length) return { days: [], averageMessages: 0 };
-    const engagements = engagementDays(engagementSignals(list, self2, (message, kind) => isInteractionExcluded(message, kind, corrections)));
+    const engagements = engagementDays(
+      engagementSignals(list, self2, (message, kind) => isInteractionExcluded(message, kind, corrections))
+    );
     for (const day of days) {
       const engagement = engagements.get(day.date);
       day.selfTurns = engagement.selfTurns;
@@ -34025,7 +34790,31 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       day.activityScore = Math.round(70 * day.messages.length / maxMessages + 30 * day.turns / maxTurns);
       day.activityDelta = Math.round(day.messages.length - averageMessages);
       const engagement = engagements.get(day.date);
-      Object.assign(day, { positivePoints: engagement.positivePoints, emotionalSharingTurns: engagement.emotionalSharingTurns, positiveTurns: engagement.positiveTurns, questionTurns: engagement.questionTurns, sharingTurns: engagement.sharingTurns, boundaryTurns: engagement.boundaryTurns, responsiveTurns: engagement.responsiveTurns, scenes: engagement.scenes, answeredTurns: engagement.answeredTurns, continuedTurns: engagement.continuedTurns, selfTurns: engagement.selfTurns, strongConflict: engagement.strongConflict, selfStarts: engagement.selfStarts, targetStarts: engagement.targetStarts, medianReplyMinutes: engagement.medianMinutes, slowReplies: engagement.slowReplies, perfunctoryReplies: engagement.perfunctoryReplies, lowContentReplies: engagement.lowContentReplies, targetTurns: engagement.targetTurns, conflictReplies: engagement.conflictReplies, appeasementReplies: engagement.appeasementReplies, replySamples: engagement.replySamples, initiator: engagement.selfStarts === engagement.targetStarts ? "balanced" : engagement.targetStarts > engagement.selfStarts ? "target" : "self" });
+      Object.assign(day, {
+        positivePoints: engagement.positivePoints,
+        emotionalSharingTurns: engagement.emotionalSharingTurns,
+        positiveTurns: engagement.positiveTurns,
+        questionTurns: engagement.questionTurns,
+        sharingTurns: engagement.sharingTurns,
+        boundaryTurns: engagement.boundaryTurns,
+        responsiveTurns: engagement.responsiveTurns,
+        scenes: engagement.scenes,
+        answeredTurns: engagement.answeredTurns,
+        continuedTurns: engagement.continuedTurns,
+        selfTurns: engagement.selfTurns,
+        strongConflict: engagement.strongConflict,
+        selfStarts: engagement.selfStarts,
+        targetStarts: engagement.targetStarts,
+        medianReplyMinutes: engagement.medianMinutes,
+        slowReplies: engagement.slowReplies,
+        perfunctoryReplies: engagement.perfunctoryReplies,
+        lowContentReplies: engagement.lowContentReplies,
+        targetTurns: engagement.targetTurns,
+        conflictReplies: engagement.conflictReplies,
+        appeasementReplies: engagement.appeasementReplies,
+        replySamples: engagement.replySamples,
+        initiator: engagement.selfStarts === engagement.targetStarts ? "balanced" : engagement.targetStarts > engagement.selfStarts ? "target" : "self"
+      });
       const signalCount = day.positiveCues + day.negativeCues + day.targetQuestions + day.targetShares + day.perfunctoryReplies + day.slowReplies + day.targetStarts + day.selfStarts;
       const signalsOfDay = v3Days.get(day.date) || null, v3 = signalsOfDay ? scorePeriod(signalsOfDay) : null;
       day.v3Signals = signalsOfDay;
@@ -34034,7 +34823,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       day.affinityLow = v3?.low ?? null;
       day.affinityHigh = v3?.high ?? null;
       day.affinityReliability = v3?.reliability || "none";
-      day.affinityDims = v3 ? Object.fromEntries(DIMENSIONS.map((d) => [d.key, { estimate: v3.dims[d.key].estimate, rule: v3.dims[d.key].rule, n: v3.dims[d.key].n }])) : null;
+      day.affinityDims = v3 ? Object.fromEntries(
+        DIMENSIONS.map((d) => [
+          d.key,
+          { estimate: v3.dims[d.key].estimate, rule: v3.dims[d.key].rule, n: v3.dims[d.key].n }
+        ])
+      ) : null;
       day.affinityFriction = v3 ? v3.friction.estimate : null;
       day.affinityBoundary = Boolean(v3?.boundary.rule);
       day.affinitySignalCount = signalCount;
@@ -34055,16 +34849,34 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function dayNote(day) {
     const v3 = day.v3;
     if (!v3) return "";
-    if (!v3.scored) return `对方当天没有可评分回合，互动过程无从观察，不评分（不是 0 分）；我方 ${day.selfTurns} 个回合。`;
+    if (!v3.scored)
+      return `对方当天没有可评分回合，互动过程无从观察，不评分（不是 0 分）；我方 ${day.selfTurns} 个回合。`;
     const bids = day.v3Signals.bids, dims = DIMENSIONS.map((d) => `${d.label} ${pct(v3.dims[d.key].estimate)}`).join("、");
-    const facts = [`我方提问/分享 ${bids.toward + bids.away + bids.against + bids.unanswered} 次，对方接住 ${bids.toward} 次、未接住 ${bids.away} 次、带摩擦或拒绝 ${bids.against} 次`, `对方分享 ${day.v3Signals.target.disclosure} 回合（感受 ${day.v3Signals.target.emotional}）`, `主动开启 对方 ${day.targetStarts} 次 / 你 ${day.selfStarts} 次`];
-    if (day.perfunctoryReplies || day.lowContentReplies) facts.push(`敷衍或低信息量回合 ${day.perfunctoryReplies + day.lowContentReplies} 轮`);
+    const facts = [
+      `我方提问/分享 ${bids.toward + bids.away + bids.against + bids.unanswered} 次，对方接住 ${bids.toward} 次、未接住 ${bids.away} 次、带摩擦或拒绝 ${bids.against} 次`,
+      `对方分享 ${day.v3Signals.target.disclosure} 回合（感受 ${day.v3Signals.target.emotional}）`,
+      `主动开启 对方 ${day.targetStarts} 次 / 你 ${day.selfStarts} 次`
+    ];
+    if (day.perfunctoryReplies || day.lowContentReplies)
+      facts.push(`敷衍或低信息量回合 ${day.perfunctoryReplies + day.lowContentReplies} 轮`);
     if (day.conflictReplies) facts.push(`摩擦 ${day.conflictReplies} 处`);
     if (day.appeasementReplies) facts.push(`解释或缓和 ${day.appeasementReplies} 条`);
     const reliability = { high: "可信度高", medium: "可信度中", low: "样本少，可信度低" }[v3.reliability];
     return `关系指数 ${v3.index}（80% 区间 ${v3.low}–${v3.high}，${reliability}，对方 ${day.targetTurns} 个回合）。维度：${dims}；摩擦 ${pct(v3.friction.estimate)}${v3.boundary.rule ? "；出现明确边界，当天指数封顶 30" : ""}。${facts.join("；")}。`;
   }
-  var ev = (message, type, index) => ({ id: `${type}-${index}`, type, label: { question: "直接提问", sharing: "第一人称分享", boundary: "明确边界", context: "回复依据", acknowledgment: "简短确认" }[type], quote: message.text, message });
+  var ev = (message, type, index) => ({
+    id: `${type}-${index}`,
+    type,
+    label: {
+      question: "直接提问",
+      sharing: "第一人称分享",
+      boundary: "明确边界",
+      context: "回复依据",
+      acknowledgment: "简短确认"
+    }[type],
+    quote: message.text,
+    message
+  });
   function analyzeConversation(messages, self2, target) {
     const list = selected(messages, self2, target), evidence = [];
     let selfCount = 0, targetCount = 0, selfTurns = 0, targetTurns = 0, prior = null;
@@ -34076,21 +34888,75 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         else targetTurns++;
         prior = m.sender;
       }
-      for (const [type, detect] of [["question", question], ["sharing", sharing], ["boundary", boundary], ["acknowledgment", acknowledgment]]) if (detect(m.text)) evidence.push(ev(m, type, i));
+      for (const [type, detect] of [
+        ["question", question],
+        ["sharing", sharing],
+        ["boundary", boundary],
+        ["acknowledgment", acknowledgment]
+      ])
+        if (detect(m.text)) evidence.push(ev(m, type, i));
     });
     const turns = selfTurns + targetTurns, balanceScore = selfCount && targetCount ? Math.round(100 * (1 - Math.abs(selfTurns - targetTurns) / turns)) : null;
     const messageBalanceScore = selfCount && targetCount ? Math.round(100 * (1 - Math.abs(selfCount - targetCount) / list.length)) : null;
     const questionCount = evidence.filter((e) => e.type === "question").length, sharingCount = evidence.filter((e) => e.type === "sharing").length, boundaryCount = evidence.filter((e) => e.type === "boundary").length, acknowledgmentCount = evidence.filter((e) => e.type === "acknowledgment").length;
     const engagement = engagementSignals(list, self2);
     const scoringTurns = engagement.selfTurns + engagement.targetTurns;
-    return { scoringTurns, total: list.length, selfCount, targetCount, turns, selfTurns, targetTurns, balanceScore, messageBalanceScore, questionCount, sharingCount, boundaryCount, acknowledgmentCount, evidence, summary: `所选记录共 ${list.length} 条、${scoringTurns} 个发言回合；识别到 ${questionCount} 条提问、${sharingCount} 条第一人称分享、${boundaryCount} 条明确边界、${acknowledgmentCount} 条简短确认。` };
+    return {
+      scoringTurns,
+      total: list.length,
+      selfCount,
+      targetCount,
+      turns,
+      selfTurns,
+      targetTurns,
+      balanceScore,
+      messageBalanceScore,
+      questionCount,
+      sharingCount,
+      boundaryCount,
+      acknowledgmentCount,
+      evidence,
+      summary: `所选记录共 ${list.length} 条、${scoringTurns} 个发言回合；识别到 ${questionCount} 条提问、${sharingCount} 条第一人称分享、${boundaryCount} 条明确边界、${acknowledgmentCount} 条简短确认。`
+    };
   }
   var boundedLimit = (value) => Number.isFinite(Number(value)) ? Math.min(500, Math.max(1, Math.floor(Number(value)))) : 160;
   var clip3 = (text, n) => Array.from(text).slice(0, n).join("");
-  function buildReplyContext({ messages = [], self: self2, target, facts = [], profileSummary, scenario = "continue", tone = "gentle", intent = "", limit = 160 } = {}) {
+  function buildReplyContext({
+    messages = [],
+    self: self2,
+    target,
+    facts = [],
+    profileSummary,
+    scenario = "continue",
+    tone = "gentle",
+    intent = "",
+    limit = 160
+  } = {}) {
     if (!validPair(self2, target)) throw new Error("请选择两个不同的发言人");
     const list = selected(messages, self2, target);
-    return { self: clip3(self2, 100), target: clip3(target, 100), messages: list.slice(-40).map((m) => ({ sender: m.sender, text: clip3(m.text, 2e3), timestamp: typeof m.timestamp === "string" ? clip3(m.timestamp, 100) : "", line: m.line, endLine: m.endLine, file: typeof m.file === "string" ? clip3(m.file, 200) : "", messageIndex: m.messageIndex })), facts: (Array.isArray(profileSummary) ? profileSummary.filter((f) => isProfileFactCurrent(f) && (f.provenance !== "model" || f.confirmed === true) && f.field !== "inference" && f.kind !== "inference") : Array.isArray(facts) ? facts : []).slice(0, 20).map((f) => clip3(typeof f === "string" ? f : typeof f?.value === "string" ? f.value : "", 300)).filter(Boolean), scenario: ["continue", "question", "invite", "boundary", "reconnect", "care", "clarify", "apologize"].includes(scenario) ? scenario : "continue", tone: ["gentle", "casual", "concise", "warm", "direct"].includes(tone) ? tone : "gentle", intent: clip3(typeof intent === "string" ? intent : "", 500), limit: boundedLimit(limit), boundary: list.some((m) => m.sender === target && boundary(m.text)) };
+    return {
+      self: clip3(self2, 100),
+      target: clip3(target, 100),
+      messages: list.slice(-40).map((m) => ({
+        sender: m.sender,
+        text: clip3(m.text, 2e3),
+        timestamp: typeof m.timestamp === "string" ? clip3(m.timestamp, 100) : "",
+        line: m.line,
+        endLine: m.endLine,
+        file: typeof m.file === "string" ? clip3(m.file, 200) : "",
+        messageIndex: m.messageIndex
+      })),
+      facts: (Array.isArray(profileSummary) ? profileSummary.filter(
+        (f) => isProfileFactCurrent(f) && (f.provenance !== "model" || f.confirmed === true) && f.field !== "inference" && f.kind !== "inference"
+      ) : Array.isArray(facts) ? facts : []).slice(0, 20).map((f) => clip3(typeof f === "string" ? f : typeof f?.value === "string" ? f.value : "", 300)).filter(Boolean),
+      scenario: ["continue", "question", "invite", "boundary", "reconnect", "care", "clarify", "apologize"].includes(
+        scenario
+      ) ? scenario : "continue",
+      tone: ["gentle", "casual", "concise", "warm", "direct"].includes(tone) ? tone : "gentle",
+      intent: clip3(typeof intent === "string" ? intent : "", 500),
+      limit: boundedLimit(limit),
+      boundary: list.some((m) => m.sender === target && boundary(m.text))
+    };
   }
   function generateLocalDraft(input = {}) {
     const context = buildReplyContext(input), list = selected(input.messages, input.self, input.target), incoming = list.filter((m) => m.sender === input.target), last = incoming.at(-1), stop = incoming.find((m) => boundary(m.text));
@@ -34100,7 +34966,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       reason = "原文出现明确边界，优先确认并停止主动联系。";
       evidence = [ev(stop, "boundary", list.indexOf(stop))];
     } else if (last) {
-      evidence = [ev(last, question(last.text) ? "question" : sharing(last.text) ? "sharing" : "context", list.indexOf(last))];
+      evidence = [
+        ev(last, question(last.text) ? "question" : sharing(last.text) ? "sharing" : "context", list.indexOf(last))
+      ];
       const hobby = /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行)/.exec(last.text);
       const work = /(报告|项目|论文|考试|加班|工作|作业|方案|设计稿)/.exec(last.text);
       if (question(last.text)) {
@@ -34123,8 +34991,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       reason = word ? "使用你提供的事实作为话题，未推断对方近况。" : "没有对方发言作为依据，使用中性的开场。";
     }
     if (!stop) {
-      const topic = /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|报告|项目|论文|考试|工作|作业|方案|设计稿)/.exec(context.intent)?.[0];
-      const incomingTopic = /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|报告|项目|论文|考试|工作|作业|方案|设计稿)/.exec(last?.text || "")?.[0];
+      const topic = /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|报告|项目|论文|考试|工作|作业|方案|设计稿)/.exec(
+        context.intent
+      )?.[0];
+      const incomingTopic = /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|报告|项目|论文|考试|工作|作业|方案|设计稿)/.exec(
+        last?.text || ""
+      )?.[0];
       const chosen = topic || incomingTopic;
       if (topic && !question(last?.text || "")) {
         draft = `我想和你聊聊${topic}，你方便时再说。`;
@@ -34142,8 +35014,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         draft = "我想先暂停聊天，之后有需要我会再联系你。";
         reason = "按你选择的场景表达己方边界，不推断对方态度。";
       }
-      if (context.tone === "direct" && context.scenario !== "boundary") draft = question(last?.text || "") && context.scenario === "continue" ? chosen ? `关于${chosen}的问题，我需要想清楚再回答。` : "这个问题，我需要想清楚再回答。" : chosen ? `我想聊聊${chosen}。你愿意吗？` : "我想继续聊聊。你愿意吗？";
-      if (context.tone === "concise") draft = context.scenario === "boundary" ? "我想先暂停聊天。" : question(last?.text || "") && context.scenario === "continue" ? chosen ? `关于${chosen}，我想想再回答。` : "我想想再回答。" : chosen ? `${chosen}，方便聊聊吗？` : "方便聊聊吗？";
+      if (context.tone === "direct" && context.scenario !== "boundary")
+        draft = question(last?.text || "") && context.scenario === "continue" ? chosen ? `关于${chosen}的问题，我需要想清楚再回答。` : "这个问题，我需要想清楚再回答。" : chosen ? `我想聊聊${chosen}。你愿意吗？` : "我想继续聊聊。你愿意吗？";
+      if (context.tone === "concise")
+        draft = context.scenario === "boundary" ? "我想先暂停聊天。" : question(last?.text || "") && context.scenario === "continue" ? chosen ? `关于${chosen}，我想想再回答。` : "我想想再回答。" : chosen ? `${chosen}，方便聊聊吗？` : "方便聊聊吗？";
       reason += " 本地只支持有限话题、场景和语气规则，不会推断你的真实答案；发送前请核对。";
     }
     return { draft: clip3(draft, context.limit), reason, evidence, mode: "local", boundary: Boolean(stop) };
@@ -34151,16 +35025,84 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
   // src/navigation.js
   var NAVIGATION = [
-    { id: "contact", label: "联系人", items: [{ id: "profile", label: "联系人档案", tabs: [["basic", "基本资料"], ["interests", "兴趣偏好"], ["stage", "关系阶段"]] }] },
-    { id: "records", label: "记录与评分", items: [{ id: "behavior", label: "行为记录", tabs: [["insight", "关系分析"], ["daily", "每日历程"], ["metrics", "互动评分"], ["basis", "打分依据"], ["review", "周/月复盘"], ["evidence", "记录列表"], ["rules", "评分规则"]] }] },
-    { id: "communicate", label: "沟通", items: [{ id: "replies", label: "回复草稿", tabs: [["session", "会话"]] }, { id: "goals", label: "行动计划", tabs: [["current", "当前目标"], ["progress", "进展记录"]] }] },
-    { id: "manage", label: "设置", items: [{ id: "settings", label: "通用设置", tabs: [["general", "通用设置"]] }, { id: "import", label: "聊天导入", tabs: [["file", "导入文件"], ["identity", "身份确认"], ["result", "导入结果"]] }] }
+    {
+      id: "contact",
+      label: "联系人",
+      items: [
+        {
+          id: "profile",
+          label: "联系人档案",
+          tabs: [
+            ["basic", "基本资料"],
+            ["interests", "兴趣偏好"],
+            ["stage", "关系阶段"]
+          ]
+        }
+      ]
+    },
+    {
+      id: "records",
+      label: "记录与评分",
+      items: [
+        {
+          id: "behavior",
+          label: "行为记录",
+          tabs: [
+            ["insight", "关系分析"],
+            ["daily", "每日历程"],
+            ["metrics", "互动评分"],
+            ["basis", "打分依据"],
+            ["review", "周/月复盘"],
+            ["evidence", "记录列表"],
+            ["rules", "评分规则"]
+          ]
+        }
+      ]
+    },
+    {
+      id: "communicate",
+      label: "沟通",
+      items: [
+        { id: "replies", label: "回复草稿", tabs: [["session", "会话"]] },
+        {
+          id: "goals",
+          label: "行动计划",
+          tabs: [
+            ["current", "当前目标"],
+            ["progress", "进展记录"]
+          ]
+        }
+      ]
+    },
+    {
+      id: "manage",
+      label: "设置",
+      items: [
+        { id: "settings", label: "通用设置", tabs: [["general", "通用设置"]] },
+        {
+          id: "import",
+          label: "聊天导入",
+          tabs: [
+            ["file", "导入文件"],
+            ["identity", "身份确认"],
+            ["result", "导入结果"]
+          ]
+        }
+      ]
+    }
   ];
   var GROUP_ALIASES = { data: "contact", observe: "records", communicate: "communicate", manage: "manage" };
   function resolveNavigation(feature, tab) {
     const exactGroup = NAVIGATION.find((g) => g.items.some((i) => i.id === feature)), exactItem = exactGroup?.items.find((i) => i.id === feature);
-    if (exactItem) return { group: exactGroup, item: exactItem, tab: exactItem.tabs.some((t) => t[0] === tab) ? tab : exactItem.tabs[0][0] };
-    const crossHit = NAVIGATION.flatMap((group2) => group2.items.map((item2) => ({ group: group2, item: item2 }))).find(({ item: item2 }) => item2.tabs.some((t) => t[0] === tab));
+    if (exactItem)
+      return {
+        group: exactGroup,
+        item: exactItem,
+        tab: exactItem.tabs.some((t) => t[0] === tab) ? tab : exactItem.tabs[0][0]
+      };
+    const crossHit = NAVIGATION.flatMap((group2) => group2.items.map((item2) => ({ group: group2, item: item2 }))).find(
+      ({ item: item2 }) => item2.tabs.some((t) => t[0] === tab)
+    );
     if (crossHit) return { group: crossHit.group, item: crossHit.item, tab };
     const group = NAVIGATION.find((g) => g.id === (GROUP_ALIASES[feature] || feature)) || NAVIGATION[0];
     const item = group.items[0];
@@ -34170,19 +35112,56 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return (group?.items || []).filter((item) => !item.hidden).flatMap((item) => item.tabs.map(([tab, label]) => ({ key: item.id + "__" + tab, item: item.id, tab, label })));
   }
   function createWorkspaceStore(initial = {}) {
-    let value = { feature: "profile", tab: "basic", contacts: [], selectedId: "", pending: null, importName: "", importError: "", importBusy: false, self: "", target: "", scenario: "continue", tone: "gentle", intent: "", draft: "", draftReason: "", draftSource: "", draftEvidence: [], exchangeSent: "", exchangeReply: "", status: "", modelBusy: false, models: [], provider: "", model: "", modelError: "", consent: false, mediaConsent: false, mediaAnalysis: {}, mediaAnalysisBusy: {}, goals: [], ...initial };
+    let value = {
+      feature: "profile",
+      tab: "basic",
+      contacts: [],
+      selectedId: "",
+      pending: null,
+      importName: "",
+      importError: "",
+      importBusy: false,
+      self: "",
+      target: "",
+      scenario: "continue",
+      tone: "gentle",
+      intent: "",
+      draft: "",
+      draftReason: "",
+      draftSource: "",
+      draftEvidence: [],
+      exchangeSent: "",
+      exchangeReply: "",
+      status: "",
+      modelBusy: false,
+      models: [],
+      provider: "",
+      model: "",
+      modelError: "",
+      consent: false,
+      mediaConsent: false,
+      mediaAnalysis: {},
+      mediaAnalysisBusy: {},
+      goals: [],
+      ...initial
+    };
     const listeners = /* @__PURE__ */ new Set();
-    return { getSnapshot: () => value, subscribe(fn) {
-      listeners.add(fn);
-      return () => listeners.delete(fn);
-    }, set(change) {
-      value = { ...value, ...typeof change === "function" ? change(value) : change };
-      for (const fn of listeners) fn();
-    }, navigate(feature, tab) {
-      const n = resolveNavigation(feature, tab);
-      value = { ...value, feature: n.item.id, tab: n.tab };
-      for (const fn of listeners) fn();
-    } };
+    return {
+      getSnapshot: () => value,
+      subscribe(fn) {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      },
+      set(change) {
+        value = { ...value, ...typeof change === "function" ? change(value) : change };
+        for (const fn of listeners) fn();
+      },
+      navigate(feature, tab) {
+        const n = resolveNavigation(feature, tab);
+        value = { ...value, feature: n.item.id, tab: n.tab };
+        for (const fn of listeners) fn();
+      }
+    };
   }
 
   // src/auto-import.js
@@ -34192,11 +35171,33 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     for (const value of values.slice(-20)) {
       if (!value || typeof value.version !== "string" || !value.version || seen.has(value.version)) continue;
       seen.add(value.version);
-      if (typeof value.self !== "string" || !value.self.trim() || typeof value.target !== "string" || !value.target.trim() || value.self === value.target || !Array.isArray(value.messages) || value.messages.length > 500) continue;
-      if (!value.messages.every((m) => m && (m.sender === value.self || m.sender === value.target) && typeof m.text === "string" && m.text.trim())) continue;
-      if (!value.messages.some((m) => m.sender === value.self) || !value.messages.some((m) => m.sender === value.target)) continue;
-      const messages = ensureMessageIds(value.messages.map((m, i) => ({ sender: m.sender, text: m.text, timestamp: typeof m.timestamp === "string" ? m.timestamp : "", file: "DSH 会话", source: "DSH 对话", messageIndex: i + 1 })));
-      contacts.push({ id: "dsh-import-" + value.version, importVersion: value.version, self: value.self, target: value.target, messages, facts: extractFacts2(messages.filter((m) => m.sender === value.target)), isSample: false });
+      if (typeof value.self !== "string" || !value.self.trim() || typeof value.target !== "string" || !value.target.trim() || value.self === value.target || !Array.isArray(value.messages) || value.messages.length > 500)
+        continue;
+      if (!value.messages.every(
+        (m) => m && (m.sender === value.self || m.sender === value.target) && typeof m.text === "string" && m.text.trim()
+      ))
+        continue;
+      if (!value.messages.some((m) => m.sender === value.self) || !value.messages.some((m) => m.sender === value.target))
+        continue;
+      const messages = ensureMessageIds(
+        value.messages.map((m, i) => ({
+          sender: m.sender,
+          text: m.text,
+          timestamp: typeof m.timestamp === "string" ? m.timestamp : "",
+          file: "DSH 会话",
+          source: "DSH 对话",
+          messageIndex: i + 1
+        }))
+      );
+      contacts.push({
+        id: "dsh-import-" + value.version,
+        importVersion: value.version,
+        self: value.self,
+        target: value.target,
+        messages,
+        facts: extractFacts2(messages.filter((m) => m.sender === value.target)),
+        isSample: false
+      });
     }
     return contacts;
   }
@@ -34206,32 +35207,89 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function normalizeSelfProfile(value = {}) {
     const source = value && typeof value === "object" ? value : {};
     const list = (input, limit, count) => Array.isArray(input) ? input.map((item) => clipSelfProfile(item, limit)).filter(Boolean).slice(0, count) : [];
-    const samples = Array.isArray(source.samples) ? source.samples.map((item) => ({ text: clipSelfProfile(typeof item === "string" ? item : item?.text, 240), note: clipSelfProfile(item?.note, 100) })).filter((item) => item.text).slice(0, 8) : [];
-    return { voice: { tone: list(source.voice?.tone, 40, 6), sentenceLength: ["short", "medium", "long"].includes(source.voice?.sentenceLength) ? source.voice.sentenceLength : "medium", emoji: ["none", "rare", "often"].includes(source.voice?.emoji) ? source.voice.emoji : "rare", particles: list(source.voice?.particles, 30, 10) }, interests: list(source.interests, 80, 20), plans: Array.isArray(source.plans) ? source.plans.map((item) => ({ text: clipSelfProfile(typeof item === "string" ? item : item?.text, 120), when: clipSelfProfile(item?.when, 60), planState: ["active", "completed", "cancelled", "expired"].includes(item?.planState) ? item.planState : "active", expiresAt: typeof item?.expiresAt === "string" ? clipSelfProfile(item.expiresAt, 60) : "" })).filter((item) => item.text).slice(0, 12) : [], boundaries: list(source.boundaries, 120, 20), samples, updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : "" };
+    const samples = Array.isArray(source.samples) ? source.samples.map((item) => ({
+      text: clipSelfProfile(typeof item === "string" ? item : item?.text, 240),
+      note: clipSelfProfile(item?.note, 100)
+    })).filter((item) => item.text).slice(0, 8) : [];
+    return {
+      voice: {
+        tone: list(source.voice?.tone, 40, 6),
+        sentenceLength: ["short", "medium", "long"].includes(source.voice?.sentenceLength) ? source.voice.sentenceLength : "medium",
+        emoji: ["none", "rare", "often"].includes(source.voice?.emoji) ? source.voice.emoji : "rare",
+        particles: list(source.voice?.particles, 30, 10)
+      },
+      interests: list(source.interests, 80, 20),
+      plans: Array.isArray(source.plans) ? source.plans.map((item) => ({
+        text: clipSelfProfile(typeof item === "string" ? item : item?.text, 120),
+        when: clipSelfProfile(item?.when, 60),
+        planState: ["active", "completed", "cancelled", "expired"].includes(item?.planState) ? item.planState : "active",
+        expiresAt: typeof item?.expiresAt === "string" ? clipSelfProfile(item.expiresAt, 60) : ""
+      })).filter((item) => item.text).slice(0, 12) : [],
+      boundaries: list(source.boundaries, 120, 20),
+      samples,
+      updatedAt: typeof source.updatedAt === "string" ? source.updatedAt : ""
+    };
   }
-  function makeSelfProfile({ tone = "", sentenceLength = "medium", emoji = "rare", particles = [], interests = [], plans = [], boundaries = [], samples = [] } = {}) {
-    return normalizeSelfProfile({ voice: { tone: Array.isArray(tone) ? tone : String(tone).split(/\n+/).filter(Boolean), sentenceLength, emoji, particles }, interests, plans, boundaries, samples, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+  function makeSelfProfile({
+    tone = "",
+    sentenceLength = "medium",
+    emoji = "rare",
+    particles = [],
+    interests = [],
+    plans = [],
+    boundaries = [],
+    samples = []
+  } = {}) {
+    return normalizeSelfProfile({
+      voice: {
+        tone: Array.isArray(tone) ? tone : String(tone).split(/\n+/).filter(Boolean),
+        sentenceLength,
+        emoji,
+        particles
+      },
+      interests,
+      plans,
+      boundaries,
+      samples,
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
   }
   function summarizeSelfProfile(value, now = Date.now()) {
     const p = normalizeSelfProfile(value);
-    return { voice: { ...p.voice }, interests: p.interests, plans: p.plans.filter((plan) => plan.planState === "active" && (!plan.expiresAt || !Number.isFinite(profileExpiryTime(plan.expiresAt)) || profileExpiryTime(plan.expiresAt) >= now)), boundaries: p.boundaries, samples: p.samples.map((s) => s.text), updatedAt: p.updatedAt };
+    return {
+      voice: { ...p.voice },
+      interests: p.interests,
+      plans: p.plans.filter(
+        (plan) => plan.planState === "active" && (!plan.expiresAt || !Number.isFinite(profileExpiryTime(plan.expiresAt)) || profileExpiryTime(plan.expiresAt) >= now)
+      ),
+      boundaries: p.boundaries,
+      samples: p.samples.map((s) => s.text),
+      updatedAt: p.updatedAt
+    };
   }
   function changeSelfPlan(profile, index, action, now = Date.now()) {
     const current = normalizeSelfProfile(profile);
-    if (!Number.isInteger(index) || !current.plans[index] || !["complete", "cancel", "expire", "reopen", "setExpiry"].includes(action?.type)) throw Error("计划操作无效。");
+    if (!Number.isInteger(index) || !current.plans[index] || !["complete", "cancel", "expire", "reopen", "setExpiry"].includes(action?.type))
+      throw Error("计划操作无效。");
     const plans = (Array.isArray(profile?.plans) ? profile.plans : []).map((item) => {
       const normalized = normalizeSelfProfile({ plans: [item] }).plans[0];
       return normalized ? { ...item && typeof item === "object" ? item : {}, ...normalized } : null;
     }).filter(Boolean).slice(0, 12);
     const plan = plans[index], states = { complete: "completed", cancel: "cancelled", expire: "expired", reopen: "active" }, next = { ...plan };
     if (action.type === "setExpiry") {
-      if (action.expiresAt && !Number.isFinite(profileExpiryTime(action.expiresAt))) throw Error("请选择有效的到期日期。");
+      if (action.expiresAt && !Number.isFinite(profileExpiryTime(action.expiresAt)))
+        throw Error("请选择有效的到期日期。");
       next.expiresAt = action.expiresAt || "";
     } else {
       next.planState = states[action.type];
       if (action.type === "reopen") next.expiresAt = "";
     }
-    return { ...current, ...profile, plans: plans.map((item, i) => i === index ? next : item), updatedAt: new Date(now).toISOString() };
+    return {
+      ...current,
+      ...profile,
+      plans: plans.map((item, i) => i === index ? next : item),
+      updatedAt: new Date(now).toISOString()
+    };
   }
 
   // src/preference-evidence.js
@@ -34239,11 +35297,15 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const result = { positive: [], negative: [], ambiguous: [] };
     const clauses2 = String(value || "").split(/[，,。；;！!？?\n]|(?:但是|但后来|但现在|但|不过|可是|然而)/u).map((s) => s.trim()).filter(Boolean);
     for (const quote of clauses2) {
-      if (/[“”「」『』"]|(?:他说|她说|别人|朋友|你|他|她).{0,5}(?:喜欢|感兴趣)|(?:不是不|没有不|不讨厌|不反感|不是没|不一定|不是很|并不是|不算|算不上|不觉得|谈不上|如果|假如|可能|也许|曾经|以前|为什么|哪种|是否)|喜欢什么|(?:吗|么|呢)$/u.test(quote)) {
+      if (/[“”「」『』"]|(?:他说|她说|别人|朋友|你|他|她).{0,5}(?:喜欢|感兴趣)|(?:不是不|没有不|不讨厌|不反感|不是没|不一定|不是很|并不是|不算|算不上|不觉得|谈不上|如果|假如|可能|也许|曾经|以前|为什么|哪种|是否)|喜欢什么|(?:吗|么|呢)$/u.test(
+        quote
+      )) {
         result.ambiguous.push(quote);
         continue;
       }
-      const negative2 = /(?:不太|不怎么|并不|不再|不|没)(?:喜欢|喜爱|爱玩|爱看|爱吃|爱|玩|看|吃)\s*(.+)|(?:对)?(.+?)(?:不太|不怎么|并不|不|没有|没)(?:啥|什么)?(?:感兴趣|兴趣)|(?:讨厌|反感)\s*(.+)|(?:对)?(.+?)(?:不感冒|反感)/u.exec(quote);
+      const negative2 = /(?:不太|不怎么|并不|不再|不|没)(?:喜欢|喜爱|爱玩|爱看|爱吃|爱|玩|看|吃)\s*(.+)|(?:对)?(.+?)(?:不太|不怎么|并不|不|没有|没)(?:啥|什么)?(?:感兴趣|兴趣)|(?:讨厌|反感)\s*(.+)|(?:对)?(.+?)(?:不感冒|反感)/u.exec(
+        quote
+      );
       if (negative2) {
         const text = (negative2[1] || negative2[2] || negative2[3] || negative2[4] || "").replace(/^(?:我|本人)(?:本来|现在|其实|就|也|都|对)*/u, "").trim();
         if (text) result.negative.push({ text, quote });
@@ -34272,14 +35334,29 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return (n >>> 0).toString(36);
   };
   function topicSuggestionKey(suggestion) {
-    return "topic-" + hash2(JSON.stringify([suggestion.type, suggestion.text, (suggestion.basis || []).map((b) => [b.factId || b.refId || "", b.quote || ""])]));
+    return "topic-" + hash2(
+      JSON.stringify([
+        suggestion.type,
+        suggestion.text,
+        (suggestion.basis || []).map((b) => [b.factId || b.refId || "", b.quote || ""])
+      ])
+    );
   }
   function recordTopicFeedback(contact, suggestion, status, { now = Date.now(), note = "" } = {}) {
-    if (!["unsuitable", "discussed", "reset"].includes(status) || suggestion?.type !== "topic") throw Error("请选择有效的话题反馈。");
-    return { ...contact, topicFeedback: [...contact.topicFeedback || [], { suggestionId: topicSuggestionKey(suggestion), status, note: String(note).slice(0, 300), at: now }] };
+    if (!["unsuitable", "discussed", "reset"].includes(status) || suggestion?.type !== "topic")
+      throw Error("请选择有效的话题反馈。");
+    return {
+      ...contact,
+      topicFeedback: [
+        ...contact.topicFeedback || [],
+        { suggestionId: topicSuggestionKey(suggestion), status, note: String(note).slice(0, 300), at: now }
+      ]
+    };
   }
   function applyTopicFeedback(suggestions, feedback = []) {
-    const latest = new Map((feedback || []).filter((f) => f && typeof f.suggestionId === "string").map((f) => [f.suggestionId, f]));
+    const latest = new Map(
+      (feedback || []).filter((f) => f && typeof f.suggestionId === "string").map((f) => [f.suggestionId, f])
+    );
     const visible = [], suppressed = [];
     for (const suggestion of suggestions) {
       const id = topicSuggestionKey(suggestion), item = { ...suggestion, id }, entry = latest.get(id);
@@ -34291,56 +35368,207 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
 
   // src/suggestions.js
   var clipSuggestion = (value, n = 160) => Array.from(String(value || "").trim()).slice(0, n).join("");
-  var rules = [["兴趣", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展|咖啡)/], ["工作学习", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿|学习)/], ["近期活动", /(今天|最近|昨天|周末|明天|计划|打算|去了|参加)/]];
+  var rules = [
+    ["兴趣", /(摄影|爬山|跑步|游泳|电影|音乐|画画|阅读|旅行|做饭|游戏|骑行|看展|咖啡)/],
+    ["工作学习", /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿|学习)/],
+    ["近期活动", /(今天|最近|昨天|周末|明天|计划|打算|去了|参加)/]
+  ];
   var asks = (text) => /[?？]|(?:吗|么|如何|为什么|怎么|是否|什么|哪[里个天])/.test(text);
   function preferenceQuestion(text) {
-    const templates = [[/农场|种菜|种植/, "最近还有玩农场吗？"], [/摄影|拍照/, "最近有拍到自己满意的照片吗？"], [/电影/, "最近有没有想看的电影？"], [/音乐|听歌|唱歌/, "最近有没有一直在听的歌？"], [/咖啡/, "最近有喝到想推荐的咖啡吗？"], [/看展/, "最近有没有想去看的展？"], [/阅读|读书|小说/, "最近在看什么书呀？"], [/爬山|徒步/, "最近有没有想走的路线？"], [/做饭|烘焙/, "最近有没有想试着做的东西？"], [/麻将/, "最近还有打麻将吗？"], [/剧本杀/, "最近有碰到喜欢的本吗？"], [/狼人杀/, "最近还有玩狼人杀吗？"], [/游戏/, "最近主要在玩哪款游戏呀？"]];
+    const templates = [
+      [/农场|种菜|种植/, "最近还有玩农场吗？"],
+      [/摄影|拍照/, "最近有拍到自己满意的照片吗？"],
+      [/电影/, "最近有没有想看的电影？"],
+      [/音乐|听歌|唱歌/, "最近有没有一直在听的歌？"],
+      [/咖啡/, "最近有喝到想推荐的咖啡吗？"],
+      [/看展/, "最近有没有想去看的展？"],
+      [/阅读|读书|小说/, "最近在看什么书呀？"],
+      [/爬山|徒步/, "最近有没有想走的路线？"],
+      [/做饭|烘焙/, "最近有没有想试着做的东西？"],
+      [/麻将/, "最近还有打麻将吗？"],
+      [/剧本杀/, "最近有碰到喜欢的本吗？"],
+      [/狼人杀/, "最近还有玩狼人杀吗？"],
+      [/游戏/, "最近主要在玩哪款游戏呀？"]
+    ];
     return templates.find(([rule]) => rule.test(text))?.[1] || null;
   }
   function suggestNextSteps(contact, { now = Date.now(), max = 5 } = {}) {
     contact = contact || {};
     max = Number.isFinite(max) ? Math.max(0, Math.min(5, Math.floor(max))) : 5;
-    const msgs = (contact?.messages || []).filter((m) => (m.sender === contact.self || m.sender === contact.target) && typeof m.text === "string" && m.text.trim()), last = msgs.at(-1), out = [];
+    const msgs = (contact?.messages || []).filter(
+      (m) => (m.sender === contact.self || m.sender === contact.target) && typeof m.text === "string" && m.text.trim()
+    ), last = msgs.at(-1), out = [];
     const add = (type, text, basis, risk = "轻量建议；对方可以不接这个话题。", confidence = 0.55) => out.push({ id: `${type}-${out.length + 1}`, type, text, basis, confidence, risk });
     if (last && last.sender === contact.self) {
-      add("nextStep", "先给对方留出回应空间，暂时不用追加话题。", [{ description: "最近一条记录来自你", messageId: profileMessageId(last), messageIndex: contact.messages.indexOf(last), quote: clipSuggestion(last.text) }], "不需要连续追发。", 0.66);
+      add(
+        "nextStep",
+        "先给对方留出回应空间，暂时不用追加话题。",
+        [
+          {
+            description: "最近一条记录来自你",
+            messageId: profileMessageId(last),
+            messageIndex: contact.messages.indexOf(last),
+            quote: clipSuggestion(last.text)
+          }
+        ],
+        "不需要连续追发。",
+        0.66
+      );
       return { suggestions: out.slice(0, max), disclaimer: "对方尚未回应不代表拒绝，也无法据此判断真实想法。" };
     }
     if (last && last.sender === contact.target && /(别再联系|不要再联系|不想聊|先不聊|不方便聊|我要休息|我先忙)/.test(last.text)) {
-      add("nextStep", "简短回应并给对方空间，暂时停止追加话题。", [{ description: "对方明确表达暂停或边界", messageIndex: contact.messages.indexOf(last), quote: clipSuggestion(last.text) }], "尊重对方的停止或暂停要求，不用追问测试关系。", 0.95);
+      add(
+        "nextStep",
+        "简短回应并给对方空间，暂时停止追加话题。",
+        [
+          {
+            description: "对方明确表达暂停或边界",
+            messageIndex: contact.messages.indexOf(last),
+            quote: clipSuggestion(last.text)
+          }
+        ],
+        "尊重对方的停止或暂停要求，不用追问测试关系。",
+        0.95
+      );
       return { suggestions: out.slice(0, max), disclaimer: "以对方明确表达的边界为准，不推测背后的想法。" };
     }
-    if (last && last.sender === contact.target && asks(last.text)) add("reply", "先回答对方刚提出的问题，再补一句简短的自己的想法。", [{ description: "对方最后一条消息包含问题", messageIndex: contact.messages.indexOf(last), quote: clipSuggestion(last.text) }], "需要你补入真实答案；不要让模型代替你编答案。", 0.9);
+    if (last && last.sender === contact.target && asks(last.text))
+      add(
+        "reply",
+        "先回答对方刚提出的问题，再补一句简短的自己的想法。",
+        [
+          {
+            description: "对方最后一条消息包含问题",
+            messageIndex: contact.messages.indexOf(last),
+            quote: clipSuggestion(last.text)
+          }
+        ],
+        "需要你补入真实答案；不要让模型代替你编答案。",
+        0.9
+      );
     const recentPreference = extractPreferenceEvidence(last?.text || "");
     if (last?.sender === contact.target && recentPreference.negative.length && !recentPreference.positive.length) {
-      add("reply", "可以先接一句：“了解，那这些就先不聊啦。”", [{ description: "对方刚明确表达了不感兴趣的内容", messageId: profileMessageId(last), quote: clipSuggestion(recentPreference.negative[0].quote) }], "先回应对方的偏好，不追问或推销对方已否定的话题。", 0.8);
+      add(
+        "reply",
+        "可以先接一句：“了解，那这些就先不聊啦。”",
+        [
+          {
+            description: "对方刚明确表达了不感兴趣的内容",
+            messageId: profileMessageId(last),
+            quote: clipSuggestion(recentPreference.negative[0].quote)
+          }
+        ],
+        "先回应对方的偏好，不追问或推销对方已否定的话题。",
+        0.8
+      );
       return { suggestions: out.slice(0, max), disclaimer: "依据对方刚刚明确说出的偏好，避免把否定表达反过来当成兴趣。" };
     }
     if (last) {
       const positive2 = recentPreference.positive.map((pref) => ({ ...pref, question: preferenceQuestion(pref.text) })).find((pref) => pref.question);
-      if (positive2) add("topic", positive2.question, [{ description: "延续对方刚明确表达的兴趣", messageId: profileMessageId(last), quote: clipSuggestion(positive2.quote) }], "只围绕明确喜欢的部分，不扩展到同句中被否定的项目。", 0.8);
-      else if (!recentPreference.negative.length) for (const [label, rx] of rules) {
-        const match = rx.exec(last.text);
-        if (match) {
-          const question2 = label === "兴趣" ? preferenceQuestion(match[0]) : "刚才说到" + match[0] + "，你还有什么想分享的吗？";
-          if (question2) add("topic", question2, [{ description: "延续最近实际提及的话题，不据此认定为爱好", messageId: profileMessageId(last), quote: clipSuggestion(last.text) }], "结合对方当前回应判断；不要求继续这个话题。", 0.65);
-          break;
+      if (positive2)
+        add(
+          "topic",
+          positive2.question,
+          [
+            {
+              description: "延续对方刚明确表达的兴趣",
+              messageId: profileMessageId(last),
+              quote: clipSuggestion(positive2.quote)
+            }
+          ],
+          "只围绕明确喜欢的部分，不扩展到同句中被否定的项目。",
+          0.8
+        );
+      else if (!recentPreference.negative.length)
+        for (const [label, rx] of rules) {
+          const match = rx.exec(last.text);
+          if (match) {
+            const question2 = label === "兴趣" ? preferenceQuestion(match[0]) : "刚才说到" + match[0] + "，你还有什么想分享的吗？";
+            if (question2)
+              add(
+                "topic",
+                question2,
+                [
+                  {
+                    description: "延续最近实际提及的话题，不据此认定为爱好",
+                    messageId: profileMessageId(last),
+                    quote: clipSuggestion(last.text)
+                  }
+                ],
+                "结合对方当前回应判断；不要求继续这个话题。",
+                0.65
+              );
+            break;
+          }
         }
-      }
     }
-    const facts = (contact.profileSummary || []).filter((f) => isProfileFactCurrent(f, now) && (f.provenance !== "model" || f.confirmed === true));
+    const facts = (contact.profileSummary || []).filter(
+      (f) => isProfileFactCurrent(f, now) && (f.provenance !== "model" || f.confirmed === true)
+    );
     const interests = facts.map((fact) => ({ fact, pref: selectPositivePreference(fact) })).filter((row) => row.pref).map((row) => ({ ...row, question: preferenceQuestion(row.pref.text) })), interest = interests.find((row) => row.question && !out.some((item) => item.text === row.question));
-    if (interest && out.length < max) add("topic", interest.question, [{ description: interest.fact.quote ? "已确认兴趣的直接正向依据" : "你手动确认的兴趣：" + interest.pref.text, factId: interest.fact.uid, quote: interest.fact.quote ? clipSuggestion(interest.pref.quote) : "" }], "先轻轻确认近况，不把历史兴趣当作当前正在做的事。", 0.7);
+    if (interest && out.length < max)
+      add(
+        "topic",
+        interest.question,
+        [
+          {
+            description: interest.fact.quote ? "已确认兴趣的直接正向依据" : "你手动确认的兴趣：" + interest.pref.text,
+            factId: interest.fact.uid,
+            quote: interest.fact.quote ? clipSuggestion(interest.pref.quote) : ""
+          }
+        ],
+        "先轻轻确认近况，不把历史兴趣当作当前正在做的事。",
+        0.7
+      );
     if (!out.length && last) {
-      const placeholder = /^(?:【[^】]{1,8}】|\[[^\]]{1,8}\]|.*\.(?:jpg|jpeg|png|gif|webp|mp4|amr|silk|mp3))$/i, real = [...msgs].reverse().find((message) => !placeholder.test(String(message.text || "").trim())), basis = real ? [{ description: "依据最近一条文字对话", messageIndex: contact.messages.indexOf(real), quote: clipSuggestion(real.text) }] : [{ description: "依据不足：最近几条都是表情或附件，等有文字对话再给具体建议", quote: "" }];
-      add("topic", "可以回应对方刚分享的内容，并问一个容易回答、也容易略过的问题。", basis, "通用建议，依据有限；想推进就直接说清需求，不靠试探观察反应。", 0.35);
+      const placeholder = /^(?:【[^】]{1,8}】|\[[^\]]{1,8}\]|.*\.(?:jpg|jpeg|png|gif|webp|mp4|amr|silk|mp3))$/i, real = [...msgs].reverse().find((message) => !placeholder.test(String(message.text || "").trim())), basis = real ? [
+        {
+          description: "依据最近一条文字对话",
+          messageIndex: contact.messages.indexOf(real),
+          quote: clipSuggestion(real.text)
+        }
+      ] : [{ description: "依据不足：最近几条都是表情或附件，等有文字对话再给具体建议", quote: "" }];
+      add(
+        "topic",
+        "可以回应对方刚分享的内容，并问一个容易回答、也容易略过的问题。",
+        basis,
+        "通用建议，依据有限；想推进就直接说清需求，不靠试探观察反应。",
+        0.35
+      );
     }
     const followup = facts.find((f) => ["followup", "recent", "agreement"].includes(f.field));
-    if (followup && out.length < max) add("nextStep", `如果仍然合适，可以轻轻问候此前提到的“${clipSuggestion(followup.value, 60)}”进展。`, [{ description: "已确认的待跟进事项", factId: followup.uid, quote: clipSuggestion(followup.quote || followup.value) }], "先核对日期与近况，不把旧安排当成现在的约定。", 0.6);
-    const plans = (contact.selfProfile?.plans || []).filter((p) => p.text && !["completed", "cancelled", "expired"].includes(p.planState) && (!p.expiresAt || !Number.isFinite(profileExpiryTime(p.expiresAt)) || profileExpiryTime(p.expiresAt) >= now));
-    for (const plan of plans.slice(0, 1)) if (out.length < max) add("topic", `若与你当前意图相符，可以自然分享自己的计划：“${clipSuggestion(plan.text, 70)}”。`, [{ description: "你的档案中的计划", refId: "selfProfile.plan" }], "仅在计划仍准确且你愿意分享时使用。", 0.55);
+    if (followup && out.length < max)
+      add(
+        "nextStep",
+        `如果仍然合适，可以轻轻问候此前提到的“${clipSuggestion(followup.value, 60)}”进展。`,
+        [
+          {
+            description: "已确认的待跟进事项",
+            factId: followup.uid,
+            quote: clipSuggestion(followup.quote || followup.value)
+          }
+        ],
+        "先核对日期与近况，不把旧安排当成现在的约定。",
+        0.6
+      );
+    const plans = (contact.selfProfile?.plans || []).filter(
+      (p) => p.text && !["completed", "cancelled", "expired"].includes(p.planState) && (!p.expiresAt || !Number.isFinite(profileExpiryTime(p.expiresAt)) || profileExpiryTime(p.expiresAt) >= now)
+    );
+    for (const plan of plans.slice(0, 1))
+      if (out.length < max)
+        add(
+          "topic",
+          `若与你当前意图相符，可以自然分享自己的计划：“${clipSuggestion(plan.text, 70)}”。`,
+          [{ description: "你的档案中的计划", refId: "selfProfile.plan" }],
+          "仅在计划仍准确且你愿意分享时使用。",
+          0.55
+        );
     const reviewed = applyTopicFeedback(out, contact.topicFeedback || []);
-    return { ...reviewed, suggestions: reviewed.suggestions.slice(0, max), disclaimer: "这是依据已导入内容生成的可能话题，不代表对方真实想法，也不能准确预测回应。" };
+    return {
+      ...reviewed,
+      suggestions: reviewed.suggestions.slice(0, max),
+      disclaimer: "这是依据已导入内容生成的可能话题，不代表对方真实想法，也不能准确预测回应。"
+    };
   }
 
   // src/auto-analysis.js
@@ -34361,19 +35589,31 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (cached?.identity === identity) return cached.plan;
     const segments = [], messageEnds = [];
     for (const message of messages) {
-      if (![contact.self, contact.target].includes(message.sender) || typeof message.text !== "string" || !message.text.trim()) continue;
+      if (![contact.self, contact.target].includes(message.sender) || typeof message.text !== "string" || !message.text.trim())
+        continue;
       const sourceMessageId = String(profileMessageId(message));
       let offset = 0, part = 0;
       while (offset < message.text.length) {
         let end = Math.min(offset + 2e3, message.text.length);
         if (end < message.text.length && /[\uD800-\uDBFF]/.test(message.text[end - 1])) end--;
         const text = message.text.slice(offset, end), id = "segment-" + hash3(sourceMessageId) + "-" + part++;
-        segments.push({ id, sender: message.sender, text, sourceMessageId, fingerprint: hash3(JSON.stringify([sourceMessageId, message.sender, message.timestamp, text, part])) });
+        segments.push({
+          id,
+          sender: message.sender,
+          text,
+          sourceMessageId,
+          fingerprint: hash3(JSON.stringify([sourceMessageId, message.sender, message.timestamp, text, part]))
+        });
         offset = end;
       }
       messageEnds.push(segments.length);
     }
-    const plan = { segments, messageEnds, fingerprints: segments.map((s) => s.fingerprint), totalMessages: messageEnds.length };
+    const plan = {
+      segments,
+      messageEnds,
+      fingerprints: segments.map((s) => s.fingerprint),
+      totalMessages: messageEnds.length
+    };
     planCache.set(messages, { identity, plan });
     return plan;
   }
@@ -34390,20 +35630,47 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function reconcileAutoAnalysis(contact, selection) {
     const plan = buildAutoAnalysisPlan(contact), key = modelKey(selection), identity = identityKey2(contact), old = contact.autoAnalysis || {}, compatible = old.version === AUTO_ANALYSIS_VERSION && old.modelKey === key && old.identity === identity;
     let common = 0;
-    if (compatible) while (common < plan.fingerprints.length && old.fingerprints?.[common] === plan.fingerprints[common]) common++;
-    const checkpoints = compatible ? (Array.isArray(old.checkpoints) ? old.checkpoints : []).filter((c) => c && Number.isInteger(c.end) && c.end > 0 && c.end <= common && typeof c.memory === "string" && c.memory.length <= 4e3).sort((a, b) => a.end - b.end) : [], covered = checkpoints.at(-1)?.end || 0;
+    if (compatible)
+      while (common < plan.fingerprints.length && old.fingerprints?.[common] === plan.fingerprints[common]) common++;
+    const checkpoints = compatible ? (Array.isArray(old.checkpoints) ? old.checkpoints : []).filter(
+      (c) => c && Number.isInteger(c.end) && c.end > 0 && c.end <= common && typeof c.memory === "string" && c.memory.length <= 4e3
+    ).sort((a, b) => a.end - b.end) : [], covered = checkpoints.at(-1)?.end || 0;
     const changed = !compatible || common !== (old.fingerprints?.length || 0) || common !== plan.fingerprints.length;
-    return { ...compatible ? old : {}, version: AUTO_ANALYSIS_VERSION, modelKey: key, identity, fingerprints: plan.fingerprints, checkpoints, coveredSegments: covered, coveredMessages: plan.messageEnds.filter((end) => end <= covered).length, totalSegments: plan.segments.length, totalMessages: plan.totalMessages, memory: checkpoints.at(-1)?.memory || "", paused: old.paused === true, ...changed ? { finalSignature: "", interpretations: [], attempts: 0, nextRetryAt: 0, error: "" } : {} };
+    return {
+      ...compatible ? old : {},
+      version: AUTO_ANALYSIS_VERSION,
+      modelKey: key,
+      identity,
+      fingerprints: plan.fingerprints,
+      checkpoints,
+      coveredSegments: covered,
+      coveredMessages: plan.messageEnds.filter((end) => end <= covered).length,
+      totalSegments: plan.segments.length,
+      totalMessages: plan.totalMessages,
+      memory: checkpoints.at(-1)?.memory || "",
+      paused: old.paused === true,
+      ...changed ? { finalSignature: "", interpretations: [], attempts: 0, nextRetryAt: 0, error: "" } : {}
+    };
   }
   var finalKey = (cache, plan, profile) => hash3(JSON.stringify([cache.modelKey, cache.identity, cache.memory, plan.fingerprints.slice(-20), profile]));
   function isAutoAnalysisResultCurrent(contact, state, now = Date.now()) {
     const cache = contact?.autoAnalysis;
-    if (!cache || !["complete", "paused"].includes(cache.status) || cache.modelKey !== modelKey(state) || cache.identity !== identityKey2(contact)) return false;
+    if (!cache || !["complete", "paused"].includes(cache.status) || cache.modelKey !== modelKey(state) || cache.identity !== identityKey2(contact))
+      return false;
     const plan = buildAutoAnalysisPlan(contact);
     return Array.isArray(cache.fingerprints) && Array.isArray(cache.interpretations) && cache.fingerprints.length === plan.fingerprints.length && cache.fingerprints.every((value, index) => value === plan.fingerprints[index]) && cache.finalSignature === finalKey(cache, plan, summarizeSelfProfile(state.selfProfile, now));
   }
-  function createAutoAnalysisScheduler({ getState, subscribe, updateContact, request, persist = async () => {
-  }, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout }) {
+  function createAutoAnalysisScheduler({
+    getState,
+    subscribe,
+    updateContact,
+    request,
+    persist = async () => {
+    },
+    now = Date.now,
+    setTimer = setTimeout,
+    clearTimer = clearTimeout
+  }) {
     let stopped = true, busy = false, scheduled = false, unsubscribe = () => {
     }, timer = null, active = null;
     const patch = (id, changes) => updateContact(id, (contact) => ({ ...contact, autoAnalysis: { ...contact.autoAnalysis || {}, ...changes } }));
@@ -34417,10 +35684,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (signal.aborted) abort();
         else signal.addEventListener("abort", abort, { once: true });
       });
-      return Promise.race([cancelled, Promise.resolve().then(() => {
-        signal.throwIfAborted();
-        return request(path, body, signal);
-      })]).finally(() => signal.removeEventListener("abort", abort));
+      return Promise.race([
+        cancelled,
+        Promise.resolve().then(() => {
+          signal.throwIfAborted();
+          return request(path, body, signal);
+        })
+      ]).finally(() => signal.removeEventListener("abort", abort));
     };
     function wake() {
       if (stopped) return;
@@ -34434,10 +35704,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     function schedule(delay) {
       if (timer) clearTimer(timer);
-      timer = setTimer(() => {
-        timer = null;
-        wake();
-      }, Math.max(1, delay));
+      timer = setTimer(
+        () => {
+          timer = null;
+          wake();
+        },
+        Math.max(1, delay)
+      );
     }
     async function run() {
       if (stopped || busy) return;
@@ -34448,16 +35721,30 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       for (const contact2 of contacts) {
         const plan2 = buildAutoAnalysisPlan(contact2);
         if (!plan2.segments.length) {
-          if (contact2.autoAnalysis && contact2.autoAnalysis.status !== "empty") patch(contact2.id, { status: "empty", fingerprints: [], checkpoints: [], memory: "", interpretations: [], finalSignature: "", totalSegments: 0, totalMessages: 0, coveredSegments: 0, coveredMessages: 0 });
+          if (contact2.autoAnalysis && contact2.autoAnalysis.status !== "empty")
+            patch(contact2.id, {
+              status: "empty",
+              fingerprints: [],
+              checkpoints: [],
+              memory: "",
+              interpretations: [],
+              finalSignature: "",
+              totalSegments: 0,
+              totalMessages: 0,
+              coveredSegments: 0,
+              coveredMessages: 0
+            });
           continue;
         }
         if (!key) {
-          if (contact2.autoAnalysis?.status !== "waiting-model") patch(contact2.id, { status: "waiting-model", totalMessages: plan2.totalMessages });
+          if (contact2.autoAnalysis?.status !== "waiting-model")
+            patch(contact2.id, { status: "waiting-model", totalMessages: plan2.totalMessages });
           continue;
         }
         const cache2 = reconcileAutoAnalysis(contact2, state), profile2 = summarizeSelfProfile(state.selfProfile, now());
         if (cache2.paused) continue;
-        if (cache2.status === "waiting-model" && cache2.waitingSelection === key + "|" + (state.modelCatalogRevision || 0)) continue;
+        if (cache2.status === "waiting-model" && cache2.waitingSelection === key + "|" + (state.modelCatalogRevision || 0))
+          continue;
         if (cache2.attempts >= 3) continue;
         if (cache2.nextRetryAt > now()) {
           nextRetry = Math.min(nextRetry, cache2.nextRetryAt);
@@ -34475,30 +35762,82 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         return;
       }
       busy = true;
-      const { contact, plan, cache, profile } = work, task = { id: contact.id, messages: contact.messages, identity: identityKey2(contact), modelKey: key, controller: new AbortController(), phase: cache.coveredSegments < plan.segments.length ? "history" : "final", voice: JSON.stringify(profile) };
+      const { contact, plan, cache, profile } = work, task = {
+        id: contact.id,
+        messages: contact.messages,
+        identity: identityKey2(contact),
+        modelKey: key,
+        controller: new AbortController(),
+        phase: cache.coveredSegments < plan.segments.length ? "history" : "final",
+        voice: JSON.stringify(profile)
+      };
       active = task;
       try {
         patch(contact.id, { ...cache, status: task.phase === "history" ? "summarizing" : "interpreting", error: "" });
         if (task.phase === "history") {
-          const batch = nextHistoryBatch(plan, cache.coveredSegments), result = await call("analysis-history", { provider: state.provider, model: state.model, self: contact.self, target: contact.target, messages: batch.map(({ id, sender, text }) => ({ id, sender, text })), memory: cache.memory }, task.controller.signal);
+          const batch = nextHistoryBatch(plan, cache.coveredSegments), result = await call(
+            "analysis-history",
+            {
+              provider: state.provider,
+              model: state.model,
+              self: contact.self,
+              target: contact.target,
+              messages: batch.map(({ id, sender, text }) => ({ id, sender, text })),
+              memory: cache.memory
+            },
+            task.controller.signal
+          );
           if (!valid(task)) return;
           if (typeof result.memory !== "string" || result.memory.length > 4e3) throw Error("历史归纳返回了无效记忆。");
           const end = cache.coveredSegments + batch.length;
-          patch(contact.id, { checkpoints: [...cache.checkpoints, { end, memory: result.memory }], memory: result.memory, coveredSegments: end, coveredMessages: plan.messageEnds.filter((value) => value <= end).length, status: "queued", attempts: 0, nextRetryAt: 0 });
+          patch(contact.id, {
+            checkpoints: [...cache.checkpoints, { end, memory: result.memory }],
+            memory: result.memory,
+            coveredSegments: end,
+            coveredMessages: plan.messageEnds.filter((value) => value <= end).length,
+            status: "queued",
+            attempts: 0,
+            nextRetryAt: 0
+          });
         } else {
-          const recent = plan.segments.slice(-20), result = await call("interpretation", { provider: state.provider, model: state.model, self: contact.self, target: contact.target, messages: recent.map(({ id, sender, text }) => ({ id, sender, text })), historyMemory: cache.memory, selfProfile: profile }, task.controller.signal);
+          const recent = plan.segments.slice(-20), result = await call(
+            "interpretation",
+            {
+              provider: state.provider,
+              model: state.model,
+              self: contact.self,
+              target: contact.target,
+              messages: recent.map(({ id, sender, text }) => ({ id, sender, text })),
+              historyMemory: cache.memory,
+              selfProfile: profile
+            },
+            task.controller.signal
+          );
           if (!phaseValid(task)) return;
-          if (!Array.isArray(result.interpretations) || result.interpretations.length < 2 || result.interpretations.length > 3) throw Error("解释结果不完整。");
+          if (!Array.isArray(result.interpretations) || result.interpretations.length < 2 || result.interpretations.length > 3)
+            throw Error("解释结果不完整。");
           const sources = new Map(recent.map((segment) => [segment.id, segment]));
           const interpretations = result.interpretations.map((item) => {
-            if (!item || !["explanation", "uncertainty", "reply"].every((key2) => typeof item[key2] === "string" && item[key2].trim()) || !Array.isArray(item.evidence) || !item.evidence.length || item.evidence.length > 3) throw Error("解释结果缺少有效字段或原文引用。");
-            return { ...item, evidence: item.evidence.map((e) => {
-              const segment = sources.get(e.messageId);
-              if (!segment || typeof e.quote !== "string" || !e.quote.trim() || !segment.text.includes(e.quote)) throw Error("解释引用未通过原文核对。");
-              return { ...e, messageId: segment.sourceMessageId };
-            }) };
+            if (!item || !["explanation", "uncertainty", "reply"].every((key2) => typeof item[key2] === "string" && item[key2].trim()) || !Array.isArray(item.evidence) || !item.evidence.length || item.evidence.length > 3)
+              throw Error("解释结果缺少有效字段或原文引用。");
+            return {
+              ...item,
+              evidence: item.evidence.map((e) => {
+                const segment = sources.get(e.messageId);
+                if (!segment || typeof e.quote !== "string" || !e.quote.trim() || !segment.text.includes(e.quote))
+                  throw Error("解释引用未通过原文核对。");
+                return { ...e, messageId: segment.sourceMessageId };
+              })
+            };
           });
-          patch(contact.id, { interpretations, finalSignature: finalKey(cache, plan, profile), status: "complete", attempts: 0, nextRetryAt: 0, completedAt: now() });
+          patch(contact.id, {
+            interpretations,
+            finalSignature: finalKey(cache, plan, profile),
+            status: "complete",
+            attempts: 0,
+            nextRetryAt: 0,
+            completedAt: now()
+          });
         }
         try {
           await persist();
@@ -34508,10 +35847,21 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       } catch (error) {
         if (phaseValid(task) && error.name !== "AbortError") {
           if ([400, 503].includes(error.status) && /模型|服务商|提供商|provider|model/i.test(error.message || "")) {
-            patch(contact.id, { status: "waiting-model", waitingSelection: key + "|" + (state.modelCatalogRevision || 0), error: error.message, attempts: 0, nextRetryAt: 0 });
+            patch(contact.id, {
+              status: "waiting-model",
+              waitingSelection: key + "|" + (state.modelCatalogRevision || 0),
+              error: error.message,
+              attempts: 0,
+              nextRetryAt: 0
+            });
           } else {
             const attempts = error.storageFailure ? 3 : (cache.attempts || 0) + 1;
-            patch(contact.id, { status: attempts >= 3 ? "error" : "retry-wait", attempts, nextRetryAt: attempts >= 3 ? 0 : now() + [1e3, 5e3, 15e3][attempts - 1], error: error.message || "自动分析失败。" });
+            patch(contact.id, {
+              status: attempts >= 3 ? "error" : "retry-wait",
+              attempts,
+              nextRetryAt: attempts >= 3 ? 0 : now() + [1e3, 5e3, 15e3][attempts - 1],
+              error: error.message || "自动分析失败。"
+            });
           }
         }
       } finally {
@@ -34520,30 +35870,44 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         if (!stopped) wake();
       }
     }
-    return { start() {
-      if (!stopped) return;
-      stopped = false;
-      unsubscribe = subscribe(wake);
-      wake();
-    }, stop() {
-      stopped = true;
-      unsubscribe();
-      active?.controller.abort();
-      if (timer) clearTimer(timer);
-      timer = null;
-    }, pause(id) {
-      patch(id, { paused: true, status: "paused" });
-      if (active?.id === id) active.controller.abort();
-      wake();
-    }, resume(id) {
-      patch(id, { paused: false, status: "queued", waitingSelection: "", attempts: 0, nextRetryAt: 0, error: "" });
-      wake();
-    }, wake };
+    return {
+      start() {
+        if (!stopped) return;
+        stopped = false;
+        unsubscribe = subscribe(wake);
+        wake();
+      },
+      stop() {
+        stopped = true;
+        unsubscribe();
+        active?.controller.abort();
+        if (timer) clearTimer(timer);
+        timer = null;
+      },
+      pause(id) {
+        patch(id, { paused: true, status: "paused" });
+        if (active?.id === id) active.controller.abort();
+        wake();
+      },
+      resume(id) {
+        patch(id, { paused: false, status: "queued", waitingSelection: "", attempts: 0, nextRetryAt: 0, error: "" });
+        wake();
+      },
+      wake
+    };
   }
 
   // src/reply-payload.js
-  var retrievalStopWords = new Set("这个 那个 什么 怎么 为什么 可以 可能 应该 我们 你们 他们 自己 现在 今天 明天 昨天 最近 之前 以后 时候 一下 一些 一个 一点 一起 已经 还是 就是 不是 没有 但是 因为 所以 然后 如果 觉得 知道 回复 回答 帮我 帮忙 生成 说说 聊聊 想聊 继续 话题 内容 对方 记录 历史 关于 希望 表达 的事 的话".split(" "));
-  var retrievalEnglishStop = new Set("the and that this with have from what when where how you your are was were for not but can could would should please reply message about".split(" "));
+  var retrievalStopWords = new Set(
+    "这个 那个 什么 怎么 为什么 可以 可能 应该 我们 你们 他们 自己 现在 今天 明天 昨天 最近 之前 以后 时候 一下 一些 一个 一点 一起 已经 还是 就是 不是 没有 但是 因为 所以 然后 如果 觉得 知道 回复 回答 帮我 帮忙 生成 说说 聊聊 想聊 继续 话题 内容 对方 记录 历史 关于 希望 表达 的事 的话".split(
+      " "
+    )
+  );
+  var retrievalEnglishStop = new Set(
+    "the and that this with have from what when where how you your are was were for not but can could would should please reply message about".split(
+      " "
+    )
+  );
   function retrievalTerms(value) {
     const result = /* @__PURE__ */ new Set();
     for (const run of String(value || "").toLowerCase().match(/[\p{Script=Han}]+|[a-z][a-z0-9_-]{2,}/gu) || []) {
@@ -34564,25 +35928,75 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const pair = messages.filter((message) => message.sender === self2 || message.sender === target), recent = pair.slice(-12), recentTerms = retrievalTerms(recent.map((message) => message.text).join(" ")), key = (message) => JSON.stringify([message.sender, message.text, message.timestamp ?? ""]), excluded = new Set(recent.map(key)), seen = /* @__PURE__ */ new Set();
     return pair.slice(0, -12).map((message, index) => {
       const text = String(message.text || "").toLowerCase(), hits = intentTerms.filter((term) => text.includes(term)).length;
-      return { message, index, score: hits ? hits * 4 + Math.min(4, recentTerms.filter((term) => text.includes(term)).length) : 0 };
+      return {
+        message,
+        index,
+        score: hits ? hits * 4 + Math.min(4, recentTerms.filter((term) => text.includes(term)).length) : 0
+      };
     }).filter((row) => {
       if (!row.score || !String(row.message.text || "").trim()) return false;
       const id = key(row.message);
       if (excluded.has(id) || seen.has(id)) return false;
       seen.add(id);
       return true;
-    }).sort((a, b) => b.score - a.score || b.index - a.index).slice(0, 8).map(({ message }) => ({ sender: message.sender, text: String(message.text).slice(0, 500), timestamp: message.timestamp == null ? "" : String(message.timestamp).slice(0, 50) }));
+    }).sort((a, b) => b.score - a.score || b.index - a.index).slice(0, 8).map(({ message }) => ({
+      sender: message.sender,
+      text: String(message.text).slice(0, 500),
+      timestamp: message.timestamp == null ? "" : String(message.timestamp).slice(0, 50)
+    }));
   }
   function buildReplyPayload(state, contact) {
-    const daily = analyzeDailyTimeline(contact.messages, contact.self, contact.target, contact.interactionCorrections || []);
+    const daily = analyzeDailyTimeline(
+      contact.messages,
+      contact.self,
+      contact.target,
+      contact.interactionCorrections || []
+    );
     const dailyTimeline = daily.days.map((day) => {
       const ai = contact.timelineAnalysis?.[day.date], aiReason = ai ? ` AI 分析摘要：${ai.summary} 活跃原因：${ai.activityReason} 互动线索：${ai.affinityContext}` : "";
-      return { date: day.date, messages: day.messages.length, self: day.selfMessages, target: day.targetMessages, turns: day.turns, activityScore: day.activityScore, affinityScore: day.affinityScore, affinityChange: day.affinityChange, reason: `${day.reason} ${day.affinityNote}${aiReason}`.slice(0, 360), affinityEvidence: day.affinityEvidence.slice(0, 3).map((item) => item.quote.slice(0, 100)) };
+      return {
+        date: day.date,
+        messages: day.messages.length,
+        self: day.selfMessages,
+        target: day.targetMessages,
+        turns: day.turns,
+        activityScore: day.activityScore,
+        affinityScore: day.affinityScore,
+        affinityChange: day.affinityChange,
+        reason: `${day.reason} ${day.affinityNote}${aiReason}`.slice(0, 360),
+        affinityEvidence: day.affinityEvidence.slice(0, 3).map((item) => item.quote.slice(0, 100))
+      };
     });
     const selfProfile = summarizeSelfProfile(state.selfProfile || contact.selfProfile || {}), suggestions = suggestNextSteps({ ...contact, selfProfile });
-    const payload = { provider: state.provider, model: state.model, self: contact.self, target: contact.target, messages: contact.messages.filter((m) => m.sender === contact.self || m.sender === contact.target).slice(-12).map((m) => ({ sender: m.sender, text: m.text.slice(0, 500), timestamp: typeof m.timestamp === "string" ? m.timestamp.slice(0, 50) : "" })), facts: (Array.isArray(contact.profileSummary) ? contact.profileSummary.filter((f) => isProfileFactCurrent(f) && (f.provenance !== "model" || f.confirmed === true) && f.field !== "inference" && f.kind !== "inference") : contact.facts || []).slice(0, 12).map((f) => ({ field: f.field, value: f.value.slice(0, 500) })), selfProfile, suggestions: suggestions.suggestions, suggestionDisclaimer: suggestions.disclaimer, relatedMessages: retrieveRelatedMessages(contact.messages, contact.self, contact.target, state.intent), dailyTimeline, scenario: state.scenario, tone: state.tone, intent: state.intent.slice(0, 500) };
-    for (const f of (contact.profileSummary || []).filter((f2) => ["archived", "superseded"].includes(f2.status)).slice(-6)) payload.facts.push({ field: "资料更新", value: ("旧资料“" + f.value + "”已" + (f.status === "superseded" ? "被更新" : "归档或移除") + "，仅属于历史情况，不作为当前偏好或习惯。").slice(0, 500) });
-    if (isAutoAnalysisResultCurrent(contact, state)) payload.historyMemory = String(contact.autoAnalysis.memory || "").slice(0, 4e3);
+    const payload = {
+      provider: state.provider,
+      model: state.model,
+      self: contact.self,
+      target: contact.target,
+      messages: contact.messages.filter((m) => m.sender === contact.self || m.sender === contact.target).slice(-12).map((m) => ({
+        sender: m.sender,
+        text: m.text.slice(0, 500),
+        timestamp: typeof m.timestamp === "string" ? m.timestamp.slice(0, 50) : ""
+      })),
+      facts: (Array.isArray(contact.profileSummary) ? contact.profileSummary.filter(
+        (f) => isProfileFactCurrent(f) && (f.provenance !== "model" || f.confirmed === true) && f.field !== "inference" && f.kind !== "inference"
+      ) : contact.facts || []).slice(0, 12).map((f) => ({ field: f.field, value: f.value.slice(0, 500) })),
+      selfProfile,
+      suggestions: suggestions.suggestions,
+      suggestionDisclaimer: suggestions.disclaimer,
+      relatedMessages: retrieveRelatedMessages(contact.messages, contact.self, contact.target, state.intent),
+      dailyTimeline,
+      scenario: state.scenario,
+      tone: state.tone,
+      intent: state.intent.slice(0, 500)
+    };
+    for (const f of (contact.profileSummary || []).filter((f2) => ["archived", "superseded"].includes(f2.status)).slice(-6))
+      payload.facts.push({
+        field: "资料更新",
+        value: ("旧资料“" + f.value + "”已" + (f.status === "superseded" ? "被更新" : "归档或移除") + "，仅属于历史情况，不作为当前偏好或习惯。").slice(0, 500)
+      });
+    if (isAutoAnalysisResultCurrent(contact, state))
+      payload.historyMemory = String(contact.autoAnalysis.memory || "").slice(0, 4e3);
     while (JSON.stringify(payload).length > 6e4 && payload.relatedMessages.length) payload.relatedMessages.pop();
     while (JSON.stringify(payload).length > 6e4 && payload.messages.length > 1) payload.messages.shift();
     while (JSON.stringify(payload).length > 6e4 && payload.facts.length) payload.facts.pop();
@@ -34649,7 +36063,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!Array.isArray(data)) throw new TypeError("ExportWeChat JSON must be a top-level array.");
     if (data.length === 0 || data.length > maxMessages) throw new RangeError("消息数量为空或超过上限。");
     return data.map((record, index) => {
-      if (!record || typeof record !== "object" || Array.isArray(record)) throw new TypeError(`Message ${index + 1} is not an object.`);
+      if (!record || typeof record !== "object" || Array.isArray(record))
+        throw new TypeError(`Message ${index + 1} is not an object.`);
       const name = safeText(record.display_name, 200).trim();
       const senderId = safeText(record.sender, 200).trim();
       const sender = name || senderId || "未知发言人";
@@ -34700,7 +36115,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           continue;
         }
         if (c === "[") depth++;
-        else if (c === "]" && --depth === 0) return parseWechatJson(script.slice(start, i + 1), { maxBytes, maxMessages });
+        else if (c === "]" && --depth === 0)
+          return parseWechatJson(script.slice(start, i + 1), { maxBytes, maxMessages });
       }
       throw new SyntaxError("HTML 中的聊天数组不完整。");
     }
@@ -34710,17 +36126,26 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!Array.isArray(files) || !files.length) throw new TypeError("Select an export JSON file.");
     const candidates = [];
     for (const file of files) {
-      if (!file || typeof file.name !== "string" || !file.name.toLowerCase().endsWith(".json") || typeof file.text !== "string") continue;
+      if (!file || typeof file.name !== "string" || !file.name.toLowerCase().endsWith(".json") || typeof file.text !== "string")
+        continue;
       try {
         const messages = parseWechatJson(file.text, options);
         const mediaCount = messages.reduce((sum, m) => sum + m.attachments.length, 0);
         const sidecar = /\.html\.json$/i.test(file.name);
-        candidates.push({ name: file.name, messages, mediaCount, sidecar, lastModified: Number.isFinite(file.lastModified) ? file.lastModified : 0 });
+        candidates.push({
+          name: file.name,
+          messages,
+          mediaCount,
+          sidecar,
+          lastModified: Number.isFinite(file.lastModified) ? file.lastModified : 0
+        });
       } catch {
       }
     }
     if (!candidates.length) throw new TypeError("No complete ExportWeChat JSON export was found.");
-    candidates.sort((a, b) => b.messages.length - a.messages.length || b.mediaCount - a.mediaCount || Number(b.sidecar) - Number(a.sidecar) || b.lastModified - a.lastModified || a.name.localeCompare(b.name));
+    candidates.sort(
+      (a, b) => b.messages.length - a.messages.length || b.mediaCount - a.mediaCount || Number(b.sidecar) - Number(a.sidecar) || b.lastModified - a.lastModified || a.name.localeCompare(b.name)
+    );
     return candidates[0];
   }
   function mediaFilePath(file) {
@@ -34745,36 +36170,39 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       addUnique(stems, stem, file);
     }
     let linked = 0, missing = 0;
-    const records = messages.map((message) => ({ ...message, attachments: message.attachments.map((attachment) => {
-      const candidates = [attachment.path, attachment.thumbnailPath, attachment.fileName].filter(Boolean);
-      let file = null;
-      for (const candidate of candidates) {
-        const path = normalizeRelativeMediaPath(candidate);
-        if (path) {
-          const key = path.toLocaleLowerCase();
-          file = exact.get(key) || stems.get(key);
-          if (!file) {
-            const parts = path.split("/");
-            for (let i = 1; i < parts.length && !file; i++) {
-              const suffix = parts.slice(i).join("/").toLocaleLowerCase();
-              file = exact.get(suffix) || stems.get(suffix);
+    const records = messages.map((message) => ({
+      ...message,
+      attachments: message.attachments.map((attachment) => {
+        const candidates = [attachment.path, attachment.thumbnailPath, attachment.fileName].filter(Boolean);
+        let file = null;
+        for (const candidate of candidates) {
+          const path = normalizeRelativeMediaPath(candidate);
+          if (path) {
+            const key = path.toLocaleLowerCase();
+            file = exact.get(key) || stems.get(key);
+            if (!file) {
+              const parts = path.split("/");
+              for (let i = 1; i < parts.length && !file; i++) {
+                const suffix = parts.slice(i).join("/").toLocaleLowerCase();
+                file = exact.get(suffix) || stems.get(suffix);
+              }
+            }
+          }
+          if (file) break;
+          const base = (candidate.replace(/\\/g, "/").split("/").at(-1) || "").toLocaleLowerCase();
+          if (base) {
+            const found = basename.get(base);
+            if (found) {
+              file = found;
+              break;
             }
           }
         }
-        if (file) break;
-        const base = (candidate.replace(/\\/g, "/").split("/").at(-1) || "").toLocaleLowerCase();
-        if (base) {
-          const found = basename.get(base);
-          if (found) {
-            file = found;
-            break;
-          }
-        }
-      }
-      if (file) linked++;
-      else missing++;
-      return { ...attachment, file: file || null };
-    }) }));
+        if (file) linked++;
+        else missing++;
+        return { ...attachment, file: file || null };
+      })
+    }));
     return { messages: records, linked, missing };
   }
 
@@ -34783,7 +36211,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function normalizeShareScope(options = {}) {
     const date = (value) => {
       if (value === void 0 || value === null || value === "") return "";
-      if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || shanghaiDateKey(value) !== value) throw new RangeError("共享日期无效。");
+      if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || shanghaiDateKey(value) !== value)
+        throw new RangeError("共享日期无效。");
       return value;
     };
     const since = date(options.since), until = date(options.until), limit = options.limit === void 0 ? 500 : Number(options.limit);
@@ -34809,16 +36238,51 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       }
       return (!scope.since || day >= scope.since) && (!scope.until || day <= scope.until);
     });
-    return { messages: eligible.slice(-scope.limit), scope, totalCount: all.length, eligibleCount: eligible.length, excludedUnknownTime };
+    return {
+      messages: eligible.slice(-scope.limit),
+      scope,
+      totalCount: all.length,
+      eligibleCount: eligible.length,
+      excludedUnknownTime
+    };
   }
   function buildShareScopePreview(contact, options = {}) {
     const selected2 = selectShareScopeMessages(contact, options), messages = selected2.messages, times = messages.map((m) => m.timestamp).filter((t) => shareScopeDay(t));
-    return { contact: { id: String(contact?.id || ""), self: String(contact?.self || ""), target: String(contact?.target || "") }, ...selected2.scope, messageCount: messages.length, totalCount: selected2.totalCount, eligibleCount: selected2.eligibleCount, firstTimestamp: times[0] ?? null, lastTimestamp: times.at(-1) ?? null, truncatedMessages: Math.max(0, selected2.eligibleCount - messages.length), textTruncatedCount: messages.filter((m) => String(m.text).length > 2e3).length, excludedUnknownTime: selected2.excludedUnknownTime, includedUnknownTime: messages.filter((m) => !shareScopeDay(m.timestamp)).length, maxTextLength: 2e3 };
+    return {
+      contact: {
+        id: String(contact?.id || ""),
+        self: String(contact?.self || ""),
+        target: String(contact?.target || "")
+      },
+      ...selected2.scope,
+      messageCount: messages.length,
+      totalCount: selected2.totalCount,
+      eligibleCount: selected2.eligibleCount,
+      firstTimestamp: times[0] ?? null,
+      lastTimestamp: times.at(-1) ?? null,
+      truncatedMessages: Math.max(0, selected2.eligibleCount - messages.length),
+      textTruncatedCount: messages.filter((m) => String(m.text).length > 2e3).length,
+      excludedUnknownTime: selected2.excludedUnknownTime,
+      includedUnknownTime: messages.filter((m) => !shareScopeDay(m.timestamp)).length,
+      maxTextLength: 2e3
+    };
   }
 
   // src/profile-bridge.js
   var bridgeClip = (v, n) => String(v ?? "").slice(0, n);
-  var bridgeFields = /* @__PURE__ */ new Set(["city", "job", "daily", "recent", "agreement", "interests", "preferences", "style", "boundary", "followup", "inference"]);
+  var bridgeFields = /* @__PURE__ */ new Set([
+    "city",
+    "job",
+    "daily",
+    "recent",
+    "agreement",
+    "interests",
+    "preferences",
+    "style",
+    "boundary",
+    "followup",
+    "inference"
+  ]);
   function profileBridgeMessageId(message) {
     return String(profileMessageId(message)).slice(0, 200);
   }
@@ -34828,10 +36292,32 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const id = profileBridgeMessageId(m);
       if (seen.has(id)) continue;
       seen.add(id);
-      messages.push({ id, sender: bridgeClip(m.sender, 100), text: bridgeClip(m.text, 2e3), timestamp: bridgeClip(m.timestamp, 100) });
+      messages.push({
+        id,
+        sender: bridgeClip(m.sender, 100),
+        text: bridgeClip(m.text, 2e3),
+        timestamp: bridgeClip(m.timestamp, 100)
+      });
     }
-    const facts = (contact.profileSummary || []).filter((f) => bridgeFields.has(f.field) && isProfileFactCurrent(f) && (f.confirmed === true || f.manual === true)).slice(0, 100).map((f, i) => ({ id: bridgeClip(f.uid || "fact-" + i, 200), field: f.field, value: bridgeClip(f.value, 1e3), quote: bridgeClip(f.quote, 1e3), sourceMessageIds: (f.sourceMessageIds || []).slice(0, 20).map((id) => bridgeClip(id, 200)), confidence: Number.isFinite(f.confidence) ? Math.max(0, Math.min(1, f.confidence)) : null, confirmed: true, ...Number.isFinite(profileExpiryTime(f.expiresAt)) ? { expiresAt: f.expiresAt } : {} }));
-    return { contact: { id: bridgeClip(contact.id, 200), self: bridgeClip(contact.self, 100), target: bridgeClip(contact.target, 100) }, facts, messages };
+    const facts = (contact.profileSummary || []).filter((f) => bridgeFields.has(f.field) && isProfileFactCurrent(f) && (f.confirmed === true || f.manual === true)).slice(0, 100).map((f, i) => ({
+      id: bridgeClip(f.uid || "fact-" + i, 200),
+      field: f.field,
+      value: bridgeClip(f.value, 1e3),
+      quote: bridgeClip(f.quote, 1e3),
+      sourceMessageIds: (f.sourceMessageIds || []).slice(0, 20).map((id) => bridgeClip(id, 200)),
+      confidence: Number.isFinite(f.confidence) ? Math.max(0, Math.min(1, f.confidence)) : null,
+      confirmed: true,
+      ...Number.isFinite(profileExpiryTime(f.expiresAt)) ? { expiresAt: f.expiresAt } : {}
+    }));
+    return {
+      contact: {
+        id: bridgeClip(contact.id, 200),
+        self: bridgeClip(contact.self, 100),
+        target: bridgeClip(contact.target, 100)
+      },
+      facts,
+      messages
+    };
   }
 
   // src/relation-stage.js
@@ -34847,7 +36333,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     { key: "partner", label: "对象", band: [60, 100], hint: "出现明确的情侣称呼或关系确认" }
   ];
   var STAGE_BY_KEY = new Map(RELATION_STAGES.map((stage) => [stage.key, stage]));
-  var PROFILE_FIELDS = [["label", 60], ["context", 300], ["expectation", 300]];
+  var PROFILE_FIELDS = [
+    ["label", 60],
+    ["context", 300],
+    ["expectation", 300]
+  ];
   var WORK2 = /(工作|上班|加班|项目|报告|论文|考试|作业|方案|设计稿|会议|客户|同事|领导|老板|周报|需求|上线|排期|面试|入职)/;
   var STRONG_ROMANCE = /(想你|好想你|喜欢你|心动|心跳|想见你|宝贝|亲爱的|亲亲|抱抱|做我女朋友|做我男朋友|我女朋友|我男朋友|在一起吧|想娶你|想嫁你)/;
   var WEAK_ROMANCE = /(晚安|在吗|在干嘛|吃什么|一起去|一起看|周末有空|小可爱|傻瓜|笨蛋)/;
@@ -34873,8 +36363,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function relationProfile(contact) {
     const raw = contact?.relationProfile && typeof contact.relationProfile === "object" ? contact.relationProfile : {};
-    const override = raw.stageOverride && isRelationStage(raw.stageOverride.stage) ? { stage: raw.stageOverride.stage, note: clip4(raw.stageOverride.note, 200), at: Number.isFinite(raw.stageOverride.at) ? raw.stageOverride.at : null } : null;
-    return { label: clip4(raw.label, 60), context: clip4(raw.context, 300), expectation: clip4(raw.expectation, 300), stageOverride: override, updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : null };
+    const override = raw.stageOverride && isRelationStage(raw.stageOverride.stage) ? {
+      stage: raw.stageOverride.stage,
+      note: clip4(raw.stageOverride.note, 200),
+      at: Number.isFinite(raw.stageOverride.at) ? raw.stageOverride.at : null
+    } : null;
+    return {
+      label: clip4(raw.label, 60),
+      context: clip4(raw.context, 300),
+      expectation: clip4(raw.expectation, 300),
+      stageOverride: override,
+      updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : null
+    };
   }
   function changeRelationProfile(contact, action = {}, now = Date.now()) {
     if (!contact || typeof contact !== "object") throw new Error("缺少联系人");
@@ -34895,7 +36395,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   var timelineCache = /* @__PURE__ */ new WeakMap();
   function contactDays(contact) {
-    if (Array.isArray(contact?.timelineAnalysis?.days) && contact.timelineAnalysis.days.length) return contact.timelineAnalysis.days;
+    if (Array.isArray(contact?.timelineAnalysis?.days) && contact.timelineAnalysis.days.length)
+      return contact.timelineAnalysis.days;
     const messages = contact?.messages;
     if (!Array.isArray(messages)) return [];
     const cached = timelineCache.get(messages);
@@ -34930,7 +36431,20 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const withSignals = used.filter((day) => day.v3Signals);
     let averageScore = withSignals.length && withSignals.length === used.length ? scoreMergedPeriods(used.map((day) => day.v3Signals)).index : weight ? weighted / weight : null;
     const initiatives = selfStarts + targetStarts;
-    return { days: used.length, turns, targetTurns, selfStarts, targetStarts, emotionalSharingTurns: emotional, repairs, targetShares, positiveCues, averageScore: averageScore === null ? null : Math.round(averageScore * 10) / 10, targetInitRatio: initiatives ? Math.round(targetStarts / initiatives * 100) / 100 : 0, anchor: anchorDate || used.at(-1)?.date || null };
+    return {
+      days: used.length,
+      turns,
+      targetTurns,
+      selfStarts,
+      targetStarts,
+      emotionalSharingTurns: emotional,
+      repairs,
+      targetShares,
+      positiveCues,
+      averageScore: averageScore === null ? null : Math.round(averageScore * 10) / 10,
+      targetInitRatio: initiatives ? Math.round(targetStarts / initiatives * 100) / 100 : 0,
+      anchor: anchorDate || used.at(-1)?.date || null
+    };
   }
   function scanSide(contact, anchorDate, isTarget) {
     const side = { strong: [], weak: [], commit: [], work: 0, lateNight: 0, total: 0 };
@@ -34938,7 +36452,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const anchor = anchorDate ? dayTime(anchorDate) : NaN;
     const start = Number.isFinite(anchor) ? anchor - 29 * DAY : NaN;
     for (const message of contact.messages) {
-      if (!message || typeof message.text !== "string" || message.sender !== (isTarget ? contact.target : contact.self)) continue;
+      if (!message || typeof message.text !== "string" || message.sender !== (isTarget ? contact.target : contact.self))
+        continue;
       const text = message.text, date = timestamp(message).slice(0, 10);
       if (Number.isFinite(start) && dayTime(date) < start) continue;
       side.total++;
@@ -34951,44 +36466,86 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     }
     return side;
   }
-  var evidenceOf2 = (message) => ({ quote: Array.from(String(message.text)).slice(0, 80).join(""), message, messageId: message.messageId });
+  var evidenceOf2 = (message) => ({
+    quote: Array.from(String(message.text)).slice(0, 80).join(""),
+    message,
+    messageId: message.messageId
+  });
   function buildRelationStage(contact, options = {}) {
     const now = Number.isFinite(options.now) ? options.now : Date.now();
     const profile = relationProfile(contact);
-    const identity = Boolean(contact && typeof contact.self === "string" && contact.self.trim() && typeof contact.target === "string" && contact.target.trim() && contact.self.trim() !== contact.target.trim());
+    const identity = Boolean(
+      contact && typeof contact.self === "string" && contact.self.trim() && typeof contact.target === "string" && contact.target.trim() && contact.self.trim() !== contact.target.trim()
+    );
     const days = Array.isArray(options.days) ? options.days : contactDays(contact);
     const metrics = recentMetrics(days, options.anchor || null);
     const mine = scanSide(contact, metrics.anchor, false), theirs = scanSide(contact, metrics.anchor, true);
     const messageTotal = mine.total + theirs.total, workRatio = messageTotal ? Math.round((mine.work + theirs.work) / messageTotal * 100) / 100 : 0;
-    const base = { autoStage: "unknown", autoLabel: "待定", autoConfidence: 0, stage: "unknown", label: "待定", confidence: 0, manual: false, band: null, reasons: [], metrics: { ...metrics, workRatio }, profile, anchor: metrics.anchor, disclaimer: "阶段由本地规则从可观察的聊天线索推断，不是对对方想法的确认；你可以手动设定并长期覆盖。" };
-    if (!identity) return { ...base, reasons: [{ code: "identity_missing", text: "还没有确认两个不同的发言人，无法做阶段判定。" }] };
+    const base = {
+      autoStage: "unknown",
+      autoLabel: "待定",
+      autoConfidence: 0,
+      stage: "unknown",
+      label: "待定",
+      confidence: 0,
+      manual: false,
+      band: null,
+      reasons: [],
+      metrics: { ...metrics, workRatio },
+      profile,
+      anchor: metrics.anchor,
+      disclaimer: "阶段由本地规则从可观察的聊天线索推断，不是对对方想法的确认；你可以手动设定并长期覆盖。"
+    };
+    if (!identity)
+      return { ...base, reasons: [{ code: "identity_missing", text: "还没有确认两个不同的发言人，无法做阶段判定。" }] };
     const reasons = [];
     const push = (code, text, evidence) => {
       reasons.push(evidence ? { code, text, evidence } : { code, text });
     };
-    push("window", `近 30 天有 ${metrics.days} 天可评分互动、${metrics.turns} 个回合，关系指数 ${metrics.averageScore === null ? "—" : metrics.averageScore}（关系分析 v3，把窗口内各日信号合并后评分）。`);
+    push(
+      "window",
+      `近 30 天有 ${metrics.days} 天可评分互动、${metrics.turns} 个回合，关系指数 ${metrics.averageScore === null ? "—" : metrics.averageScore}（关系分析 v3，把窗口内各日信号合并后评分）。`
+    );
     let stage = "acquaintance", confidence = 0.35;
     const commitHits = theirs.commit.length + mine.commit.length, excluded = (theirs.excluded || 0) + (mine.excluded || 0);
     if (theirs.commit.length || commitHits >= 2) {
       stage = "partner";
       confidence = 0.85;
-      push("commit", `出现 ${commitHits} 条明确的情侣称呼或关系确认${excluded ? `（已排除 ${excluded} 条疑问/否定/过往表述）` : ""}${theirs.commit.length ? `（对方 ${theirs.commit.length} 条）` : ""}。`, evidenceOf2(theirs.commit[0] || mine.commit[0]));
+      push(
+        "commit",
+        `出现 ${commitHits} 条明确的情侣称呼或关系确认${excluded ? `（已排除 ${excluded} 条疑问/否定/过往表述）` : ""}${theirs.commit.length ? `（对方 ${theirs.commit.length} 条）` : ""}。`,
+        evidenceOf2(theirs.commit[0] || mine.commit[0])
+      );
     } else if (mine.strong.length && theirs.strong.length || mine.weak.length >= 3 && theirs.weak.length >= 3 && theirs.lateNight >= 2) {
       stage = "ambiguous";
       confidence = mine.strong.length && theirs.strong.length ? 0.75 : 0.55;
-      push("mutual", `双方都有超越朋友的表达：我方 ${mine.strong.length} 条强信号 / ${mine.weak.length} 条弱信号，对方 ${theirs.strong.length} 条强信号 / ${theirs.weak.length} 条弱信号，对方深夜消息 ${theirs.lateNight} 条。`, evidenceOf2(theirs.strong[0] || theirs.weak[0]));
+      push(
+        "mutual",
+        `双方都有超越朋友的表达：我方 ${mine.strong.length} 条强信号 / ${mine.weak.length} 条弱信号，对方 ${theirs.strong.length} 条强信号 / ${theirs.weak.length} 条弱信号，对方深夜消息 ${theirs.lateNight} 条。`,
+        evidenceOf2(theirs.strong[0] || theirs.weak[0])
+      );
     } else if (mine.strong.length >= 2 && !theirs.strong.length && metrics.targetInitRatio <= 0.35 && metrics.days >= 3) {
       stage = "crush";
       confidence = 0.6;
-      push("one_sided", `我方有 ${mine.strong.length} 条强信号、对方 0 条；对方主动发起占比 ${Math.round(metrics.targetInitRatio * 100)}%，属于单向我方表达。`, evidenceOf2(mine.strong[0]));
+      push(
+        "one_sided",
+        `我方有 ${mine.strong.length} 条强信号、对方 0 条；对方主动发起占比 ${Math.round(metrics.targetInitRatio * 100)}%，属于单向我方表达。`,
+        evidenceOf2(mine.strong[0])
+      );
     } else if (workRatio >= 0.6 && metrics.emotionalSharingTurns <= 1 && !theirs.strong.length) {
       stage = "colleague";
       confidence = 0.55;
-      push("work_context", `近 30 天 ${Math.round(workRatio * 100)}% 的消息围绕工作事务，情绪性分享 ${metrics.emotionalSharingTurns} 轮。`);
+      push(
+        "work_context",
+        `近 30 天 ${Math.round(workRatio * 100)}% 的消息围绕工作事务，情绪性分享 ${metrics.emotionalSharingTurns} 轮。`
+      );
     } else if (metrics.days >= 12 && metrics.averageScore !== null && metrics.averageScore >= STAGE_THRESHOLDS.closeFriend && metrics.targetInitRatio >= 0.25 && (metrics.emotionalSharingTurns >= 3 || metrics.repairs >= 1 || metrics.targetShares >= 5)) {
       stage = "closeFriend";
       confidence = 0.65;
-      push("stable", `互动覆盖 ${metrics.days} 天、关系指数 ${metrics.averageScore}，对方主动发起占比 ${Math.round(metrics.targetInitRatio * 100)}%，情绪分享 ${metrics.emotionalSharingTurns} 轮、事后解释 ${metrics.repairs} 次。`);
+      push(
+        "stable",
+        `互动覆盖 ${metrics.days} 天、关系指数 ${metrics.averageScore}，对方主动发起占比 ${Math.round(metrics.targetInitRatio * 100)}%，情绪分享 ${metrics.emotionalSharingTurns} 轮、事后解释 ${metrics.repairs} 次。`
+      );
     } else if (metrics.days >= 5 && metrics.turns >= 30 && metrics.averageScore !== null && metrics.averageScore >= STAGE_THRESHOLDS.friend) {
       stage = "friend";
       confidence = 0.55;
@@ -35002,10 +36559,34 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       confidence = 0.4;
       push("light", `互动 ${metrics.days} 天、${metrics.turns} 个回合，还没达到「朋友」的稳定度。`);
     }
-    const definition = STAGE_BY_KEY.get(stage), auto = { ...base, stage, label: definition.label, confidence, autoStage: stage, autoLabel: definition.label, autoConfidence: confidence, band: definition.band, reasons };
+    const definition = STAGE_BY_KEY.get(stage), auto = {
+      ...base,
+      stage,
+      label: definition.label,
+      confidence,
+      autoStage: stage,
+      autoLabel: definition.label,
+      autoConfidence: confidence,
+      band: definition.band,
+      reasons
+    };
     if (!profile.stageOverride) return auto;
     const manual = STAGE_BY_KEY.get(profile.stageOverride.stage);
-    return { ...auto, stage: profile.stageOverride.stage, label: manual.label, band: manual.band, confidence: 1, manual: true, reasons: [{ code: "manual", text: `你手动设定为「${manual.label}」${profile.stageOverride.note ? `（备注：${profile.stageOverride.note}）` : ""}；自动判定为「${auto.label}」，不会覆盖你的设定。` }, ...auto.reasons] };
+    return {
+      ...auto,
+      stage: profile.stageOverride.stage,
+      label: manual.label,
+      band: manual.band,
+      confidence: 1,
+      manual: true,
+      reasons: [
+        {
+          code: "manual",
+          text: `你手动设定为「${manual.label}」${profile.stageOverride.note ? `（备注：${profile.stageOverride.note}）` : ""}；自动判定为「${auto.label}」，不会覆盖你的设定。`
+        },
+        ...auto.reasons
+      ]
+    };
   }
 
   // src/views/relation-stage.js
@@ -35027,38 +36608,146 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         setNote(next.stageOverride ? next.stageOverride.note : "");
       }, [contact?.id]);
       const result = E.buildRelationStage(contact, { now }), percent = Math.round(result.confidence * 100);
-      const metrics = [["互动天数", result.metrics.days], ["回合数", result.metrics.turns], ["近 30 天关系指数（v3）", result.metrics.averageScore === null ? "—" : result.metrics.averageScore], ["对方主动占比", Math.round(result.metrics.targetInitRatio * 100) + "%"], ["情绪分享轮次", result.metrics.emotionalSharingTurns], ["事后解释", result.metrics.repairs]];
+      const metrics = [
+        ["互动天数", result.metrics.days],
+        ["回合数", result.metrics.turns],
+        ["近 30 天关系指数（v3）", result.metrics.averageScore === null ? "—" : result.metrics.averageScore],
+        ["对方主动占比", Math.round(result.metrics.targetInitRatio * 100) + "%"],
+        ["情绪分享轮次", result.metrics.emotionalSharingTurns],
+        ["事后解释", result.metrics.repairs]
+      ];
       return h(
         "section",
         { className: "rn-box" },
         h("h2", null, "关系画像与阶段"),
-        h("p", { className: "rn-stage-current" }, "当前阶段：", h("strong", null, result.label), result.manual ? " · 你手动设定" : " · 自动判定 · 可信度 " + percent + "%"),
-        result.manual && h("p", { className: "rn-muted" }, "自动判定为「" + result.autoLabel + "」，已被你的设定覆盖；重新分析不会改写它。"),
+        h(
+          "p",
+          { className: "rn-stage-current" },
+          "当前阶段：",
+          h("strong", null, result.label),
+          result.manual ? " · 你手动设定" : " · 自动判定 · 可信度 " + percent + "%"
+        ),
+        result.manual && h(
+          "p",
+          { className: "rn-muted" },
+          "自动判定为「" + result.autoLabel + "」，已被你的设定覆盖；重新分析不会改写它。"
+        ),
         result.stage === "unknown" ? h("p", { role: "status" }, "还没有确认两个不同的发言人，无法判定阶段。") : h(
           "div",
           null,
-          h("p", null, "参考区间：关系指数 " + (result.band ? result.band[0] + "–" + result.band[1] : "—") + (result.metrics.averageScore === null ? "" : "（本次 " + result.metrics.averageScore + "）")),
-          h("ul", { className: "rn-stage-reasons" }, ...result.reasons.map((reason, index) => h("li", { key: index }, reason.text, reason.evidence && onEvidence && h("button", { type: "button", onClick: () => onEvidence(reason.evidence) }, "查看原文")))),
-          h("dl", { className: "rn-stage-metrics" }, ...metrics.flatMap(([key, value]) => [h("dt", { key }, key), h("dd", { key: key + "-value" }, String(value))]))
+          h(
+            "p",
+            null,
+            "参考区间：关系指数 " + (result.band ? result.band[0] + "–" + result.band[1] : "—") + (result.metrics.averageScore === null ? "" : "（本次 " + result.metrics.averageScore + "）")
+          ),
+          h(
+            "ul",
+            { className: "rn-stage-reasons" },
+            ...result.reasons.map(
+              (reason, index) => h(
+                "li",
+                { key: index },
+                reason.text,
+                reason.evidence && onEvidence && h("button", { type: "button", onClick: () => onEvidence(reason.evidence) }, "查看原文")
+              )
+            )
+          ),
+          h(
+            "dl",
+            { className: "rn-stage-metrics" },
+            ...metrics.flatMap(([key, value]) => [
+              h("dt", { key }, key),
+              h("dd", { key: key + "-value" }, String(value))
+            ])
+          )
         ),
         h(
           "div",
           { className: "rn-form" },
-          h("label", null, "对方称谓（你怎么称呼 TA）", h("input", { value: label, maxLength: 60, "aria-label": "对方称谓", placeholder: "例如：小林 / 组长 / 老妈", onChange: (event) => setLabel(event.target.value) })),
-          h("label", null, "相处语境（在哪认识、平时聊什么）", h("textarea", { value: context, rows: 2, maxLength: 300, "aria-label": "相处语境", onChange: (event) => setContext(event.target.value) })),
-          h("label", null, "期望走向（你想把关系带到哪）", h("textarea", { value: expectation, rows: 2, maxLength: 300, "aria-label": "期望走向", onChange: (event) => setExpectation(event.target.value) }))
-        ),
-        h("div", { className: "rn-actions" }, h("button", { type: "button", className: "primary", onClick: () => onAction({ type: "setProfile", label, context, expectation }) }, "保存关系画像")),
-        h(
-          "div",
-          { className: "rn-form" },
-          h("label", null, "手动设定阶段", h("select", { value: stage, "aria-label": "手动设定阶段", onChange: (event) => setStage(event.target.value) }, h("option", { value: "" }, "不手动设定（按规则自动判定）"), ...E.relationStageOptions().map((option) => h("option", { key: option.key, value: option.key }, option.label)))),
-          h("label", null, "设定原因（会写进判定依据）", h("input", { value: note, maxLength: 200, "aria-label": "设定原因", onChange: (event) => setNote(event.target.value) }))
+          h(
+            "label",
+            null,
+            "对方称谓（你怎么称呼 TA）",
+            h("input", {
+              value: label,
+              maxLength: 60,
+              "aria-label": "对方称谓",
+              placeholder: "例如：小林 / 组长 / 老妈",
+              onChange: (event) => setLabel(event.target.value)
+            })
+          ),
+          h(
+            "label",
+            null,
+            "相处语境（在哪认识、平时聊什么）",
+            h("textarea", {
+              value: context,
+              rows: 2,
+              maxLength: 300,
+              "aria-label": "相处语境",
+              onChange: (event) => setContext(event.target.value)
+            })
+          ),
+          h(
+            "label",
+            null,
+            "期望走向（你想把关系带到哪）",
+            h("textarea", {
+              value: expectation,
+              rows: 2,
+              maxLength: 300,
+              "aria-label": "期望走向",
+              onChange: (event) => setExpectation(event.target.value)
+            })
+          )
         ),
         h(
           "div",
           { className: "rn-actions" },
-          h("button", { type: "button", disabled: !stage, onClick: () => onAction({ type: "setStage", stage, note }) }, "保存阶段设定"),
+          h(
+            "button",
+            {
+              type: "button",
+              className: "primary",
+              onClick: () => onAction({ type: "setProfile", label, context, expectation })
+            },
+            "保存关系画像"
+          )
+        ),
+        h(
+          "div",
+          { className: "rn-form" },
+          h(
+            "label",
+            null,
+            "手动设定阶段",
+            h(
+              "select",
+              { value: stage, "aria-label": "手动设定阶段", onChange: (event) => setStage(event.target.value) },
+              h("option", { value: "" }, "不手动设定（按规则自动判定）"),
+              ...E.relationStageOptions().map((option) => h("option", { key: option.key, value: option.key }, option.label))
+            )
+          ),
+          h(
+            "label",
+            null,
+            "设定原因（会写进判定依据）",
+            h("input", {
+              value: note,
+              maxLength: 200,
+              "aria-label": "设定原因",
+              onChange: (event) => setNote(event.target.value)
+            })
+          )
+        ),
+        h(
+          "div",
+          { className: "rn-actions" },
+          h(
+            "button",
+            { type: "button", disabled: !stage, onClick: () => onAction({ type: "setStage", stage, note }) },
+            "保存阶段设定"
+          ),
           result.manual && h("button", { type: "button", onClick: () => onAction({ type: "clearStage" }) }, "清除手动设定")
         ),
         h("p", { className: "rn-muted" }, result.disclaimer)
@@ -35071,14 +36760,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var recordObject = (value) => value && typeof value === "object" && !Array.isArray(value);
   function migrateWorkspaceState(state, version = 1) {
     if (!recordObject(state)) throw new Error("本机数据格式无效。");
-    if (![1, 2].includes(version)) throw Object.assign(new Error("不支持此数据版本，请使用兼容版本的关系手记。"), { code: "UNSUPPORTED_SCHEMA" });
+    if (![1, 2].includes(version))
+      throw Object.assign(new Error("不支持此数据版本，请使用兼容版本的关系手记。"), { code: "UNSUPPORTED_SCHEMA" });
     const raw = recordObject(state.selfProfile) ? state.selfProfile : {}, normalized = normalizeSelfProfile(raw);
     const preserveList = (key, limit) => (Array.isArray(raw[key]) ? raw[key] : []).map((item) => {
       const parsed = normalizeSelfProfile({ [key]: [item] })[key][0];
       return parsed ? { ...recordObject(item) ? item : {}, ...parsed } : null;
     }).filter(Boolean).slice(0, limit);
-    const selfProfile = { ...raw, ...normalized, voice: { ...recordObject(raw.voice) ? raw.voice : {}, ...normalized.voice }, samples: preserveList("samples", 8), plans: preserveList("plans", 12) };
-    return { ...state, selfProfile, ...Array.isArray(state.contacts) ? { contacts: state.contacts.map(ensureContactMessageIds) } : {} };
+    const selfProfile = {
+      ...raw,
+      ...normalized,
+      voice: { ...recordObject(raw.voice) ? raw.voice : {}, ...normalized.voice },
+      samples: preserveList("samples", 8),
+      plans: preserveList("plans", 12)
+    };
+    return {
+      ...state,
+      selfProfile,
+      ...Array.isArray(state.contacts) ? { contacts: state.contacts.map(ensureContactMessageIds) } : {}
+    };
   }
   function migrateWorkspaceRecord(record) {
     if (!recordObject(record)) throw new Error("本机数据格式无效。");
@@ -35086,39 +36786,124 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return { ...record, schemaVersion: WORKSPACE_SCHEMA_VERSION, state: migrateWorkspaceState(record.state, version) };
   }
   function migrateBackupRecord(record) {
-    if (!recordObject(record) || record.format !== "relationship-notes-backup" || record.version !== 1) throw new Error("请选择关系手记导出的完整项目备份。");
-    return { ...record, schemaVersion: WORKSPACE_SCHEMA_VERSION, state: migrateWorkspaceState(record.state, record.schemaVersion ?? 1) };
+    if (!recordObject(record) || record.format !== "relationship-notes-backup" || record.version !== 1)
+      throw new Error("请选择关系手记导出的完整项目备份。");
+    return {
+      ...record,
+      schemaVersion: WORKSPACE_SCHEMA_VERSION,
+      state: migrateWorkspaceState(record.state, record.schemaVersion ?? 1)
+    };
   }
   function persistenceExtensions(state, knownKeys) {
-    return Object.fromEntries(Object.entries(state || {}).filter(([key]) => !knownKeys.includes(key) && !["persistenceExtensions", "sharedContactId", "profileBridgeStatus", "__proto__", "constructor", "prototype"].includes(key)));
+    return Object.fromEntries(
+      Object.entries(state || {}).filter(
+        ([key]) => !knownKeys.includes(key) && ![
+          "persistenceExtensions",
+          "sharedContactId",
+          "profileBridgeStatus",
+          "__proto__",
+          "constructor",
+          "prototype"
+        ].includes(key)
+      )
+    );
   }
   function withoutPersistenceMedia(record) {
-    const state = record.state || {}, contacts = (state.contacts || []).map((contact) => ({ ...contact, selfAvatarFile: null, targetAvatarFile: null, selfAvatarData: null, targetAvatarData: null, sessionPhoto: null, mediaAssets: [], messages: (contact.messages || []).map((message) => ({ ...message, attachments: (message.attachments || []).map((attachment) => ({ ...attachment, file: null })) })) }));
+    const state = record.state || {}, contacts = (state.contacts || []).map((contact) => ({
+      ...contact,
+      selfAvatarFile: null,
+      targetAvatarFile: null,
+      selfAvatarData: null,
+      targetAvatarData: null,
+      sessionPhoto: null,
+      mediaAssets: [],
+      messages: (contact.messages || []).map((message) => ({
+        ...message,
+        attachments: (message.attachments || []).map((attachment) => ({ ...attachment, file: null }))
+      }))
+    }));
     return { ...record, state: { ...state, contacts } };
   }
   function resolveProfileResponseFact(fact, requestMessages, currentMessages, target) {
     const captured = requestMessages.get(fact.id);
-    if (!captured || typeof fact.quote !== "string" || !fact.quote.trim() || !captured.text.includes(fact.quote)) return null;
-    const matches = currentMessages.filter((message) => String(profileMessageId(message)) === String(captured.stableId) && message.sender === target && message.text === captured.text && String(message.timestamp) === String(captured.timestamp));
+    if (!captured || typeof fact.quote !== "string" || !fact.quote.trim() || !captured.text.includes(fact.quote))
+      return null;
+    const matches = currentMessages.filter(
+      (message) => String(profileMessageId(message)) === String(captured.stableId) && message.sender === target && message.text === captured.text && String(message.timestamp) === String(captured.timestamp)
+    );
     if (matches.length !== 1) return null;
     return { ...fact, message: matches[0], sourceMessageIds: [captured.stableId] };
   }
 
   // src/interpretation-view.js
-  var labels2 = { "waiting-model": "等待配置模型", queued: "等待自动分析", summarizing: "正在归纳历史文本", interpreting: "正在生成近期可能解释", complete: "自动分析已完成", paused: "自动分析已暂停", "retry-wait": "失败后等待重试", error: "自动分析遇到错误", empty: "暂无可分析文本" };
+  var labels2 = {
+    "waiting-model": "等待配置模型",
+    queued: "等待自动分析",
+    summarizing: "正在归纳历史文本",
+    interpreting: "正在生成近期可能解释",
+    complete: "自动分析已完成",
+    paused: "自动分析已暂停",
+    "retry-wait": "失败后等待重试",
+    error: "自动分析遇到错误",
+    empty: "暂无可分析文本"
+  };
   function createAutoAnalysisStatusView(React2) {
     const h = React2.createElement;
     return function AutoAnalysisStatusView({ contacts, timeline, onPause, onResume }) {
       const bar = (done, total, label) => {
         const percent = total ? Math.max(0, Math.min(100, Math.round((Number(done) || 0) / (Number(total) || 1) * 100))) : 0;
-        return h("div", { className: "rn-progress" }, h("div", { className: "rn-progress-track", role: "progressbar", "aria-label": label || "分析进度", "aria-valuenow": percent, "aria-valuemin": 0, "aria-valuemax": 100 }, h("div", { className: "rn-progress-fill", style: { width: percent + "%" } })), h("span", { className: "rn-progress-value" }, percent + "%"));
+        return h(
+          "div",
+          { className: "rn-progress" },
+          h(
+            "div",
+            {
+              className: "rn-progress-track",
+              role: "progressbar",
+              "aria-label": label || "分析进度",
+              "aria-valuenow": percent,
+              "aria-valuemin": 0,
+              "aria-valuemax": 100
+            },
+            h("div", { className: "rn-progress-fill", style: { width: percent + "%" } })
+          ),
+          h("span", { className: "rn-progress-value" }, percent + "%")
+        );
       };
       const real = (contacts || []).filter((c) => !c.isSample && c.messages?.length);
       if (!real.length) return null;
-      return h("details", null, h("summary", null, "自动分析进度 · " + real.length + " 位联系人"), h("p", null, "首次自动分批归纳全部导入文本；追加消息只处理新增部分。图片、语音只按已有文字占位处理，不进行媒体识别。模型未配置时等待，可随时暂停。"), timeline?.total ? h("div", { className: "rn-progress-row" }, h("strong", null, "聊天时间线分析"), h("span", null, " · " + (timeline.progress || "正在进行")), bar(timeline.done, timeline.total, "聊天日期分析进度")) : null, ...real.map((contact) => {
-        const cache = contact.autoAnalysis || {}, total = cache.totalMessages ?? buildAutoAnalysisPlan(contact).totalMessages;
-        return h("div", { key: contact.id }, h("strong", null, contact.target), h("span", null, " · " + (labels2[cache.status] || "等待自动分析") + " · " + (cache.coveredMessages || 0) + " / " + total + " 条"), bar(cache.coveredMessages || 0, total, contact.target + " 自动分析进度"), cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停"));
-      }));
+      return h(
+        "details",
+        null,
+        h("summary", null, "自动分析进度 · " + real.length + " 位联系人"),
+        h(
+          "p",
+          null,
+          "首次自动分批归纳全部导入文本；追加消息只处理新增部分。图片、语音只按已有文字占位处理，不进行媒体识别。模型未配置时等待，可随时暂停。"
+        ),
+        timeline?.total ? h(
+          "div",
+          { className: "rn-progress-row" },
+          h("strong", null, "聊天时间线分析"),
+          h("span", null, " · " + (timeline.progress || "正在进行")),
+          bar(timeline.done, timeline.total, "聊天日期分析进度")
+        ) : null,
+        ...real.map((contact) => {
+          const cache = contact.autoAnalysis || {}, total = cache.totalMessages ?? buildAutoAnalysisPlan(contact).totalMessages;
+          return h(
+            "div",
+            { key: contact.id },
+            h("strong", null, contact.target),
+            h(
+              "span",
+              null,
+              " · " + (labels2[cache.status] || "等待自动分析") + " · " + (cache.coveredMessages || 0) + " / " + total + " 条"
+            ),
+            bar(cache.coveredMessages || 0, total, contact.target + " 自动分析进度"),
+            cache.paused || cache.status === "error" ? h("button", { type: "button", onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", onClick: () => onPause?.(contact.id) }, "暂停")
+          );
+        })
+      );
     };
   }
   function createInterpretationView(React2) {
@@ -35134,7 +36919,106 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setError("复制失败，请手动选择草稿。");
         }
       };
-      return h("section", { className: "rn-interpretations" }, h("h3", null, "可能解释与回复思路"), h("div", { role: "status", style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "nowrap", margin: "4px 0" } }, h("span", { style: { fontSize: 12, color: "var(--muted-foreground,var(--dsw-alias-label-secondary,#556659))", minWidth: 0 } }, status + " · " + (cache.coveredMessages || 0) + "/" + plan.totalMessages + (cache.error ? " · " + cache.error : "")), cache.paused || cache.status === "error" ? h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onResume?.(contact.id) }, cache.paused ? "继续" : "重试") : h("button", { type: "button", style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" }, onClick: () => onPause?.(contact.id) }, "暂停")), h("details", { className: "rn-metric-why" }, h("summary", null, "说明：怎么分析、有哪些限制"), h("p", null, "历史文本自动分批归纳并保留进度，再结合近期原文提出多种解释。图片、语音仅按已有文字占位处理，不进行媒体识别。无法知道对方真实想法。")), (!s?.provider || !s?.model) && h("div", { className: "rn-empty" }, h("strong", null, "未配置模型，自动分析保持等待"), h("p", null, "未配置模型时不会生成「可能解释」，也不会把聊天内容发送给模型；可以先用本地草稿和原文核对。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, h("button", { type: "button", className: "primary", onClick: () => onOpenSettings?.() }, "去设置选择模型"), h("details", null, h("summary", null, "查看如何配置"), h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型；配置后自动分析会继续。")))), cache.error && h("p", { role: "alert" }, cache.error), error && h("p", { role: "alert" }, error), ...(current ? cache.interpretations || [] : []).map((item, index) => h("article", { className: "rn-message", key: index }, h("strong", null, "可能解释 " + (index + 1)), h("p", null, item.explanation), h("p", null, "不确定性：" + item.uncertainty), h("details", null, h("summary", null, "原文依据"), ...(item.evidence || []).map((e, i) => h("blockquote", { key: i }, e.quote, onEvidence && h("button", { type: "button", onClick: () => onEvidence?.(e) }, "查看解释依据上下文")))), h("p", null, "回复思路：" + item.reply), h("button", { type: "button", onClick: () => copy(item.reply) }, "复制这条草稿"))));
+      return h(
+        "section",
+        { className: "rn-interpretations" },
+        h("h3", null, "可能解释与回复思路"),
+        h(
+          "div",
+          {
+            role: "status",
+            style: {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 6,
+              flexWrap: "nowrap",
+              margin: "4px 0"
+            }
+          },
+          h(
+            "span",
+            {
+              style: {
+                fontSize: 12,
+                color: "var(--muted-foreground,var(--dsw-alias-label-secondary,#556659))",
+                minWidth: 0
+              }
+            },
+            status + " · " + (cache.coveredMessages || 0) + "/" + plan.totalMessages + (cache.error ? " · " + cache.error : "")
+          ),
+          cache.paused || cache.status === "error" ? h(
+            "button",
+            {
+              type: "button",
+              style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" },
+              onClick: () => onResume?.(contact.id)
+            },
+            cache.paused ? "继续" : "重试"
+          ) : h(
+            "button",
+            {
+              type: "button",
+              style: { padding: "4px 8px", fontSize: 12, flex: "0 0 auto" },
+              onClick: () => onPause?.(contact.id)
+            },
+            "暂停"
+          )
+        ),
+        h(
+          "details",
+          { className: "rn-metric-why" },
+          h("summary", null, "说明：怎么分析、有哪些限制"),
+          h(
+            "p",
+            null,
+            "历史文本自动分批归纳并保留进度，再结合近期原文提出多种解释。图片、语音仅按已有文字占位处理，不进行媒体识别。无法知道对方真实想法。"
+          )
+        ),
+        (!s?.provider || !s?.model) && h(
+          "div",
+          { className: "rn-empty" },
+          h("strong", null, "未配置模型，自动分析保持等待"),
+          h("p", null, "未配置模型时不会生成「可能解释」，也不会把聊天内容发送给模型；可以先用本地草稿和原文核对。"),
+          h(
+            "div",
+            { className: "rn-actions", style: { justifyContent: "center" } },
+            h("button", { type: "button", className: "primary", onClick: () => onOpenSettings?.() }, "去设置选择模型"),
+            h(
+              "details",
+              null,
+              h("summary", null, "查看如何配置"),
+              h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型；配置后自动分析会继续。")
+            )
+          )
+        ),
+        cache.error && h("p", { role: "alert" }, cache.error),
+        error && h("p", { role: "alert" }, error),
+        ...(current ? cache.interpretations || [] : []).map(
+          (item, index) => h(
+            "article",
+            { className: "rn-message", key: index },
+            h("strong", null, "可能解释 " + (index + 1)),
+            h("p", null, item.explanation),
+            h("p", null, "不确定性：" + item.uncertainty),
+            h(
+              "details",
+              null,
+              h("summary", null, "原文依据"),
+              ...(item.evidence || []).map(
+                (e, i) => h(
+                  "blockquote",
+                  { key: i },
+                  e.quote,
+                  onEvidence && h("button", { type: "button", onClick: () => onEvidence?.(e) }, "查看解释依据上下文")
+                )
+              )
+            ),
+            h("p", null, "回复思路：" + item.reply),
+            h("button", { type: "button", onClick: () => copy(item.reply) }, "复制这条草稿")
+          )
+        )
+      );
     };
   }
 
@@ -35150,7 +37034,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         const close = (event) => {
           if (event.key === "Escape") onClose();
           if (event.key === "Tab" && root.current) {
-            const nodes = [...root.current.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')], first = nodes[0], last = nodes.at(-1), active = globalThis.document?.activeElement;
+            const nodes = [
+              ...root.current.querySelectorAll(
+                'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]'
+              )
+            ], first = nodes[0], last = nodes.at(-1), active = globalThis.document?.activeElement;
             if (!first) {
               event.preventDefault();
               root.current.focus();
@@ -35171,9 +37059,71 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       }, [reference]);
       if (!reference || !contact) return null;
       const result = E.resolveEvidenceContext(contact, reference, { radius: 3 });
-      return h("div", { className: "rn-evidence-overlay", style: { position: "fixed", inset: 0, zIndex: 1e3, background: "#0006", display: "grid", placeItems: "center", padding: 20 }, onClick: (event) => {
-        if (event.target === event.currentTarget) onClose();
-      } }, h("section", { ref: root, role: "dialog", "aria-modal": true, "aria-label": "原文上下文", tabIndex: -1, style: { background: "var(--background,var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-base,#fff)))", color: "var(--foreground,var(--dsw-alias-label-primary,#222))", maxWidth: 760, width: "100%", maxHeight: "85vh", overflow: "auto", padding: 20, borderRadius: 12 } }, h("h2", null, "原文上下文 · " + contact.target), h("button", { type: "button", onClick: onClose }, "关闭上下文"), result.status !== "found" ? h("p", { role: "status" }, result.status === "ambiguous" ? "发现多处相似原文，无法唯一定位。请回到聊天记录核对时间与发送者。" : "原文已不存在或引用信息不足，无法定位。") : result.context.map((row) => h("article", { key: row.message.messageId || row.index, style: { padding: 12, margin: "8px 0", border: row.focus ? "2px solid var(--primary,#54855b)" : "1px solid var(--border,var(--dsw-alias-border-l2,#ddd))", borderRadius: 8 }, "aria-label": row.focus ? "引用原文" : "上下文消息" }, h("small", null, [row.message.sender, row.message.timestamp || "", row.focus ? "引用位置" : ""].filter(Boolean).join(" · ")), h("p", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, row.message.text)))));
+      return h(
+        "div",
+        {
+          className: "rn-evidence-overlay",
+          style: {
+            position: "fixed",
+            inset: 0,
+            zIndex: 1e3,
+            background: "#0006",
+            display: "grid",
+            placeItems: "center",
+            padding: 20
+          },
+          onClick: (event) => {
+            if (event.target === event.currentTarget) onClose();
+          }
+        },
+        h(
+          "section",
+          {
+            ref: root,
+            role: "dialog",
+            "aria-modal": true,
+            "aria-label": "原文上下文",
+            tabIndex: -1,
+            style: {
+              background: "var(--background,var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-base,#fff)))",
+              color: "var(--foreground,var(--dsw-alias-label-primary,#222))",
+              maxWidth: 760,
+              width: "100%",
+              maxHeight: "85vh",
+              overflow: "auto",
+              padding: 20,
+              borderRadius: 12
+            }
+          },
+          h("h2", null, "原文上下文 · " + contact.target),
+          h("button", { type: "button", onClick: onClose }, "关闭上下文"),
+          result.status !== "found" ? h(
+            "p",
+            { role: "status" },
+            result.status === "ambiguous" ? "发现多处相似原文，无法唯一定位。请回到聊天记录核对时间与发送者。" : "原文已不存在或引用信息不足，无法定位。"
+          ) : result.context.map(
+            (row) => h(
+              "article",
+              {
+                key: row.message.messageId || row.index,
+                style: {
+                  padding: 12,
+                  margin: "8px 0",
+                  border: row.focus ? "2px solid var(--primary,#54855b)" : "1px solid var(--border,var(--dsw-alias-border-l2,#ddd))",
+                  borderRadius: 8
+                },
+                "aria-label": row.focus ? "引用原文" : "上下文消息"
+              },
+              h(
+                "small",
+                null,
+                [row.message.sender, row.message.timestamp || "", row.focus ? "引用位置" : ""].filter(Boolean).join(" · ")
+              ),
+              h("p", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, row.message.text)
+            )
+          )
+        )
+      );
     };
   }
 
@@ -35195,11 +37145,53 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         }
       };
       if (status === "pending") return h("p", null, "先确认资料，再管理有效期。");
-      return h("div", { className: "rn-actions" }, ["active", "expired"].includes(status) && h("label", null, "有效截止日期", h("input", { type: "date", value: date, onChange: (event) => setDate(event.target.value) })), ["active", "expired"].includes(status) && h("button", { type: "button", onClick: () => act({ type: "setExpiry", expiresAt: date || null }) }, date ? "保存截止日期" : "清除截止日期"), ["active", "expired"].includes(status) && ["followup", "recent", "agreement", "plans"].includes(fact.field) && h("button", { type: "button", onClick: () => act({ type: "complete" }) }, "标记已完成"), ["active", "expired"].includes(status) && ["followup", "recent", "agreement", "plans"].includes(fact.field) && h("button", { type: "button", onClick: () => act({ type: "cancel" }) }, "取消此事项"), status === "active" && h("button", { type: "button", onClick: () => act({ type: "expire" }) }, "标记已过期"), ["expired", "completed", "cancelled"].includes(status) && h("button", { type: "button", onClick: () => act({ type: "reopen" }) }, "重新打开"), error && h("p", { role: "alert" }, error));
+      return h(
+        "div",
+        { className: "rn-actions" },
+        ["active", "expired"].includes(status) && h(
+          "label",
+          null,
+          "有效截止日期",
+          h("input", { type: "date", value: date, onChange: (event) => setDate(event.target.value) })
+        ),
+        ["active", "expired"].includes(status) && h(
+          "button",
+          { type: "button", onClick: () => act({ type: "setExpiry", expiresAt: date || null }) },
+          date ? "保存截止日期" : "清除截止日期"
+        ),
+        ["active", "expired"].includes(status) && ["followup", "recent", "agreement", "plans"].includes(fact.field) && h("button", { type: "button", onClick: () => act({ type: "complete" }) }, "标记已完成"),
+        ["active", "expired"].includes(status) && ["followup", "recent", "agreement", "plans"].includes(fact.field) && h("button", { type: "button", onClick: () => act({ type: "cancel" }) }, "取消此事项"),
+        status === "active" && h("button", { type: "button", onClick: () => act({ type: "expire" }) }, "标记已过期"),
+        ["expired", "completed", "cancelled"].includes(status) && h("button", { type: "button", onClick: () => act({ type: "reopen" }) }, "重新打开"),
+        error && h("p", { role: "alert" }, error)
+      );
     }
     return function ProfileLifecycleView({ contact, onAction, onEvidence }) {
       const labels3 = { active: "有效", pending: "待确认", expired: "已过期", completed: "已完成", cancelled: "已取消" }, rows = E.profileRows(contact).filter((f) => !["deleted", "superseded", "archived"].includes(f.status));
-      return h("details", null, h("summary", null, "资料有效期与事项管理 · " + rows.length + " 条"), h("p", null, "过期、完成或取消的内容不会作为当前事实使用。重新打开是你的明确确认操作。"), ...rows.map((f) => h("article", { className: "rn-message", key: f.uid }, h("strong", null, labels3[E.profileFactStatus(f)] || f.status), h("p", null, f.value), f.expiresAt && h("small", null, "截止：" + expiryDate(f.expiresAt)), h(Controls, { fact: f, onAction }), f.quote && h("button", { type: "button", onClick: () => onEvidence({ sourceMessageIds: f.sourceMessageIds, message: f.message, quote: f.quote }) }, "查看来源上下文"))));
+      return h(
+        "details",
+        null,
+        h("summary", null, "资料有效期与事项管理 · " + rows.length + " 条"),
+        h("p", null, "过期、完成或取消的内容不会作为当前事实使用。重新打开是你的明确确认操作。"),
+        ...rows.map(
+          (f) => h(
+            "article",
+            { className: "rn-message", key: f.uid },
+            h("strong", null, labels3[E.profileFactStatus(f)] || f.status),
+            h("p", null, f.value),
+            f.expiresAt && h("small", null, "截止：" + expiryDate(f.expiresAt)),
+            h(Controls, { fact: f, onAction }),
+            f.quote && h(
+              "button",
+              {
+                type: "button",
+                onClick: () => onEvidence({ sourceMessageIds: f.sourceMessageIds, message: f.message, quote: f.quote })
+              },
+              "查看来源上下文"
+            )
+          )
+        )
+      );
     };
   }
 
@@ -35224,13 +37216,40 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setStatus(error.message);
         }
       };
-      return h("details", null, h("summary", null, "把编辑后的回复作为表达反馈"), h("p", null, "只有点击确认才保存到“我的档案”，不会从复制或发送状态自动学习。"), h("label", null, "这条表达哪里像我", h("input", { value: note, maxLength: 100, onChange: (event) => setNote(event.target.value), placeholder: "例如：句子短、不用表情" })), h("button", { type: "button", onClick: save }, "确认保存当前回复为本人样例"), undo && h("button", { type: "button", disabled: selfProfile !== undo.after, onClick: () => {
-        if (selfProfile === undo.after) {
-          onChange(undo.before);
-          setUndo(null);
-          setStatus("已撤销本次样例保存。");
-        }
-      } }, "撤销本次样例保存"), status && h("p", { role: "status" }, status));
+      return h(
+        "details",
+        null,
+        h("summary", null, "把编辑后的回复作为表达反馈"),
+        h("p", null, "只有点击确认才保存到“我的档案”，不会从复制或发送状态自动学习。"),
+        h(
+          "label",
+          null,
+          "这条表达哪里像我",
+          h("input", {
+            value: note,
+            maxLength: 100,
+            onChange: (event) => setNote(event.target.value),
+            placeholder: "例如：句子短、不用表情"
+          })
+        ),
+        h("button", { type: "button", onClick: save }, "确认保存当前回复为本人样例"),
+        undo && h(
+          "button",
+          {
+            type: "button",
+            disabled: selfProfile !== undo.after,
+            onClick: () => {
+              if (selfProfile === undo.after) {
+                onChange(undo.before);
+                setUndo(null);
+                setStatus("已撤销本次样例保存。");
+              }
+            }
+          },
+          "撤销本次样例保存"
+        ),
+        status && h("p", { role: "status" }, status)
+      );
     };
   }
 
@@ -35239,14 +37258,81 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const h = React2.createElement;
     const compact = { padding: "2px 6px", fontSize: 12, flex: "0 0 auto" };
     return function TopicSuggestionsView({ result, onFeedback, onEvidence }) {
-      const heading = h("h3", { style: { margin: 0, fontSize: 13, whiteSpace: "nowrap" } }, "下一步建议"), acts = (item, suppressed) => item.type === "topic" ? suppressed ? [h("button", { type: "button", key: "reset", style: compact, onClick: () => onFeedback(item, "reset") }, "恢复此话题")] : [h("button", { type: "button", key: "discussed", style: compact, onClick: () => onFeedback(item, "discussed") }, "已经聊过"), h("button", { type: "button", key: "unsuitable", style: compact, onClick: () => onFeedback(item, "unsuitable") }, "不合适")] : [];
+      const heading = h("h3", { style: { margin: 0, fontSize: 13, whiteSpace: "nowrap" } }, "下一步建议"), acts = (item, suppressed) => item.type === "topic" ? suppressed ? [
+        h(
+          "button",
+          { type: "button", key: "reset", style: compact, onClick: () => onFeedback(item, "reset") },
+          "恢复此话题"
+        )
+      ] : [
+        h(
+          "button",
+          { type: "button", key: "discussed", style: compact, onClick: () => onFeedback(item, "discussed") },
+          "已经聊过"
+        ),
+        h(
+          "button",
+          { type: "button", key: "unsuitable", style: compact, onClick: () => onFeedback(item, "unsuitable") },
+          "不合适"
+        )
+      ] : [];
       const text = (b) => b.description + (b.quote ? "：" + b.quote : "");
       const render = (item, suppressed = false, label = null) => {
-        const basis = item.basis || [], risk = item.risk || "供你选择", last = basis.length - 1, cells = basis.map((b, i) => h("small", { key: "b" + i, style: { minWidth: 0, flex: "1 1 110px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }, title: text(b) + (i === last ? " · " + risk : "") }, text(b) + (i === last ? " · " + risk : "")));
+        const basis = item.basis || [], risk = item.risk || "供你选择", last = basis.length - 1, cells = basis.map(
+          (b, i) => h(
+            "small",
+            {
+              key: "b" + i,
+              style: {
+                minWidth: 0,
+                flex: "1 1 110px",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden"
+              },
+              title: text(b) + (i === last ? " · " + risk : "")
+            },
+            text(b) + (i === last ? " · " + risk : "")
+          )
+        );
         if (!basis.length) cells.push(h("small", { key: "risk", style: { minWidth: 0 } }, risk));
-        return h("article", { className: "rn-message", key: item.id }, h("div", { style: { display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap", minWidth: 0 } }, label, h("p", { style: { margin: 0, minWidth: 0, flex: "1 1 140px" } }, item.text)), h("div", { style: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 } }, ...cells, basis[0] && basis[0].quote && h("button", { type: "button", style: compact, onClick: () => onEvidence(basis[0]) }, "上下文"), ...acts(item, suppressed)));
+        return h(
+          "article",
+          { className: "rn-message", key: item.id },
+          h(
+            "div",
+            { style: { display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap", minWidth: 0 } },
+            label,
+            h("p", { style: { margin: 0, minWidth: 0, flex: "1 1 140px" } }, item.text)
+          ),
+          h(
+            "div",
+            { style: { display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 } },
+            ...cells,
+            basis[0] && basis[0].quote && h("button", { type: "button", style: compact, onClick: () => onEvidence(basis[0]) }, "上下文"),
+            ...acts(item, suppressed)
+          )
+        );
       };
-      return h("section", { className: "rn-session-suggestions" }, ...(result.suggestions || []).map((item, index) => render(item, false, index === 0 ? heading : null)), !result.suggestions?.length && h("div", { style: { display: "flex", alignItems: "baseline", gap: 6 } }, heading, h("p", { style: { margin: 0 } }, "暂无新的合适话题，可先等待对方回应或补充近况。")), h("details", { className: "rn-metric-why" }, h("summary", null, "口径说明"), h("small", null, result.disclaimer)), (result.suppressed || []).length > 0 && h("details", null, h("summary", null, "已隐藏的话题 · " + result.suppressed.length), ...result.suppressed.map((item) => render(item, true))));
+      return h(
+        "section",
+        { className: "rn-session-suggestions" },
+        ...(result.suggestions || []).map((item, index) => render(item, false, index === 0 ? heading : null)),
+        !result.suggestions?.length && h(
+          "div",
+          { style: { display: "flex", alignItems: "baseline", gap: 6 } },
+          heading,
+          h("p", { style: { margin: 0 } }, "暂无新的合适话题，可先等待对方回应或补充近况。")
+        ),
+        h("details", { className: "rn-metric-why" }, h("summary", null, "口径说明"), h("small", null, result.disclaimer)),
+        (result.suppressed || []).length > 0 && h(
+          "details",
+          null,
+          h("summary", null, "已隐藏的话题 · " + result.suppressed.length),
+          ...result.suppressed.map((item) => render(item, true))
+        )
+      );
     };
   }
 
@@ -35261,7 +37347,99 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       } catch (err) {
         error = err.message;
       }
-      return h("section", { className: "rn-box" }, h("h2", null, "周 / 月沟通复盘"), h("div", { className: "rn-form" }, h("label", null, "复盘周期", h("select", { value: period, onChange: (event) => onPreferencesChange({ period: event.target.value, anchor }) }, h("option", { value: "week" }, "本周（周一至周日）"), h("option", { value: "month" }, "本月"))), h("label", null, "选择所在日期", h("input", { type: "date", value: anchor, onChange: (event) => onPreferencesChange({ period, anchor: event.target.value }) }))), error ? h("p", { role: "alert" }, error) : h("div", null, result.summary && h("p", null, result.summary), h("p", null, result.start + " 至 " + result.end + " · 共 " + result.messageCount + " 条（我 " + result.selfCount + " / 对方 " + result.targetCount + "）"), h("h3", null, "本期常见话题"), ...result.topics.map((topic) => h("details", { key: topic.label }, h("summary", null, topic.label + (topic.keywords?.length ? "（" + topic.keywords.join("、") + "）" : "") + " · " + topic.count + " 条"), ...topic.evidence.map((e, index) => h("p", { key: index }, e.quote, h("button", { type: "button", onClick: () => onEvidence(e) }, "查看上下文"))))), !result.topics.length && h("p", null, "本期暂无匹配话题。你可以补充聊天记录，或多聊几轮后自动归类。"), h("h3", null, "可能尚未回应的问题"), ...result.unanswered.map((e, index) => h("p", { key: index }, e.quote, h("button", { type: "button", onClick: () => onEvidence(e) }, "查看问题上下文"))), !result.unanswered.length && h("p", null, "未发现尚无本人后续回应的问题。你可以到「会话」里翻看原文再判断。"), h("h3", null, "当前待跟进事项（不限本期）"), ...result.followups.map((fact, index) => h("p", { key: fact.uid || index }, fact.value, fact.quote && h("button", { type: "button", onClick: () => onEvidence({ sourceMessageIds: fact.sourceMessageIds, message: fact.message, quote: fact.quote }) }, "查看事项来源"))), result.unknownDateCount > 0 && h("p", null, result.unknownDateCount + " 条消息日期未知，未计入本期统计。"), h("small", null, result.disclaimer)));
+      return h(
+        "section",
+        { className: "rn-box" },
+        h("h2", null, "周 / 月沟通复盘"),
+        h(
+          "div",
+          { className: "rn-form" },
+          h(
+            "label",
+            null,
+            "复盘周期",
+            h(
+              "select",
+              { value: period, onChange: (event) => onPreferencesChange({ period: event.target.value, anchor }) },
+              h("option", { value: "week" }, "本周（周一至周日）"),
+              h("option", { value: "month" }, "本月")
+            )
+          ),
+          h(
+            "label",
+            null,
+            "选择所在日期",
+            h("input", {
+              type: "date",
+              value: anchor,
+              onChange: (event) => onPreferencesChange({ period, anchor: event.target.value })
+            })
+          )
+        ),
+        error ? h("p", { role: "alert" }, error) : h(
+          "div",
+          null,
+          result.summary && h("p", null, result.summary),
+          h(
+            "p",
+            null,
+            result.start + " 至 " + result.end + " · 共 " + result.messageCount + " 条（我 " + result.selfCount + " / 对方 " + result.targetCount + "）"
+          ),
+          h("h3", null, "本期常见话题"),
+          ...result.topics.map(
+            (topic) => h(
+              "details",
+              { key: topic.label },
+              h(
+                "summary",
+                null,
+                topic.label + (topic.keywords?.length ? "（" + topic.keywords.join("、") + "）" : "") + " · " + topic.count + " 条"
+              ),
+              ...topic.evidence.map(
+                (e, index) => h(
+                  "p",
+                  { key: index },
+                  e.quote,
+                  h("button", { type: "button", onClick: () => onEvidence(e) }, "查看上下文")
+                )
+              )
+            )
+          ),
+          !result.topics.length && h("p", null, "本期暂无匹配话题。你可以补充聊天记录，或多聊几轮后自动归类。"),
+          h("h3", null, "可能尚未回应的问题"),
+          ...result.unanswered.map(
+            (e, index) => h(
+              "p",
+              { key: index },
+              e.quote,
+              h("button", { type: "button", onClick: () => onEvidence(e) }, "查看问题上下文")
+            )
+          ),
+          !result.unanswered.length && h("p", null, "未发现尚无本人后续回应的问题。你可以到「会话」里翻看原文再判断。"),
+          h("h3", null, "当前待跟进事项（不限本期）"),
+          ...result.followups.map(
+            (fact, index) => h(
+              "p",
+              { key: fact.uid || index },
+              fact.value,
+              fact.quote && h(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => onEvidence({
+                    sourceMessageIds: fact.sourceMessageIds,
+                    message: fact.message,
+                    quote: fact.quote
+                  })
+                },
+                "查看事项来源"
+              )
+            )
+          ),
+          result.unknownDateCount > 0 && h("p", null, result.unknownDateCount + " 条消息日期未知，未计入本期统计。"),
+          h("small", null, result.disclaimer)
+        )
+      );
     };
   }
 
@@ -35269,7 +37447,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   function createShareScopeView(React2, E) {
     const h = React2.createElement;
     return function ShareScopeView({ contact, scope = {}, onApply }) {
-      const [draft, setDraft] = React2.useState(() => ({ since: scope.since || "", until: scope.until || "", limit: scope.limit || 500 })), [status, setStatus] = React2.useState("");
+      const [draft, setDraft] = React2.useState(() => ({
+        since: scope.since || "",
+        until: scope.until || "",
+        limit: scope.limit || 500
+      })), [status, setStatus] = React2.useState("");
       React2.useEffect(() => {
         setDraft({ since: scope.since || "", until: scope.until || "", limit: scope.limit || 500 });
         setStatus("");
@@ -35285,10 +37467,66 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         setDraft({ ...draft, [name]: value });
         setStatus("");
       };
-      return h("details", null, h("summary", null, "预览并限定 DSH 读取范围"), h("div", { className: "rn-form" }, h("label", null, "起始日期（可空）", h("input", { type: "date", value: draft.since, onChange: (event) => field("since", event.target.value) })), h("label", null, "结束日期（可空）", h("input", { type: "date", value: draft.until, onChange: (event) => field("until", event.target.value) })), h("label", null, "最近消息上限（1–500）", h("input", { type: "number", min: 1, max: 500, value: draft.limit, onChange: (event) => field("limit", Number(event.target.value)) }))), error ? h("p", { role: "alert" }, error) : h("div", null, h("p", null, "将读取 " + preview.contact.target + " 的 " + preview.messageCount + " / " + preview.totalCount + " 条消息，首条 " + (preview.firstTimestamp || "无") + "，末条 " + (preview.lastTimestamp || "无") + "。"), h("p", null, "已确认档案条目仍全部可读；日期筛选只限制聊天原文。未知日期已包含 " + (preview.includedUnknownTime || 0) + " 条、排除 " + preview.excludedUnknownTime + " 条，长消息截短 " + preview.textTruncatedCount + " 条，每条最多 " + preview.maxTextLength + " 字符。")), h("button", { type: "button", disabled: Boolean(error), onClick: () => {
-        onApply(draft);
-        setStatus("范围已保存。请按新范围重新开启共享授权；此操作本身不会开启共享。");
-      } }, "应用读取范围"), status && h("p", { role: "status" }, status));
+      return h(
+        "details",
+        null,
+        h("summary", null, "预览并限定 DSH 读取范围"),
+        h(
+          "div",
+          { className: "rn-form" },
+          h(
+            "label",
+            null,
+            "起始日期（可空）",
+            h("input", { type: "date", value: draft.since, onChange: (event) => field("since", event.target.value) })
+          ),
+          h(
+            "label",
+            null,
+            "结束日期（可空）",
+            h("input", { type: "date", value: draft.until, onChange: (event) => field("until", event.target.value) })
+          ),
+          h(
+            "label",
+            null,
+            "最近消息上限（1–500）",
+            h("input", {
+              type: "number",
+              min: 1,
+              max: 500,
+              value: draft.limit,
+              onChange: (event) => field("limit", Number(event.target.value))
+            })
+          )
+        ),
+        error ? h("p", { role: "alert" }, error) : h(
+          "div",
+          null,
+          h(
+            "p",
+            null,
+            "将读取 " + preview.contact.target + " 的 " + preview.messageCount + " / " + preview.totalCount + " 条消息，首条 " + (preview.firstTimestamp || "无") + "，末条 " + (preview.lastTimestamp || "无") + "。"
+          ),
+          h(
+            "p",
+            null,
+            "已确认档案条目仍全部可读；日期筛选只限制聊天原文。未知日期已包含 " + (preview.includedUnknownTime || 0) + " 条、排除 " + preview.excludedUnknownTime + " 条，长消息截短 " + preview.textTruncatedCount + " 条，每条最多 " + preview.maxTextLength + " 字符。"
+          )
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            disabled: Boolean(error),
+            onClick: () => {
+              onApply(draft);
+              setStatus("范围已保存。请按新范围重新开启共享授权；此操作本身不会开启共享。");
+            }
+          },
+          "应用读取范围"
+        ),
+        status && h("p", { role: "status" }, status)
+      );
     };
   }
 
@@ -35299,7 +37537,36 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const [date, setDate] = React2.useState(String(plan.expiresAt || "").slice(0, 10));
       React2.useEffect(() => setDate(String(plan.expiresAt || "").slice(0, 10)), [plan.expiresAt, plan.text]);
       const status = (plan.planState || "active") === "active" && plan.expiresAt && E.profileExpiryTime(plan.expiresAt) < Date.now() ? "expired" : plan.planState || "active", act = (type) => onAction(index, { type });
-      return h("article", { className: "rn-message" }, h("p", null, plan.text), h("small", null, { active: "进行中", completed: "已完成", cancelled: "已取消", expired: "已过期" }[status] || status), h("label", null, "有效截止日期", h("input", { type: "date", value: date, onChange: (event) => setDate(event.target.value) })), h("div", { className: "rn-actions" }, h("button", { type: "button", onClick: () => onAction(index, { type: "setExpiry", expiresAt: date || null }) }, date ? "保存截止日期" : "清除截止日期"), status === "active" ? [h("button", { type: "button", key: "complete", onClick: () => act("complete") }, "完成计划"), h("button", { type: "button", key: "cancel", onClick: () => act("cancel") }, "取消计划"), h("button", { type: "button", key: "expire", onClick: () => act("expire") }, "标记计划过期")] : h("button", { type: "button", onClick: () => act("reopen") }, "重新开始计划")));
+      return h(
+        "article",
+        { className: "rn-message" },
+        h("p", null, plan.text),
+        h(
+          "small",
+          null,
+          { active: "进行中", completed: "已完成", cancelled: "已取消", expired: "已过期" }[status] || status
+        ),
+        h(
+          "label",
+          null,
+          "有效截止日期",
+          h("input", { type: "date", value: date, onChange: (event) => setDate(event.target.value) })
+        ),
+        h(
+          "div",
+          { className: "rn-actions" },
+          h(
+            "button",
+            { type: "button", onClick: () => onAction(index, { type: "setExpiry", expiresAt: date || null }) },
+            date ? "保存截止日期" : "清除截止日期"
+          ),
+          status === "active" ? [
+            h("button", { type: "button", key: "complete", onClick: () => act("complete") }, "完成计划"),
+            h("button", { type: "button", key: "cancel", onClick: () => act("cancel") }, "取消计划"),
+            h("button", { type: "button", key: "expire", onClick: () => act("expire") }, "标记计划过期")
+          ] : h("button", { type: "button", onClick: () => act("reopen") }, "重新开始计划")
+        )
+      );
     }
     return function SelfPlanView({ profile, onChange }) {
       const [error, setError] = React2.useState(""), act = (index, action) => {
@@ -35310,7 +37577,14 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           setError(err.message);
         }
       };
-      return h("details", null, h("summary", null, "我的计划状态与有效期"), ...E.normalizeSelfProfile(profile).plans.map((plan, index) => h(Row, { key: index, plan, index, onAction: act })), !profile?.plans?.length && h("p", null, "先在近期计划中填写并保存。"), error && h("p", { role: "alert" }, error));
+      return h(
+        "details",
+        null,
+        h("summary", null, "我的计划状态与有效期"),
+        ...E.normalizeSelfProfile(profile).plans.map((plan, index) => h(Row, { key: index, plan, index, onAction: act })),
+        !profile?.plans?.length && h("p", null, "先在近期计划中填写并保存。"),
+        error && h("p", { role: "alert" }, error)
+      );
     };
   }
 
@@ -35324,30 +37598,61 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!result) return { rows: [], sum: 0, factor: 1, raw: null };
     const rows = dimensions.map((d) => {
       const dim = result.dims[d.key];
-      return { key: d.key, label: d.label, weight: d.weight, rule: dim.rule, n: dim.n, estimate: dim.estimate, contribution: 100 * d.weight * dim.estimate };
+      return {
+        key: d.key,
+        label: d.label,
+        weight: d.weight,
+        rule: dim.rule,
+        n: dim.n,
+        estimate: dim.estimate,
+        contribution: 100 * d.weight * dim.estimate
+      };
     });
     const sum = rows.reduce((total, row) => total + row.contribution, 0), factor = 1 - 0.6 * result.friction.estimate;
     return { rows, sum, factor, raw: sum * factor };
   }
   function conclusion(day, result, basis) {
     if (!result) return "当天没有可识别的回合。";
-    if (!result.scored) return `对方当天没有可评分的回合（我方 ${day.selfTurns || 0} 个回合），互动过程无从观察，不评分。这不是 0 分，也不会拉低月、年结果。`;
+    if (!result.scored)
+      return `对方当天没有可评分的回合（我方 ${day.selfTurns || 0} 个回合），互动过程无从观察，不评分。这不是 0 分，也不会拉低月、年结果。`;
     const sorted = [...basis.rows].sort((a, b) => b.estimate - 0.5 - (a.estimate - 0.5)), high = sorted.filter((row) => row.estimate > 0.55).slice(0, 2), low = sorted.filter((row) => row.estimate < 0.45).reverse().slice(0, 2);
-    const parts = [`当天关系指数 ${result.index}（80% 区间 ${result.low}–${result.high}，${RELIABILITY[result.reliability]}）。`];
-    if (high.length) parts.push("高于中性的维度：" + high.map((row) => row.label + " " + fmt(row.estimate)).join("、") + "。");
-    if (low.length) parts.push("低于中性的维度：" + low.map((row) => row.label + " " + fmt(row.estimate)).join("、") + "。");
+    const parts = [
+      `当天关系指数 ${result.index}（80% 区间 ${result.low}–${result.high}，${RELIABILITY[result.reliability]}）。`
+    ];
+    if (high.length)
+      parts.push("高于中性的维度：" + high.map((row) => row.label + " " + fmt(row.estimate)).join("、") + "。");
+    if (low.length)
+      parts.push("低于中性的维度：" + low.map((row) => row.label + " " + fmt(row.estimate)).join("、") + "。");
     if (!high.length && !low.length) parts.push("各维度都接近中性 0.5：当天证据较少，估计被收缩到中性附近。");
-    if (result.friction.estimate > 0) parts.push(`摩擦 ${fmt(result.friction.estimate)}，指数乘以 ${fmt(basis.factor)}。`);
+    if (result.friction.estimate > 0)
+      parts.push(`摩擦 ${fmt(result.friction.estimate)}，指数乘以 ${fmt(basis.factor)}。`);
     if (result.boundary.rule) parts.push("当天出现明确的拒绝或边界表达，指数封顶 30。");
     return parts.join("");
   }
   function createScoringBasisView(React2, E) {
     const h = React2.createElement;
     return function ScoringBasisView({ contact, date = "", onDateChange, onOpenDaily, onOpenRules, onOpenInsight }) {
-      if (!contact) return h("section", { className: "rn-box" }, h("h2", null, "打分依据"), h("p", { className: "rn-muted" }, "先选择一个联系人。"));
-      const timeline = E.analyzeDailyTimeline(contact.messages || [], contact.self, contact.target, contact.interactionCorrections || []);
+      if (!contact)
+        return h(
+          "section",
+          { className: "rn-box" },
+          h("h2", null, "打分依据"),
+          h("p", { className: "rn-muted" }, "先选择一个联系人。")
+        );
+      const timeline = E.analyzeDailyTimeline(
+        contact.messages || [],
+        contact.self,
+        contact.target,
+        contact.interactionCorrections || []
+      );
       const days = timeline.days || [];
-      if (!days.length) return h("section", { className: "rn-box" }, h("h2", null, "打分依据"), h("p", { className: "rn-muted" }, "当前联系人还没有带日期的聊天记录，无法拆解打分。"));
+      if (!days.length)
+        return h(
+          "section",
+          { className: "rn-box" },
+          h("h2", null, "打分依据"),
+          h("p", { className: "rn-muted" }, "当前联系人还没有带日期的聊天记录，无法拆解打分。")
+        );
       const foundIndex = days.findIndex((day2) => day2.date === date);
       const index = foundIndex >= 0 ? foundIndex : days.length - 1;
       const day = days[index], result = day.v3 || null, basis = basisRows(result, E.DIMENSIONS), signals = day.v3Signals;
@@ -35359,7 +37664,19 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const quotes = (key) => {
         const list = (signals?.evidence?.[key] || []).filter((item) => item.quote);
         if (!list.length) return h("span", { className: "rn-muted" }, "—");
-        return h("details", null, h("summary", { "aria-label": "展开命中原文" }, list.length + " 条原文"), ...list.map((item, i) => h("blockquote", { key: i, style: SMALL }, h("small", { className: "rn-muted" }, item.label + "："), item.quote)));
+        return h(
+          "details",
+          null,
+          h("summary", { "aria-label": "展开命中原文" }, list.length + " 条原文"),
+          ...list.map(
+            (item, i) => h(
+              "blockquote",
+              { key: i, style: SMALL },
+              h("small", { className: "rn-muted" }, item.label + "："),
+              item.quote
+            )
+          )
+        );
       };
       const facts = signals ? {
         responsiveness: `我方邀请 ${signals.bids.toward + signals.bids.away + signals.bids.against + signals.bids.unanswered} 次：转向 ${signals.bids.toward}、转离 ${signals.bids.away}、对立 ${signals.bids.against}、未回复 ${signals.bids.unanswered}`,
@@ -35369,39 +37686,135 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         engagement: `对方主动开启 ${signals.target.starts} 次，提问或分享 ${signals.target.bids} 回合`,
         coordination: signals.lsm === null ? `字数不足（较少一方 ${signals.lsmChars} 字，需 ≥ 40）` : `LSM ${fmt(signals.lsm)}（较少一方 ${signals.lsmChars} 字）`
       } : {};
-      const metrics = [[day.messages.length, "当天条数"], [day.turns, "交流轮次"], [day.targetTurns || 0, "对方回合"], [result?.scored ? result.index : "未评分", "关系指数"], [result?.scored ? `${result.low}–${result.high}` : "—", "80% 区间"]];
-      const metricCards = metrics.map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value)));
+      const metrics = [
+        [day.messages.length, "当天条数"],
+        [day.turns, "交流轮次"],
+        [day.targetTurns || 0, "对方回合"],
+        [result?.scored ? result.index : "未评分", "关系指数"],
+        [result?.scored ? `${result.low}–${result.high}` : "—", "80% 区间"]
+      ];
+      const metricCards = metrics.map(
+        ([value, label]) => h(
+          "div",
+          { className: "rn-metric", key: label },
+          h("span", { className: "rn-muted" }, label),
+          h("strong", null, value)
+        )
+      );
       const toolbar = h(
         "div",
         { className: "rn-form", style: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" } },
         h(
           "div",
           { style: { display: "flex", gap: 8, alignItems: "center" } },
-          h("button", { type: "button", style: NAV_STYLE, "aria-label": "前一天", disabled: index <= 0, onClick: () => go(-1) }, "‹ 前一天"),
-          h("button", { type: "button", style: NAV_STYLE, "aria-label": "后一天", disabled: index >= days.length - 1, onClick: () => go(1) }, "后一天 ›")
+          h(
+            "button",
+            { type: "button", style: NAV_STYLE, "aria-label": "前一天", disabled: index <= 0, onClick: () => go(-1) },
+            "‹ 前一天"
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              style: NAV_STYLE,
+              "aria-label": "后一天",
+              disabled: index >= days.length - 1,
+              onClick: () => go(1)
+            },
+            "后一天 ›"
+          )
         ),
-        h("label", { style: { width: 190 } }, h("span", null, "选择日期"), h("input", { type: "date", value: day.date, "aria-label": "查看某天的打分依据", onChange: (event) => onDateChange && onDateChange(event.target.value) })),
-        h("button", { type: "button", style: NAV_STYLE, onClick: () => onDateChange && onDateChange(days[days.length - 1].date) }, "回到最近有记录日"),
-        h("button", { type: "button", style: NAV_STYLE, onClick: () => onOpenDaily && onOpenDaily(day.date) }, "查看当天聊天记录")
+        h(
+          "label",
+          { style: { width: 190 } },
+          h("span", null, "选择日期"),
+          h("input", {
+            type: "date",
+            value: day.date,
+            "aria-label": "查看某天的打分依据",
+            onChange: (event) => onDateChange && onDateChange(event.target.value)
+          })
+        ),
+        h(
+          "button",
+          { type: "button", style: NAV_STYLE, onClick: () => onDateChange && onDateChange(days[days.length - 1].date) },
+          "回到最近有记录日"
+        ),
+        h(
+          "button",
+          { type: "button", style: NAV_STYLE, onClick: () => onOpenDaily && onOpenDaily(day.date) },
+          "查看当天聊天记录"
+        )
       );
-      const position = h("p", { className: "rn-muted", style: SMALL }, foundIndex >= 0 ? "第 " + (index + 1) + " / " + days.length + " 个有记录日。" : day.date + " 没有可识别的记录，已显示最近有记录的一天（" + day.date + "）。");
-      const tableHead = h("thead", null, h("tr", null, ...["维度", "规则观测", "x", "证据量 n", "收缩估计 d", "权重", "贡献 100·w·d", "命中原文"].map((label, i) => h("th", { key: i }, label))));
-      const rows = basis.rows.map((row) => h(
+      const position = h(
+        "p",
+        { className: "rn-muted", style: SMALL },
+        foundIndex >= 0 ? "第 " + (index + 1) + " / " + days.length + " 个有记录日。" : day.date + " 没有可识别的记录，已显示最近有记录的一天（" + day.date + "）。"
+      );
+      const tableHead = h(
+        "thead",
+        null,
+        h(
+          "tr",
+          null,
+          ...["维度", "规则观测", "x", "证据量 n", "收缩估计 d", "权重", "贡献 100·w·d", "命中原文"].map(
+            (label, i) => h("th", { key: i }, label)
+          )
+        )
+      );
+      const rows = basis.rows.map(
+        (row) => h(
+          "tr",
+          { key: row.key },
+          h("td", null, h("strong", null, row.label)),
+          h("td", { style: SMALL }, facts[row.key] || "—"),
+          h("td", null, fmt(row.rule)),
+          h("td", null, row.n),
+          h("td", null, h("strong", null, fmt(row.estimate))),
+          h("td", null, Math.round(row.weight * 100) + "%"),
+          h("td", null, fmt(row.contribution)),
+          h("td", null, quotes(row.key))
+        )
+      );
+      const frictionRow = result && h(
         "tr",
-        { key: row.key },
-        h("td", null, h("strong", null, row.label)),
-        h("td", { style: SMALL }, facts[row.key] || "—"),
-        h("td", null, fmt(row.rule)),
-        h("td", null, row.n),
-        h("td", null, h("strong", null, fmt(row.estimate))),
-        h("td", null, Math.round(row.weight * 100) + "%"),
-        h("td", null, fmt(row.contribution)),
-        h("td", null, quotes(row.key))
-      ));
-      const frictionRow = result && h("tr", { key: "friction" }, h("td", null, h("strong", null, "摩擦与修复")), h("td", { style: SMALL }, signals ? `摩擦 ${signals.target.conflict}、敷衍或低信息量 ${signals.target.empty}、修复 ${signals.target.repair}` : "—"), h("td", null, fmt(result.friction.rule)), h("td", null, result.friction.n), h("td", null, h("strong", null, fmt(result.friction.estimate))), h("td", null, "—"), h("td", null, "× " + fmt(basis.factor)), h("td", null, quotes("friction")));
-      const boundaryRow = result && h("tr", { key: "boundary" }, h("td", null, h("strong", null, "明确边界")), h("td", { style: SMALL }, result.boundary.rule ? `${result.boundary.count} 个回合` : "未出现"), h("td", null, "—"), h("td", null, "—"), h("td", null, "—"), h("td", null, "—"), h("td", null, result.boundary.rule ? "封顶 30" : "—"), h("td", null, quotes("boundary")));
-      const table = h("table", { "aria-label": "当天关系指数分项拆解" }, tableHead, h("tbody", null, ...rows, frictionRow, boundaryRow));
-      const total = result?.scored ? h("p", { className: "rn-muted", style: SMALL }, `合计：Σ 贡献 ${fmt(basis.sum)} × 摩擦系数 ${fmt(basis.factor)} = ${fmt(basis.raw)}${result.boundary.rule ? " → 边界封顶 30" : ""} → 关系指数 ${result.index}。维度估计 d = (n·x + 4·0.5) ÷ (n + 4)，没有观测时 d = 0.5。`) : null;
+        { key: "friction" },
+        h("td", null, h("strong", null, "摩擦与修复")),
+        h(
+          "td",
+          { style: SMALL },
+          signals ? `摩擦 ${signals.target.conflict}、敷衍或低信息量 ${signals.target.empty}、修复 ${signals.target.repair}` : "—"
+        ),
+        h("td", null, fmt(result.friction.rule)),
+        h("td", null, result.friction.n),
+        h("td", null, h("strong", null, fmt(result.friction.estimate))),
+        h("td", null, "—"),
+        h("td", null, "× " + fmt(basis.factor)),
+        h("td", null, quotes("friction"))
+      );
+      const boundaryRow = result && h(
+        "tr",
+        { key: "boundary" },
+        h("td", null, h("strong", null, "明确边界")),
+        h("td", { style: SMALL }, result.boundary.rule ? `${result.boundary.count} 个回合` : "未出现"),
+        h("td", null, "—"),
+        h("td", null, "—"),
+        h("td", null, "—"),
+        h("td", null, "—"),
+        h("td", null, result.boundary.rule ? "封顶 30" : "—"),
+        h("td", null, quotes("boundary"))
+      );
+      const table = h(
+        "table",
+        { "aria-label": "当天关系指数分项拆解" },
+        tableHead,
+        h("tbody", null, ...rows, frictionRow, boundaryRow)
+      );
+      const total = result?.scored ? h(
+        "p",
+        { className: "rn-muted", style: SMALL },
+        `合计：Σ 贡献 ${fmt(basis.sum)} × 摩擦系数 ${fmt(basis.factor)} = ${fmt(basis.raw)}${result.boundary.rule ? " → 边界封顶 30" : ""} → 关系指数 ${result.index}。维度估计 d = (n·x + 4·0.5) ÷ (n + 4)，没有观测时 d = 0.5。`
+      ) : null;
       const periodLine = h(
         "p",
         { className: "rn-muted", style: SMALL },
@@ -35423,28 +37836,84 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         h(
           "div",
           { style: { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 } },
-          h("button", { type: "button", style: NAV_STYLE, onClick: () => onOpenRules && onOpenRules() }, "查看完整评分规则"),
+          h(
+            "button",
+            { type: "button", style: NAV_STYLE, onClick: () => onOpenRules && onOpenRules() },
+            "查看完整评分规则"
+          ),
           onOpenInsight && h("button", { type: "button", style: NAV_STYLE, onClick: onOpenInsight }, "查看关系分析（含 AI 评定）"),
-          h("button", { type: "button", style: NAV_STYLE, onClick: () => onOpenDaily && onOpenDaily(day.date) }, "打开每日历程")
+          h(
+            "button",
+            { type: "button", style: NAV_STYLE, onClick: () => onOpenDaily && onOpenDaily(day.date) },
+            "打开每日历程"
+          )
         ),
-        h("p", { className: "rn-muted", style: SMALL }, "与每日历程、互动评分、月/年图表和关系分析页同一套公式。AI 评定按周进行，只在关系分析页的周指数中融合。权重与参数未经真实结果校准，不表示好感概率。")
+        h(
+          "p",
+          { className: "rn-muted", style: SMALL },
+          "与每日历程、互动评分、月/年图表和关系分析页同一套公式。AI 评定按周进行，只在关系分析页的周指数中融合。权重与参数未经真实结果校准，不表示好感概率。"
+        )
       );
     };
   }
 
   // src/views/scoring-rules.js
   var RECOGNITION_RULES = Object.freeze([
-    { id: "turns", title: "回合与对话段", detail: "同一人相邻消息间隔不超过 3 分钟合为一个回合；首次发言或与上一回合末尾间隔达到 120 分钟开启新对话段，该回合记为一次主动开启。时间按上海时区归入日期，周从周一开始。" },
-    { id: "bids", title: "连接邀请与回应", detail: "我方提问或分享的回合是一次连接邀请。对方下一回合：回答、承接、表达支持/具体感谢，或在同一对话段就该话题追问 → 转向；带摩擦或明确拒绝 → 对立；其他 → 转离；下一回合不是对方或间隔 ≥ 24 小时 → 未回复，不计入回应性分母。" },
-    { id: "answer", title: "回答与承接", detail: "结合上一轮的问题、建议与话题判断：时间、地点、数量与是非问题分别匹配答案特征；话题承接要求词语关联或同类主题。单次应和与笑声按中性处理。回答与承接同一回合只计一次。" },
-    { id: "question", title: "提问", detail: "按分句检查问号、句末吗/嘛或明确征询词，排除反问；礼貌性道谢不屏蔽其他分句中的实际问题；“没有没有”和询问第三人的句子不算对你的提问。" },
-    { id: "sharing", title: "自我分享与感受", detail: "第一人称经历、想法与兴趣计为分享；第一人称的实际感受（开心、难过、紧张等）另计为感受分享。引用、要求对方执行的句子和假设表达不计入。" },
-    { id: "positive", title: "正向表达", detail: "每回合取最强层级：礼貌或表情 1、支持或具体感谢 4、直接亲近 6。无上下文的泛泛赞美不升级为支持性回应。" },
-    { id: "goodNews", title: "好消息情境", detail: "我方回合含第一人称“我”与好消息词（通过了、拿到、升职、终于等），且对方 24 小时内回应时，记为一次机会；对方回应无摩擦，并且是支持/具体感谢，或在提问、回答、承接时带有正向表达，记为积极建设性回应。" },
-    { id: "friction", title: "摩擦、敷衍与修复", detail: "指向对方的指责、反讽或赌气计为摩擦；工作、客户、设备等外部压力的抱怨不算双方摩擦。连续 3 个对方回合缺少有效回应才计敷衍；忙碌、睡觉、晚安与正常收尾不计。解释、和解与常见致歉（对不起、不好意思、我不是那个意思等）计为修复，只会减轻摩擦。" },
-    { id: "boundary", title: "明确边界", detail: "停止联系、不要打扰等明确措辞（含礼貌请求）计为边界；“不是不喜欢你”等否定拒绝的安抚表达不算拒绝。边界只由规则层识别并触发封顶，AI 单独识别到时只提示人工核对。" },
-    { id: "excluded", title: "不计分的内容", detail: "系统消息、非文本媒体记录和纯占位文本不参与评分；回复时延与消息长度只作描述，不进入任何维度。" },
-    { id: "corrections", title: "人工纠正", detail: "提问、分享、正向、负向、敷衍、低信息量、摩擦、解释、回答或接受建议、承接或补充信息十类识别都可以在「互动评分」中排除或恢复。纠正保存原文快照，原文改变后不沿用旧决定；纠正后各页面的关系指数立即按新结果重算。" }
+    {
+      id: "turns",
+      title: "回合与对话段",
+      detail: "同一人相邻消息间隔不超过 3 分钟合为一个回合；首次发言或与上一回合末尾间隔达到 120 分钟开启新对话段，该回合记为一次主动开启。时间按上海时区归入日期，周从周一开始。"
+    },
+    {
+      id: "bids",
+      title: "连接邀请与回应",
+      detail: "我方提问或分享的回合是一次连接邀请。对方下一回合：回答、承接、表达支持/具体感谢，或在同一对话段就该话题追问 → 转向；带摩擦或明确拒绝 → 对立；其他 → 转离；下一回合不是对方或间隔 ≥ 24 小时 → 未回复，不计入回应性分母。"
+    },
+    {
+      id: "answer",
+      title: "回答与承接",
+      detail: "结合上一轮的问题、建议与话题判断：时间、地点、数量与是非问题分别匹配答案特征；话题承接要求词语关联或同类主题。单次应和与笑声按中性处理。回答与承接同一回合只计一次。"
+    },
+    {
+      id: "question",
+      title: "提问",
+      detail: "按分句检查问号、句末吗/嘛或明确征询词，排除反问；礼貌性道谢不屏蔽其他分句中的实际问题；“没有没有”和询问第三人的句子不算对你的提问。"
+    },
+    {
+      id: "sharing",
+      title: "自我分享与感受",
+      detail: "第一人称经历、想法与兴趣计为分享；第一人称的实际感受（开心、难过、紧张等）另计为感受分享。引用、要求对方执行的句子和假设表达不计入。"
+    },
+    {
+      id: "positive",
+      title: "正向表达",
+      detail: "每回合取最强层级：礼貌或表情 1、支持或具体感谢 4、直接亲近 6。无上下文的泛泛赞美不升级为支持性回应。"
+    },
+    {
+      id: "goodNews",
+      title: "好消息情境",
+      detail: "我方回合含第一人称“我”与好消息词（通过了、拿到、升职、终于等），且对方 24 小时内回应时，记为一次机会；对方回应无摩擦，并且是支持/具体感谢，或在提问、回答、承接时带有正向表达，记为积极建设性回应。"
+    },
+    {
+      id: "friction",
+      title: "摩擦、敷衍与修复",
+      detail: "指向对方的指责、反讽或赌气计为摩擦；工作、客户、设备等外部压力的抱怨不算双方摩擦。连续 3 个对方回合缺少有效回应才计敷衍；忙碌、睡觉、晚安与正常收尾不计。解释、和解与常见致歉（对不起、不好意思、我不是那个意思等）计为修复，只会减轻摩擦。"
+    },
+    {
+      id: "boundary",
+      title: "明确边界",
+      detail: "停止联系、不要打扰等明确措辞（含礼貌请求）计为边界；“不是不喜欢你”等否定拒绝的安抚表达不算拒绝。边界只由规则层识别并触发封顶，AI 单独识别到时只提示人工核对。"
+    },
+    {
+      id: "excluded",
+      title: "不计分的内容",
+      detail: "系统消息、非文本媒体记录和纯占位文本不参与评分；回复时延与消息长度只作描述，不进入任何维度。"
+    },
+    {
+      id: "corrections",
+      title: "人工纠正",
+      detail: "提问、分享、正向、负向、敷衍、低信息量、摩擦、解释、回答或接受建议、承接或补充信息十类识别都可以在「互动评分」中排除或恢复。纠正保存原文快照，原文改变后不沿用旧决定；纠正后各页面的关系指数立即按新结果重算。"
+    }
   ]);
   function createScoringRulesView(React2, E) {
     const h = React2.createElement;
@@ -35456,14 +37925,40 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const dims = h(
         "table",
         { "aria-label": "六个维度、权重与规则层公式" },
-        h("thead", null, h("tr", null, ...["维度", "权重", "规则层原始值 x", "定义"].map((label, i) => h("th", { key: i }, label)))),
-        h("tbody", null, ...E.DIMENSIONS.map((d) => h("tr", { key: d.key }, h("td", null, h("strong", null, d.label), d.llm ? null : h("div", { className: "rn-muted" }, "不接受 AI 评分")), h("td", { style: { whiteSpace: "nowrap" } }, pct2(d.weight)), h("td", { style: { fontSize: 12 } }, d.rule), h("td", { style: { fontSize: 12 } }, d.definition))))
+        h(
+          "thead",
+          null,
+          h("tr", null, ...["维度", "权重", "规则层原始值 x", "定义"].map((label, i) => h("th", { key: i }, label)))
+        ),
+        h(
+          "tbody",
+          null,
+          ...E.DIMENSIONS.map(
+            (d) => h(
+              "tr",
+              { key: d.key },
+              h(
+                "td",
+                null,
+                h("strong", null, d.label),
+                d.llm ? null : h("div", { className: "rn-muted" }, "不接受 AI 评分")
+              ),
+              h("td", { style: { whiteSpace: "nowrap" } }, pct2(d.weight)),
+              h("td", { style: { fontSize: 12 } }, d.rule),
+              h("td", { style: { fontSize: 12 } }, d.definition)
+            )
+          )
+        )
       );
       return h(
         "section",
         { className: "rn-box" },
         h("h2", null, "评分规则（关系分析 v3）"),
-        h("p", { className: "rn-muted" }, "关系指数概括可观察的互动过程，不是“对方喜欢你的概率”。每日历程、互动评分、打分依据、月/年图表和关系分析页都使用同一套公式；AI 评定按周缓存，只融合到关系分析页的周指数中。权重与参数是产品设定，未经真实结果校准。"),
+        h(
+          "p",
+          { className: "rn-muted" },
+          "关系指数概括可观察的互动过程，不是“对方喜欢你的概率”。每日历程、互动评分、打分依据、月/年图表和关系分析页都使用同一套公式；AI 评定按周缓存，只融合到关系分析页的周指数中。权重与参数是产品设定，未经真实结果校准。"
+        ),
         h(
           "div",
           { style: { display: "flex", gap: "8px", flexWrap: "wrap", margin: "10px 0 12px" } },
@@ -35473,33 +37968,63 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         h(
           "div",
           { className: "rn-rules" },
-          card("flow", "计算流程", list([
-            "1. 把消息合并为回合，按时段（日、周、月、年或全部记录）汇总双方可观察的互动事实。",
-            "2. 规则层计算六个维度的原始值 x（0–1）与证据量 n，以及摩擦强度和边界。",
-            "3. 每个维度按证据量向中性值 " + E.PRIOR + " 收缩：d = (n·x + " + E.PRIOR_STRENGTH + "·" + E.PRIOR + ") ÷ (n + " + E.PRIOR_STRENGTH + ")，标准误 √(d(1−d)/(n+" + E.PRIOR_STRENGTH + "))。",
-            "4. 综合指数 = 100 × Σ 权重 × d × (1 − 0.6 × 摩擦)；时段内出现明确边界时指数与区间都不超过 " + E.BOUNDARY_CAP + "。",
-            "5. 对方在该时段没有任何回合时不评分（显示“未评分”），没有聊天的时段是缺口，都不是 0 分。"
-          ])),
+          card(
+            "flow",
+            "计算流程",
+            list([
+              "1. 把消息合并为回合，按时段（日、周、月、年或全部记录）汇总双方可观察的互动事实。",
+              "2. 规则层计算六个维度的原始值 x（0–1）与证据量 n，以及摩擦强度和边界。",
+              "3. 每个维度按证据量向中性值 " + E.PRIOR + " 收缩：d = (n·x + " + E.PRIOR_STRENGTH + "·" + E.PRIOR + ") ÷ (n + " + E.PRIOR_STRENGTH + ")，标准误 √(d(1−d)/(n+" + E.PRIOR_STRENGTH + "))。",
+              "4. 综合指数 = 100 × Σ 权重 × d × (1 − 0.6 × 摩擦)；时段内出现明确边界时指数与区间都不超过 " + E.BOUNDARY_CAP + "。",
+              "5. 对方在该时段没有任何回合时不评分（显示“未评分”），没有聊天的时段是缺口，都不是 0 分。"
+            ])
+          ),
           card("dims", "六个维度与权重", dims),
-          card("friction", E.FRICTION.label, h("p", null, E.FRICTION.definition), h("p", { style: { fontSize: 13 } }, E.FRICTION.rule), list(["摩擦的先验为 0：F̂ = 对方回合 × F ÷ (对方回合 + " + E.PRIOR_STRENGTH + ")。", "明确边界：对方回合中未被排除的明确拒绝或停止联系表达，触发封顶 " + E.BOUNDARY_CAP + "。"])),
-          card("index", "综合指数、区间与可信度", list([
-            "80% 区间：100 × clip(P ∓ 1.2816 × SE_P, 0, 1) × (1 − 0.6F)，SE_P = √Σ(权重 × SE)² ÷ Σ权重。",
-            "可信度：对方回合 ≥ 20 且回应性证据 ≥ 5 为“高”；对方回合 ≥ 8 为“中”；其余为“低”。",
-            "日、月、年和全部记录使用同一公式；月、年把各日信号相加后整体评分（不是日分平均），小样本由收缩自然处理。"
-          ])),
-          card("ai", "AI 上下文评定（关系分析页，按周）", list([
-            "每周最多 80 条消息、每条最多 300 字；超出时优先保留对方有信号的回合及其前一轮我方消息。",
-            "评分 1–5 或证据不足；每个评分必须逐字引用原文，宿主校验不通过则整周拒绝。禁止好感概率、确定性结论和依恋/人格诊断。",
-            "AI 评分 r 映射为 a = (r−1)/4，以伪计数 m = " + E.LLM_PSEUDO_COUNT + " × 置信度（低 " + conf.low + " / 中 " + conf.medium + " / 高 " + conf.high + "）融合，偏移不超过 ±" + E.MAX_SHIFT + "；规则与 AI 相差超过 " + E.DISAGREE_AT + "（且 n ≥ 3）时提示核对。",
-            "摩擦同样融合；AI 判定已修复时摩擦再 × 0.75。AI 不能单独触发边界封顶。"
-          ])),
-          card("longitudinal", "长期变化（关系分析页）", list([
-            "EWMA 平滑（λ = 0.3）；趋势用最近 ≤ 8 个已评分周的加权最小二乘（权重 1/max(4, SE²)，至少 4 周），区间不跨 0 且 |斜率| ≥ 1 分/周才判上升或下降。",
-            "变化点：自启动 CUSUM（k = 0.5，h = 3，σ = max(3, MSSD, 0.5 × 中位 SE)），至少 6 个已评分周；按变化点划分阶段并列出主要变化来自哪些维度。"
-          ])),
+          card(
+            "friction",
+            E.FRICTION.label,
+            h("p", null, E.FRICTION.definition),
+            h("p", { style: { fontSize: 13 } }, E.FRICTION.rule),
+            list([
+              "摩擦的先验为 0：F̂ = 对方回合 × F ÷ (对方回合 + " + E.PRIOR_STRENGTH + ")。",
+              "明确边界：对方回合中未被排除的明确拒绝或停止联系表达，触发封顶 " + E.BOUNDARY_CAP + "。"
+            ])
+          ),
+          card(
+            "index",
+            "综合指数、区间与可信度",
+            list([
+              "80% 区间：100 × clip(P ∓ 1.2816 × SE_P, 0, 1) × (1 − 0.6F)，SE_P = √Σ(权重 × SE)² ÷ Σ权重。",
+              "可信度：对方回合 ≥ 20 且回应性证据 ≥ 5 为“高”；对方回合 ≥ 8 为“中”；其余为“低”。",
+              "日、月、年和全部记录使用同一公式；月、年把各日信号相加后整体评分（不是日分平均），小样本由收缩自然处理。"
+            ])
+          ),
+          card(
+            "ai",
+            "AI 上下文评定（关系分析页，按周）",
+            list([
+              "每周最多 80 条消息、每条最多 300 字；超出时优先保留对方有信号的回合及其前一轮我方消息。",
+              "评分 1–5 或证据不足；每个评分必须逐字引用原文，宿主校验不通过则整周拒绝。禁止好感概率、确定性结论和依恋/人格诊断。",
+              "AI 评分 r 映射为 a = (r−1)/4，以伪计数 m = " + E.LLM_PSEUDO_COUNT + " × 置信度（低 " + conf.low + " / 中 " + conf.medium + " / 高 " + conf.high + "）融合，偏移不超过 ±" + E.MAX_SHIFT + "；规则与 AI 相差超过 " + E.DISAGREE_AT + "（且 n ≥ 3）时提示核对。",
+              "摩擦同样融合；AI 判定已修复时摩擦再 × 0.75。AI 不能单独触发边界封顶。"
+            ])
+          ),
+          card(
+            "longitudinal",
+            "长期变化（关系分析页）",
+            list([
+              "EWMA 平滑（λ = 0.3）；趋势用最近 ≤ 8 个已评分周的加权最小二乘（权重 1/max(4, SE²)，至少 4 周），区间不跨 0 且 |斜率| ≥ 1 分/周才判上升或下降。",
+              "变化点：自启动 CUSUM（k = 0.5，h = 3，σ = max(3, MSSD, 0.5 × 中位 SE)），至少 6 个已评分周；按变化点划分阶段并列出主要变化来自哪些维度。"
+            ])
+          ),
           h("h3", { key: "recognition-title" }, "识别规则（规则层的输入）"),
           ...RECOGNITION_RULES.map((rule) => card("rec-" + rule.id, rule.title, h("p", null, rule.detail))),
-          card("balance", "互动均衡分（辅助统计，不进入关系指数）", h("code", { className: "rn-rule-value" }, "round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))"), h("p", { className: "rn-muted" }, "只比较双方发言条数是否接近，100 表示条数持平。"))
+          card(
+            "balance",
+            "互动均衡分（辅助统计，不进入关系指数）",
+            h("code", { className: "rn-rule-value" }, "round(100 × (1 − |我方条数 − 对方条数| ÷ 总条数))"),
+            h("p", { className: "rn-muted" }, "只比较双方发言条数是否接近，100 表示条数持平。")
+          )
         )
       );
     };
@@ -35511,26 +38036,61 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (!value) throw Error("回复样例不能为空。");
     if (Array.from(value).length > 240) throw Error("样例最多240字，请先精简后保存。");
     const current = normalizeSelfProfile(profile);
-    return { ...current, ...profile, samples: [{ text: value, note: String(note).trim().slice(0, 100) }, ...current.samples.filter((s) => s.text !== value)].slice(0, 8), updatedAt: new Date(now).toISOString() };
+    return {
+      ...current,
+      ...profile,
+      samples: [
+        { text: value, note: String(note).trim().slice(0, 100) },
+        ...current.samples.filter((s) => s.text !== value)
+      ].slice(0, 8),
+      updatedAt: new Date(now).toISOString()
+    };
   }
 
   // src/period-review.js
-  var topicRules = [["工作学习", /工作|项目|上班|加班|论文|考试|学习|作业/], ["兴趣活动", /摄影|电影|音乐|看展|咖啡|游戏|阅读|爬山|跑步|旅行|做饭/], ["日常近况", /今天|最近|吃饭|睡觉|下班|天气|回家|周末/]];
+  var topicRules = [
+    ["工作学习", /工作|项目|上班|加班|论文|考试|学习|作业/],
+    ["兴趣活动", /摄影|电影|音乐|看展|咖啡|游戏|阅读|爬山|跑步|旅行|做饭/],
+    ["日常近况", /今天|最近|吃饭|睡觉|下班|天气|回家|周末/]
+  ];
   function buildPeriodReview(contact = {}, options = {}) {
     contact = contact || {};
     const { period = "week", anchor, now = Date.now() } = options, { start, end } = reviewPeriodRange(period, anchor);
-    const pair = sortChatMessages((contact.messages || []).filter((m) => m && typeof m.text === "string" && (m.sender === contact.self || m.sender === contact.target)));
+    const pair = sortChatMessages(
+      (contact.messages || []).filter(
+        (m) => m && typeof m.text === "string" && (m.sender === contact.self || m.sender === contact.target)
+      )
+    );
     const rows = pair.map((message, index) => ({ message, index, date: shanghaiDateKey(message.timestamp) })), selected2 = rows.filter((r) => r.date && r.date >= start && r.date <= end);
     const evidence = (m) => ({ messageId: profileMessageId(m), quote: m.text.slice(0, 240) });
     const topics2 = topicRules.map(([label, rule]) => {
       const matches = selected2.filter((r) => rule.test(r.message.text));
-      const keywords = [...new Set(matches.flatMap((r) => r.message.text.match(new RegExp(rule.source, "g")) || []))].slice(0, 8);
+      const keywords = [
+        ...new Set(matches.flatMap((r) => r.message.text.match(new RegExp(rule.source, "g")) || []))
+      ].slice(0, 8);
       return { label, keywords, count: matches.length, evidence: matches.slice(0, 3).map((r) => evidence(r.message)) };
     }).filter((t) => t.count);
-    const unanswered = selected2.filter((r) => r.message.sender === contact.target && question(r.message.text) && !pair.slice(r.index + 1).some((m) => m.sender === contact.self)).slice(-8).map((r) => evidence(r.message));
-    const followups = (contact.profileSummary || []).filter((f) => ["followup", "plans", "agreement", "recent"].includes(f.field) && isProfileFactCurrent(f, now) && (f.provenance !== "model" || f.confirmed === true));
+    const unanswered = selected2.filter(
+      (r) => r.message.sender === contact.target && question(r.message.text) && !pair.slice(r.index + 1).some((m) => m.sender === contact.self)
+    ).slice(-8).map((r) => evidence(r.message));
+    const followups = (contact.profileSummary || []).filter(
+      (f) => ["followup", "plans", "agreement", "recent"].includes(f.field) && isProfileFactCurrent(f, now) && (f.provenance !== "model" || f.confirmed === true)
+    );
     const summary = selected2.length ? `本期共 ${selected2.length} 条消息，记录中出现${topics2.length ? "“" + [...new Set(topics2.flatMap((t) => t.keywords))].slice(0, 10).join("、") + "”等话题" : "的内容未匹配预设话题，请结合原文查看"}。` : "本期没有可识别日期的聊天记录。";
-    return { period, start, end, summary, messageCount: selected2.length, selfCount: selected2.filter((r) => r.message.sender === contact.self).length, targetCount: selected2.filter((r) => r.message.sender === contact.target).length, topics: topics2, unanswered, followups, unknownDateCount: rows.filter((r) => !r.date).length, disclaimer: "仅按已有记录整理。未看到后续本人回应不代表问题一定未回答；话题计数可重叠，待跟进项来自当前档案，不代表对方真实想法。" };
+    return {
+      period,
+      start,
+      end,
+      summary,
+      messageCount: selected2.length,
+      selfCount: selected2.filter((r) => r.message.sender === contact.self).length,
+      targetCount: selected2.filter((r) => r.message.sender === contact.target).length,
+      topics: topics2,
+      unanswered,
+      followups,
+      unknownDateCount: rows.filter((r) => !r.date).length,
+      disclaimer: "仅按已有记录整理。未看到后续本人回应不代表问题一定未回答；话题计数可重叠，待跟进项来自当前档案，不代表对方真实想法。"
+    };
   }
 
   // src/session-layout.js
@@ -35576,7 +38136,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const h = React2.createElement;
     const pct2 = (v) => v === null || v === void 0 || !Number.isFinite(v) ? "—" : Math.round(v * 100);
     const fmt2 = (v, d = 1) => v === null || v === void 0 || !Number.isFinite(v) ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
-    const TREND = { rising: ["上升", "rn-tone-up"], falling: ["下降", "rn-tone-down"], stable: ["大致稳定", "rn-tone-flat"], insufficient: ["数据不足", "rn-tone-flat"] };
+    const TREND = {
+      rising: ["上升", "rn-tone-up"],
+      falling: ["下降", "rn-tone-down"],
+      stable: ["大致稳定", "rn-tone-flat"],
+      insufficient: ["数据不足", "rn-tone-flat"]
+    };
     const RELIABILITY2 = { high: "证据较充分", medium: "证据一般", low: "证据较少", none: "未评分" };
     const scored = (p) => Boolean(p) && !p.gap && Number.isFinite(p.index);
     const CONF = { low: "低", medium: "中", high: "高" };
@@ -35603,41 +38168,85 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const cpStarts = new Set(changePoints2.map((c) => c.start)), labelEvery = Math.max(1, Math.ceil(data.length / 8));
       return h(
         "svg",
-        { className: "rn-insight-chart", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "每周关系互动指数与 80% 区间；虚线为平滑趋势；竖线为检测到的变化点" },
-        ...[0, 25, 50, 75, 100].map((v) => h("g", { key: "g" + v }, h("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), className: "rn-insight-grid" }), h("text", { x: L - 6, y: y(v) + 4, textAnchor: "end", className: "rn-insight-axis" }, v))),
+        {
+          className: "rn-insight-chart",
+          viewBox: `0 0 ${W} ${H}`,
+          role: "img",
+          "aria-label": "每周关系互动指数与 80% 区间；虚线为平滑趋势；竖线为检测到的变化点"
+        },
+        ...[0, 25, 50, 75, 100].map(
+          (v) => h(
+            "g",
+            { key: "g" + v },
+            h("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), className: "rn-insight-grid" }),
+            h("text", { x: L - 6, y: y(v) + 4, textAnchor: "end", className: "rn-insight-axis" }, v)
+          )
+        ),
         area && h("path", { d: area, className: "rn-insight-band" }),
-        ...data.map((p, i) => cpStarts.has(p.start) ? h("line", { key: "cp" + i, x1: x(i), x2: x(i), y1: T, y2: H - B, className: "rn-insight-cp" }) : null),
+        ...data.map(
+          (p, i) => cpStarts.has(p.start) ? h("line", { key: "cp" + i, x1: x(i), x2: x(i), y1: T, y2: H - B, className: "rn-insight-cp" }) : null
+        ),
         ew.length > 1 && h("path", { d: path(ew), className: "rn-insight-ewma" }),
         line.length > 1 && h("path", { d: path(line), className: "rn-insight-line" }),
-        ...data.map((p, i) => !scored(p) ? h("circle", { key: "p" + i, cx: x(i), cy: H - B - 4, r: 2.5, className: "rn-insight-gap" }, h("title", null, p.gap ? p.start + " 无记录（缺口）" : p.start + " 对方没有发言，未评分")) : h("circle", {
-          key: "p" + i,
-          cx: x(i),
-          cy: y(p.index),
-          r: p.start === selected2 ? 6 : 4,
-          className: "rn-insight-dot" + (p.start === selected2 ? " selected" : ""),
-          tabIndex: 0,
-          role: "button",
-          "aria-label": `${p.start} 周：${p.index}（区间 ${p.low}–${p.high}）`,
-          onClick: () => onSelect(p.start),
-          onKeyDown: (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onSelect(p.start);
-            }
-          }
-        }, h("title", null, `${p.start} 周：${p.index}（80% 区间 ${p.low}–${p.high}）`))),
-        ...data.map((p, i) => i % labelEvery === 0 || i === data.length - 1 ? h("text", { key: "l" + i, x: x(i), y: H - 8, textAnchor: "middle", className: "rn-insight-axis" }, p.start.slice(5)) : null)
+        ...data.map(
+          (p, i) => !scored(p) ? h(
+            "circle",
+            { key: "p" + i, cx: x(i), cy: H - B - 4, r: 2.5, className: "rn-insight-gap" },
+            h("title", null, p.gap ? p.start + " 无记录（缺口）" : p.start + " 对方没有发言，未评分")
+          ) : h(
+            "circle",
+            {
+              key: "p" + i,
+              cx: x(i),
+              cy: y(p.index),
+              r: p.start === selected2 ? 6 : 4,
+              className: "rn-insight-dot" + (p.start === selected2 ? " selected" : ""),
+              tabIndex: 0,
+              role: "button",
+              "aria-label": `${p.start} 周：${p.index}（区间 ${p.low}–${p.high}）`,
+              onClick: () => onSelect(p.start),
+              onKeyDown: (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(p.start);
+                }
+              }
+            },
+            h("title", null, `${p.start} 周：${p.index}（80% 区间 ${p.low}–${p.high}）`)
+          )
+        ),
+        ...data.map(
+          (p, i) => i % labelEvery === 0 || i === data.length - 1 ? h(
+            "text",
+            { key: "l" + i, x: x(i), y: H - 8, textAnchor: "middle", className: "rn-insight-axis" },
+            p.start.slice(5)
+          ) : null
+        )
       );
     }
     function Quote({ item, onEvidence }) {
       return h(
         "li",
         { className: "rn-insight-quote" },
-        h("div", { className: "rn-insight-quote-head" }, item.type === "fact" ? tag("fact", "原文事实") : tag("ai", "AI 引用"), item.label && h("span", null, item.label), item.sender && h("small", null, item.sender === "target" || item.sender === "self" ? item.sender === "target" ? "对方" : "我" : item.sender)),
+        h(
+          "div",
+          { className: "rn-insight-quote-head" },
+          item.type === "fact" ? tag("fact", "原文事实") : tag("ai", "AI 引用"),
+          item.label && h("span", null, item.label),
+          item.sender && h(
+            "small",
+            null,
+            item.sender === "target" || item.sender === "self" ? item.sender === "target" ? "对方" : "我" : item.sender
+          )
+        ),
         item.quote && h("blockquote", null, item.quote),
         item.value && h("p", { className: "rn-insight-count" }, item.value),
         item.note && h("p", { className: "rn-insight-note" }, item.note),
-        item.message && btn("查看原文上下文", () => onEvidence({ messageId: item.messageId, message: item.message, quote: item.quote }), { className: "rn-insight-open" })
+        item.message && btn(
+          "查看原文上下文",
+          () => onEvidence({ messageId: item.messageId, message: item.message, quote: item.quote }),
+          { className: "rn-insight-open" }
+        )
       );
     }
     function Dimension({ d, open, onToggle, onEvidence }) {
@@ -35657,7 +38266,11 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             !isFriction && f.ai !== null && h("b", { className: "rn-insight-tick ai", style: { left: pct2(f.ai) + "%" }, title: "AI 评定" })
           ),
           h("span", { className: "rn-insight-dim-val" }, pct2(value)),
-          h("span", { className: "rn-insight-dim-meta" }, isFriction ? `规则 ${pct2(d.friction.rule)} · AI ${pct2(d.friction.ai)}` : `规则 ${pct2(f.rule)}（n=${f.ruleN}）· AI ${pct2(f.ai)}${f.aiConfidence ? "（置信" + CONF[f.aiConfidence] + "）" : ""}`),
+          h(
+            "span",
+            { className: "rn-insight-dim-meta" },
+            isFriction ? `规则 ${pct2(d.friction.rule)} · AI ${pct2(d.friction.ai)}` : `规则 ${pct2(f.rule)}（n=${f.ruleN}）· AI ${pct2(f.ai)}${f.aiConfidence ? "（置信" + CONF[f.aiConfidence] + "）" : ""}`
+          ),
           !isFriction && f.disagreement && h("span", { className: "rn-insight-flag" }, "规则与 AI 不一致，请核对")
         ),
         open && h(
@@ -35669,30 +38282,99 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             { className: "rn-insight-method" },
             h("summary", null, "计算方法与研究依据"),
             h("p", null, h("strong", null, "规则层："), d.rule),
-            !isFriction && h("p", null, h("strong", null, "融合："), "规则观测按证据量向中性 0.5 收缩；AI 评分须附逐字原文，以“4 × 置信度”的伪计数加入，且最多使该维度偏移 ±25 分。"),
-            h("ul", { className: "rn-insight-refs" }, ...d.refs.map((r, i) => h("li", { key: i }, r.url ? h("a", { href: r.url, target: "_blank", rel: "noreferrer" }, r.text) : r.text)))
+            !isFriction && h(
+              "p",
+              null,
+              h("strong", null, "融合："),
+              "规则观测按证据量向中性 0.5 收缩；AI 评分须附逐字原文，以“4 × 置信度”的伪计数加入，且最多使该维度偏移 ±25 分。"
+            ),
+            h(
+              "ul",
+              { className: "rn-insight-refs" },
+              ...d.refs.map(
+                (r, i) => h(
+                  "li",
+                  { key: i },
+                  r.url ? h("a", { href: r.url, target: "_blank", rel: "noreferrer" }, r.text) : r.text
+                )
+              )
+            )
           ),
           h(
             "div",
             { className: "rn-insight-columns" },
-            h("div", null, h("h4", null, tag("fact", "原文事实"), " 规则层观察"), d.facts.length ? h("ul", { className: "rn-insight-quotes" }, ...d.facts.map((item, i) => h(Quote, { key: i, item, onEvidence }))) : h("p", { className: "rn-muted" }, "本周没有该维度的规则命中。")),
+            h(
+              "div",
+              null,
+              h("h4", null, tag("fact", "原文事实"), " 规则层观察"),
+              d.facts.length ? h(
+                "ul",
+                { className: "rn-insight-quotes" },
+                ...d.facts.map((item, i) => h(Quote, { key: i, item, onEvidence }))
+              ) : h("p", { className: "rn-muted" }, "本周没有该维度的规则命中。")
+            ),
             h(
               "div",
               null,
               h("h4", null, tag("ai", "AI 引用"), " 上下文评定"),
-              d.observations.length ? h("ul", { className: "rn-insight-quotes" }, ...d.observations.map((item, i) => h(Quote, { key: i, item, onEvidence }))) : h("p", { className: "rn-muted" }, d.inference ? "AI 认为证据不足，未评分。" : "本周尚未进行 AI 分析。"),
-              d.inference && h("div", { className: "rn-insight-inference" }, h("div", null, tag("inference", "AI 推断"), h("small", null, `评分 ${d.inference.rating ?? "—"}/5 · 置信 ${CONF[d.inference.confidence] || "—"}`)), h("p", null, d.inference.text), d.inference.alternatives && h("p", { className: "rn-insight-alt" }, h("strong", null, "其他可能："), d.inference.alternatives))
+              d.observations.length ? h(
+                "ul",
+                { className: "rn-insight-quotes" },
+                ...d.observations.map((item, i) => h(Quote, { key: i, item, onEvidence }))
+              ) : h(
+                "p",
+                { className: "rn-muted" },
+                d.inference ? "AI 认为证据不足，未评分。" : "本周尚未进行 AI 分析。"
+              ),
+              d.inference && h(
+                "div",
+                { className: "rn-insight-inference" },
+                h(
+                  "div",
+                  null,
+                  tag("inference", "AI 推断"),
+                  h(
+                    "small",
+                    null,
+                    `评分 ${d.inference.rating ?? "—"}/5 · 置信 ${CONF[d.inference.confidence] || "—"}`
+                  )
+                ),
+                h("p", null, d.inference.text),
+                d.inference.alternatives && h("p", { className: "rn-insight-alt" }, h("strong", null, "其他可能："), d.inference.alternatives)
+              )
             )
           )
         )
       );
     }
-    return function RelationshipInsightView({ contact, busy, progress, error, modelReady, onRun, onCancel, onEvidence, onConfigure }) {
+    return function RelationshipInsightView({
+      contact,
+      busy,
+      progress,
+      error,
+      modelReady,
+      onRun,
+      onCancel,
+      onEvidence,
+      onConfigure
+    }) {
       const analysis = contact ? E.analyzeRelationshipCached(contact) : null;
       const [selected2, setSelected] = React2.useState(null), [openDim, setOpenDim] = React2.useState("responsiveness");
-      if (!analysis || !analysis.weeks.length) return h("section", { className: "rn-box" }, h("h2", null, "关系分析"), h("p", { className: "rn-muted" }, "还没有双方可分析的聊天记录。"));
+      if (!analysis || !analysis.weeks.length)
+        return h(
+          "section",
+          { className: "rn-box" },
+          h("h2", null, "关系分析"),
+          h("p", { className: "rn-muted" }, "还没有双方可分析的聊天记录。")
+        );
       const weeks = analysis.weeks, current = analysis.current, pick = weeks.find((w) => w.start === selected2) || current || weeks.at(-1);
-      if (!current) return h("section", { className: "rn-box" }, h("h2", null, "关系分析"), h("p", { className: "rn-muted" }, "对方还没有可评分的回合：关系指数需要观察对方的回应，暂不评分。"));
+      if (!current)
+        return h(
+          "section",
+          { className: "rn-box" },
+          h("h2", null, "关系分析"),
+          h("p", { className: "rn-muted" }, "对方还没有可评分的回合：关系指数需要观察对方的回应，暂不评分。")
+        );
       const aiEntry = contact.affinityV3?.weeks?.[pick.start], ai = aiEntry && pick.ai ? aiEntry.result : null;
       const explain = E.explainWeek(pick, pick.week, ai, contact);
       const dims = explain.dimensions.map((d) => d.key === "friction" ? { ...d, friction: pick.friction } : d);
@@ -35701,8 +38383,22 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       return h(
         "div",
         { className: "rn-insight" },
-        analysis.boundaryWeeks.length > 0 && h("div", { className: "rn-insight-alert", role: "alert" }, h("strong", null, "检测到明确的拒绝或边界表达"), h("p", null, `出现在 ${analysis.boundaryWeeks.join("、")} 这几周。相关周的指数已封顶 30。请优先尊重对方表达的边界，不建议依据其他信号继续推进。`)),
-        analysis.reviewWeeks.length > 0 && h("div", { className: "rn-insight-alert soft" }, h("strong", null, "AI 提示可能存在边界表达，请人工核对"), h("p", null, `${analysis.reviewWeeks.join("、")}：规则层未识别到，AI 引用了原文。AI 不会单独触发封顶。`)),
+        analysis.boundaryWeeks.length > 0 && h(
+          "div",
+          { className: "rn-insight-alert", role: "alert" },
+          h("strong", null, "检测到明确的拒绝或边界表达"),
+          h(
+            "p",
+            null,
+            `出现在 ${analysis.boundaryWeeks.join("、")} 这几周。相关周的指数已封顶 30。请优先尊重对方表达的边界，不建议依据其他信号继续推进。`
+          )
+        ),
+        analysis.reviewWeeks.length > 0 && h(
+          "div",
+          { className: "rn-insight-alert soft" },
+          h("strong", null, "AI 提示可能存在边界表达，请人工核对"),
+          h("p", null, `${analysis.reviewWeeks.join("、")}：规则层未识别到，AI 引用了原文。AI 不会单独触发封顶。`)
+        ),
         h(
           "section",
           { className: "rn-box rn-insight-hero" },
@@ -35713,38 +38409,134 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
               "div",
               null,
               h("small", { className: "rn-muted" }, "关系互动指数 · 最近一周（平滑）"),
-              h("div", { className: "rn-insight-score" }, h("strong", null, Math.round(current.ewma ?? current.index)), h("span", null, "/ 100")),
-              h("p", { className: "rn-muted" }, `本周 ${current.index}，80% 区间 ${current.low}–${current.high} · ${RELIABILITY2[current.reliability]}（对方 ${current.targetTurns} 个回合）`)
+              h(
+                "div",
+                { className: "rn-insight-score" },
+                h("strong", null, Math.round(current.ewma ?? current.index)),
+                h("span", null, "/ 100")
+              ),
+              h(
+                "p",
+                { className: "rn-muted" },
+                `本周 ${current.index}，80% 区间 ${current.low}–${current.high} · ${RELIABILITY2[current.reliability]}（对方 ${current.targetTurns} 个回合）`
+              )
             ),
             h(
               "ul",
               { className: "rn-insight-facts" },
-              h("li", null, h("span", null, "长期趋势"), h("strong", { className: trendTone }, trendLabel), tr.slope !== void 0 && h("small", null, `${fmt2(tr.slope)} 分/周（80% 区间 ${fmt2(tr.low)}～${fmt2(tr.high)}，近 ${tr.weeks} 周）`)),
-              h("li", null, h("span", null, "相对你们自己的历史"), h("strong", null, rank === null ? "—" : `高于 ${rank}% 的周`), h("small", null, `共 ${weeks.filter(scored).length} 个已评分周`)),
-              h("li", null, h("span", null, "AI 上下文分析"), h("strong", null, `${weeks.filter((w) => w.ai).length} / ${weeks.length} 周`), h("small", null, pending ? `${pending} 周待分析` : "全部已分析"))
+              h(
+                "li",
+                null,
+                h("span", null, "长期趋势"),
+                h("strong", { className: trendTone }, trendLabel),
+                tr.slope !== void 0 && h(
+                  "small",
+                  null,
+                  `${fmt2(tr.slope)} 分/周（80% 区间 ${fmt2(tr.low)}～${fmt2(tr.high)}，近 ${tr.weeks} 周）`
+                )
+              ),
+              h(
+                "li",
+                null,
+                h("span", null, "相对你们自己的历史"),
+                h("strong", null, rank === null ? "—" : `高于 ${rank}% 的周`),
+                h("small", null, `共 ${weeks.filter(scored).length} 个已评分周`)
+              ),
+              h(
+                "li",
+                null,
+                h("span", null, "AI 上下文分析"),
+                h("strong", null, `${weeks.filter((w) => w.ai).length} / ${weeks.length} 周`),
+                h("small", null, pending ? `${pending} 周待分析` : "全部已分析")
+              )
             )
           ),
           h(
             "div",
             { className: "rn-insight-actions" },
-            busy ? h("div", { className: "rn-insight-progress", role: "status" }, h("span", null, progress || "正在分析…"), btn("取消", onCancel)) : modelReady ? btn(pending ? `AI 分析 ${pending} 周` : "已全部分析", onRun, { className: "primary", disabled: !pending }) : h("div", { className: "rn-insight-progress" }, h("span", null, "未配置模型：当前只显示规则层结果。"), btn("去设置模型", onConfigure, { className: "primary" })),
+            busy ? h(
+              "div",
+              { className: "rn-insight-progress", role: "status" },
+              h("span", null, progress || "正在分析…"),
+              btn("取消", onCancel)
+            ) : modelReady ? btn(pending ? `AI 分析 ${pending} 周` : "已全部分析", onRun, {
+              className: "primary",
+              disabled: !pending
+            }) : h(
+              "div",
+              { className: "rn-insight-progress" },
+              h("span", null, "未配置模型：当前只显示规则层结果。"),
+              btn("去设置模型", onConfigure, { className: "primary" })
+            ),
             error && h("p", { className: "rn-error", role: "alert" }, error),
-            h("p", { className: "rn-insight-legend" }, tag("fact", "原文事实"), " 规则统计与可核对的原文　", tag("ai", "AI 引用"), " 经逐字校验的原文　", tag("inference", "AI 推断"), " 可能的解释，可能有误")
+            h(
+              "p",
+              { className: "rn-insight-legend" },
+              tag("fact", "原文事实"),
+              " 规则统计与可核对的原文　",
+              tag("ai", "AI 引用"),
+              " 经逐字校验的原文　",
+              tag("inference", "AI 推断"),
+              " 可能的解释，可能有误"
+            )
           ),
-          h("p", { className: "rn-insight-disclaimer" }, "指数概括可观察的互动过程（回应、开示、相互性、积极回应、主动投入、语言同步与摩擦），不是“对方喜欢你的概率”。权重来自文献的理论排序，未经你们的数据校准。")
+          h(
+            "p",
+            { className: "rn-insight-disclaimer" },
+            "指数概括可观察的互动过程（回应、开示、相互性、积极回应、主动投入、语言同步与摩擦），不是“对方喜欢你的概率”。权重来自文献的理论排序，未经你们的数据校准。"
+          )
         ),
         h(
           "section",
           { className: "rn-box" },
           h("h2", null, "长期变化"),
-          h(TrendChart, { points: analysis.points, changePoints: analysis.changePoints, selected: pick.start, onSelect: setSelected }),
-          h("p", { className: "rn-insight-chart-legend" }, h("span", { className: "sw line" }), "每周指数　", h("span", { className: "sw band" }), "80% 区间　", h("span", { className: "sw ewma" }), "平滑趋势（EWMA）　", h("span", { className: "sw cp" }), "检测到的变化点　", h("span", { className: "sw gap" }), "无记录或未评分的周"),
-          analysis.phases.length > 1 ? h("ol", { className: "rn-insight-phases" }, ...analysis.phases.map((p, i) => h(
-            "li",
-            { key: i },
-            h("div", null, h("strong", null, `${p.start} ～ ${p.end}`), h("small", null, `${p.weeks} 周 · 均值 ${p.index}`), p.change !== void 0 && h("span", { className: p.change > 0 ? "rn-tone-up" : "rn-tone-down" }, `${fmt2(p.change, 0)} 分`)),
-            p.drivers?.length > 0 && h("p", null, "主要变化来自：", p.drivers.map((d) => `${d.label}${d.delta > 0 ? "↑" : "↓"}（${fmt2(d.impact)} 分）`).join("，"))
-          ))) : h("p", { className: "rn-muted" }, analysis.points.filter(scored).length < 6 ? "至少 6 个有记录周后才进行变化点检测。" : "未检测到持续的阶段性变化。")
+          h(TrendChart, {
+            points: analysis.points,
+            changePoints: analysis.changePoints,
+            selected: pick.start,
+            onSelect: setSelected
+          }),
+          h(
+            "p",
+            { className: "rn-insight-chart-legend" },
+            h("span", { className: "sw line" }),
+            "每周指数　",
+            h("span", { className: "sw band" }),
+            "80% 区间　",
+            h("span", { className: "sw ewma" }),
+            "平滑趋势（EWMA）　",
+            h("span", { className: "sw cp" }),
+            "检测到的变化点　",
+            h("span", { className: "sw gap" }),
+            "无记录或未评分的周"
+          ),
+          analysis.phases.length > 1 ? h(
+            "ol",
+            { className: "rn-insight-phases" },
+            ...analysis.phases.map(
+              (p, i) => h(
+                "li",
+                { key: i },
+                h(
+                  "div",
+                  null,
+                  h("strong", null, `${p.start} ～ ${p.end}`),
+                  h("small", null, `${p.weeks} 周 · 均值 ${p.index}`),
+                  p.change !== void 0 && h("span", { className: p.change > 0 ? "rn-tone-up" : "rn-tone-down" }, `${fmt2(p.change, 0)} 分`)
+                ),
+                p.drivers?.length > 0 && h(
+                  "p",
+                  null,
+                  "主要变化来自：",
+                  p.drivers.map((d) => `${d.label}${d.delta > 0 ? "↑" : "↓"}（${fmt2(d.impact)} 分）`).join("，")
+                )
+              )
+            )
+          ) : h(
+            "p",
+            { className: "rn-muted" },
+            analysis.points.filter(scored).length < 6 ? "至少 6 个有记录周后才进行变化点检测。" : "未检测到持续的阶段性变化。"
+          )
         ),
         h(
           "section",
@@ -35753,30 +38545,118 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           h(
             "div",
             { className: "rn-insight-week-head" },
-            h("span", null, scored(pick) ? `指数 ${pick.index}（80% 区间 ${pick.low}–${pick.high}）` : "未评分：对方本周没有发言"),
+            h(
+              "span",
+              null,
+              scored(pick) ? `指数 ${pick.index}（80% 区间 ${pick.low}–${pick.high}）` : "未评分：对方本周没有发言"
+            ),
             h("span", null, `${pick.messages} 条消息 · ${RELIABILITY2[pick.reliability]}`),
-            pick.ai ? h("span", null, `AI：${pick.ai.model || "DSH 模型"}${pick.ai.sampled && pick.ai.sampled.sent < pick.ai.sampled.total ? `（抽样 ${pick.ai.sampled.sent}/${pick.ai.sampled.total} 条）` : ""}`) : h("span", null, "仅规则层"),
-            weeks.length > 1 && h("label", { className: "rn-insight-week-pick" }, "选择周", h("select", { value: pick.start, onChange: (e) => setSelected(e.target.value) }, ...[...weeks].reverse().map((w) => h("option", { key: w.start, value: w.start }, `${w.start}（${w.index ?? "未评分"}）`))))
+            pick.ai ? h(
+              "span",
+              null,
+              `AI：${pick.ai.model || "DSH 模型"}${pick.ai.sampled && pick.ai.sampled.sent < pick.ai.sampled.total ? `（抽样 ${pick.ai.sampled.sent}/${pick.ai.sampled.total} 条）` : ""}`
+            ) : h("span", null, "仅规则层"),
+            weeks.length > 1 && h(
+              "label",
+              { className: "rn-insight-week-pick" },
+              "选择周",
+              h(
+                "select",
+                { value: pick.start, onChange: (e) => setSelected(e.target.value) },
+                ...[...weeks].reverse().map((w) => h("option", { key: w.start, value: w.start }, `${w.start}（${w.index ?? "未评分"}）`))
+              )
+            )
           ),
-          explain.summary && h("div", { className: "rn-insight-summary" }, tag("ai", "AI 摘要"), h("p", null, explain.summary), explain.uncertainties && h("p", { className: "rn-insight-alt" }, h("strong", null, "局限："), explain.uncertainties)),
-          h("div", { className: "rn-insight-dims" }, ...dims.map((d) => h(Dimension, { key: d.key, d, open: openDim === d.key, onToggle: () => setOpenDim(openDim === d.key ? "" : d.key), onEvidence }))),
-          (explain.boundary.facts.length > 0 || explain.boundary.ai.length > 0) && h("div", { className: "rn-insight-boundary" }, h("h4", null, "边界相关原文"), h("ul", { className: "rn-insight-quotes" }, ...[...explain.boundary.facts, ...explain.boundary.ai].map((item, i) => h(Quote, { key: i, item, onEvidence }))))
+          explain.summary && h(
+            "div",
+            { className: "rn-insight-summary" },
+            tag("ai", "AI 摘要"),
+            h("p", null, explain.summary),
+            explain.uncertainties && h("p", { className: "rn-insight-alt" }, h("strong", null, "局限："), explain.uncertainties)
+          ),
+          h(
+            "div",
+            { className: "rn-insight-dims" },
+            ...dims.map(
+              (d) => h(Dimension, {
+                key: d.key,
+                d,
+                open: openDim === d.key,
+                onToggle: () => setOpenDim(openDim === d.key ? "" : d.key),
+                onEvidence
+              })
+            )
+          ),
+          (explain.boundary.facts.length > 0 || explain.boundary.ai.length > 0) && h(
+            "div",
+            { className: "rn-insight-boundary" },
+            h("h4", null, "边界相关原文"),
+            h(
+              "ul",
+              { className: "rn-insight-quotes" },
+              ...[...explain.boundary.facts, ...explain.boundary.ai].map(
+                (item, i) => h(Quote, { key: i, item, onEvidence })
+              )
+            )
+          )
         ),
         h(
           "details",
           { className: "rn-more rn-insight-about" },
           h("summary", null, "方法、权重与局限"),
-          h("table", null, h("thead", null, h("tr", null, h("th", null, "维度"), h("th", null, "权重"), h("th", null, "AI 参与"))), h("tbody", null, ...E.DIMENSIONS.map((d) => h("tr", { key: d.key }, h("td", null, d.label), h("td", null, Math.round(d.weight * 100) + "%"), h("td", null, d.llm ? "是" : "否"))), h("tr", null, h("td", null, "摩擦与修复"), h("td", null, "× (1 − 0.6 × 摩擦)"), h("td", null, "是")))),
+          h(
+            "table",
+            null,
+            h("thead", null, h("tr", null, h("th", null, "维度"), h("th", null, "权重"), h("th", null, "AI 参与"))),
+            h(
+              "tbody",
+              null,
+              ...E.DIMENSIONS.map(
+                (d) => h(
+                  "tr",
+                  { key: d.key },
+                  h("td", null, d.label),
+                  h("td", null, Math.round(d.weight * 100) + "%"),
+                  h("td", null, d.llm ? "是" : "否")
+                )
+              ),
+              h("tr", null, h("td", null, "摩擦与修复"), h("td", null, "× (1 − 0.6 × 摩擦)"), h("td", null, "是"))
+            )
+          ),
           h(
             "ul",
             null,
-            h("li", null, "综合指数 = 100 × Σ 权重 × 维度估计 × (1 − 0.6 × 摩擦)；明确边界的周最高 30。区间由各维度的二项标准误合成（80%）。"),
+            h(
+              "li",
+              null,
+              "综合指数 = 100 × Σ 权重 × 维度估计 × (1 − 0.6 × 摩擦)；明确边界的周最高 30。区间由各维度的二项标准误合成（80%）。"
+            ),
             h("li", null, "维度估计按证据量向 0.5 收缩：(n·x + 4·0.5)/(n + 4)，样本少时自然接近中性，不会出现极端值。"),
-            h("li", null, "权重按理论重要性排序、接近等权：在没有带标签数据拟合时，这类“不当线性模型”更稳健（Dawes, 1979, American Psychologist 34:571–582）。"),
-            h("li", null, "AI 评分必须逐字引用原文（宿主校验，伪造即丢弃），不能输出概率、不能诊断依恋或人格；温度 0.1。AI 只做有限权重的补充，不能单独触发边界封顶。LLM 适合零样本心理文本标注，但与人工一致性有限（Rathje 等, 2024, PNAS；Ziems 等, 2024, Computational Linguistics）。"),
-            h("li", null, "趋势：近 8 个有记录周的加权最小二乘斜率；变化点：自启动 CUSUM（k=0.5σ，h=3σ，σ 取相邻周差估计）。都是统计描述，不代表原因。"),
-            h("li", null, "局限：文字缺少语气与线下互动；回复慢或消息短不等于冷淡（Morey 等, 2013, Computers in Human Behavior 指出沟通方式与依恋差异有关）；中文虚词表为近似；未经你们的真实结果校准。"),
-            h("li", null, "每日历程、互动评分、打分依据和月/年图表使用同一套 v3 规则层公式；AI 评定按周缓存，只融合到本页的周指数中。")
+            h(
+              "li",
+              null,
+              "权重按理论重要性排序、接近等权：在没有带标签数据拟合时，这类“不当线性模型”更稳健（Dawes, 1979, American Psychologist 34:571–582）。"
+            ),
+            h(
+              "li",
+              null,
+              "AI 评分必须逐字引用原文（宿主校验，伪造即丢弃），不能输出概率、不能诊断依恋或人格；温度 0.1。AI 只做有限权重的补充，不能单独触发边界封顶。LLM 适合零样本心理文本标注，但与人工一致性有限（Rathje 等, 2024, PNAS；Ziems 等, 2024, Computational Linguistics）。"
+            ),
+            h(
+              "li",
+              null,
+              "趋势：近 8 个有记录周的加权最小二乘斜率；变化点：自启动 CUSUM（k=0.5σ，h=3σ，σ 取相邻周差估计）。都是统计描述，不代表原因。"
+            ),
+            h(
+              "li",
+              null,
+              "局限：文字缺少语气与线下互动；回复慢或消息短不等于冷淡（Morey 等, 2013, Computers in Human Behavior 指出沟通方式与依恋差异有关）；中文虚词表为近似；未经你们的真实结果校准。"
+            ),
+            h(
+              "li",
+              null,
+              "每日历程、互动评分、打分依据和月/年图表使用同一套 v3 规则层公式；AI 评定按周缓存，只融合到本页的周指数中。"
+            )
           )
         )
       );
@@ -35790,7 +38670,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     communicate: ["M5 17.5 3.8 20.6 8 19.3A8.5 8.5 0 1 0 5 17.5Z", "M8.5 11.5h7", "M8.5 14.5h4.5"],
     manage: ["M4 7h9", "M17 7h3", "M15 5v4", "M4 17h3", "M11 17h9", "M9 15v4"],
     import: ["M12 4v10", "M8 10.5l4 4 4-4", "M5 15.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5"],
-    settings: ["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.4 7.4 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4Z"],
+    settings: [
+      "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+      "M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.4 7.4 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 2.6-1.5l2.4 1 2-3.4Z"
+    ],
     spark: ["M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9Z", "M18.5 16v4", "M16.5 18h4"],
     heart: ["M12 19.5s-7-4.4-7-9.6A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3c0 5.2-7 9.6-7 9.6Z"],
     book: ["M5 4.5h10.5a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3Z", "M5 16.5a3 3 0 0 1 3-3h10.5"],
@@ -35802,7 +38685,24 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     return function Icon({ name, size = 20, className = "", title }) {
       const paths = PATHS[name];
       if (!paths) return null;
-      return h("svg", { className: "rn-icon " + className, width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": title ? void 0 : true, role: title ? "img" : void 0 }, title && h("title", null, title), ...paths.map((d, i) => h("path", { key: i, d })));
+      return h(
+        "svg",
+        {
+          className: "rn-icon " + className,
+          width: size,
+          height: size,
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: 1.6,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          "aria-hidden": title ? void 0 : true,
+          role: title ? "img" : void 0
+        },
+        title && h("title", null, title),
+        ...paths.map((d, i) => h("path", { key: i, d }))
+      );
     };
   }
 
@@ -35842,7 +38742,9 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const entries = list.map((record, index) => ({ record, index, time: evidenceTime(record) }));
     const timed = entries.filter((entry) => entry.time !== null);
     const untimed = entries.filter((entry) => entry.time === null);
-    timed.sort((left, right) => left.time === right.time ? left.index - right.index : (left.time - right.time) * direction);
+    timed.sort(
+      (left, right) => left.time === right.time ? left.index - right.index : (left.time - right.time) * direction
+    );
     return [...timed, ...untimed].map((entry) => entry.record);
   }
   function normalizeQuery(value) {
@@ -35850,13 +38752,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
   function evidenceSearchText(record) {
     const message = record?.message || {};
-    return [
-      record?.quote,
-      message.text,
-      record?.label,
-      message.sender,
-      message.file
-    ].filter(Boolean).join("\n").toLowerCase();
+    return [record?.quote, message.text, record?.label, message.sender, message.file].filter(Boolean).join("\n").toLowerCase();
   }
   function matchesEvidence(record, query) {
     const keyword = normalizeQuery(query);
@@ -35922,8 +38818,35 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/workspace-persistence.js
-  var PERSISTED_KEYS = ["contacts", "selectedId", "drafts", "goals", "mediaAnalysis", "scenario", "tone", "intent", "draft", "draftReason", "draftSource", "draftEvidence", "exchangeSent", "exchangeReply", "draftVersions", "previousDraft", "displayFontSize", "displayDensity", "photoFit", "importHistory", "selfProfile", "shareScope", "reviewPreferences"];
-  var persistableState = (s) => ({ ...s.persistenceExtensions, ...Object.fromEntries(PERSISTED_KEYS.map((key) => [key, s[key]])) });
+  var PERSISTED_KEYS = [
+    "contacts",
+    "selectedId",
+    "drafts",
+    "goals",
+    "mediaAnalysis",
+    "scenario",
+    "tone",
+    "intent",
+    "draft",
+    "draftReason",
+    "draftSource",
+    "draftEvidence",
+    "exchangeSent",
+    "exchangeReply",
+    "draftVersions",
+    "previousDraft",
+    "displayFontSize",
+    "displayDensity",
+    "photoFit",
+    "importHistory",
+    "selfProfile",
+    "shareScope",
+    "reviewPreferences"
+  ];
+  var persistableState = (s) => ({
+    ...s.persistenceExtensions,
+    ...Object.fromEntries(PERSISTED_KEYS.map((key) => [key, s[key]]))
+  });
   function createWorkspacePersistence({ E, store }) {
     let persistenceReady = false, persistenceDb = null, persistenceTimer = null, persistenceWrite = Promise.resolve(), lastPersistRefs = null, pendingPersistRefs = null, saveGeneration = 0, stopped = false, clearing = false, resolvePersistenceReady;
     const persistenceReadyPromise = new Promise((resolve) => {
@@ -35984,7 +38907,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         for (const child of Object.values(item)) visit(child);
       };
       visit(value);
-      const encoded = JSON.stringify(value, (_key, item) => typeof Blob !== "undefined" && item instanceof Blob ? { fileName: item.name || "", size: item.size, type: item.type || "" } : item);
+      const encoded = JSON.stringify(
+        value,
+        (_key, item) => typeof Blob !== "undefined" && item instanceof Blob ? { fileName: item.name || "", size: item.size, type: item.type || "" } : item
+      );
       return blobs + new TextEncoder().encode(encoded).byteLength + 1024 * 1024;
     }
     function withoutMediaBlobs(value) {
@@ -35994,10 +38920,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const estimate = typeof navigator !== "undefined" && navigator.storage?.estimate ? await navigator.storage.estimate() : null;
       if (!estimate || !Number.isFinite(estimate.quota) || !Number.isFinite(estimate.usage)) return;
       const available = Math.max(0, estimate.quota - estimate.usage);
-      if (persistenceSize(value) > available) throw Object.assign(new Error("本机可用存储空间不足。"), { name: "QuotaExceededError" });
+      if (persistenceSize(value) > available)
+        throw Object.assign(new Error("本机可用存储空间不足。"), { name: "QuotaExceededError" });
     }
     async function persistSnapshot(state) {
-      if (store.getSnapshot().persistenceReadOnly) throw new Error("本机数据版本较新，已禁止覆盖；请使用兼容版本或手动恢复备份。");
+      if (store.getSnapshot().persistenceReadOnly)
+        throw new Error("本机数据版本较新，已禁止覆盖；请使用兼容版本或手动恢复备份。");
       if (!persistenceDb) persistenceDb = await openPersistenceDb();
       const value = { schemaVersion: E.WORKSPACE_SCHEMA_VERSION, savedAt: Date.now(), state: persistableState(state) };
       try {
@@ -36023,21 +38951,25 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       const generation = ++saveGeneration;
       clearTimeout(persistenceTimer);
       const attempt = (number) => {
-        persistenceTimer = setTimeout(() => {
-          if (stopped || generation !== saveGeneration) return;
-          persistenceWrite = persistenceWrite.catch(() => {
-          }).then(async () => {
+        persistenceTimer = setTimeout(
+          () => {
             if (stopped || generation !== saveGeneration) return;
-            const snapshot = store.getSnapshot();
-            try {
-              await persistSnapshot(snapshot);
-              if (generation === saveGeneration) pendingPersistRefs = null;
-            } catch (error) {
-              store.set({ persistenceStatus: "本机保存失败：" + (error.message || "请检查可用空间。") });
-              if (!stopped && generation === saveGeneration && number < 2 && !store.getSnapshot().persistenceReadOnly && !["QuotaExceededError", "NS_ERROR_DOM_QUOTA_REACHED"].includes(error.name)) attempt(number + 1);
-            }
-          });
-        }, number === 0 ? 350 : number * 1e3);
+            persistenceWrite = persistenceWrite.catch(() => {
+            }).then(async () => {
+              if (stopped || generation !== saveGeneration) return;
+              const snapshot = store.getSnapshot();
+              try {
+                await persistSnapshot(snapshot);
+                if (generation === saveGeneration) pendingPersistRefs = null;
+              } catch (error) {
+                store.set({ persistenceStatus: "本机保存失败：" + (error.message || "请检查可用空间。") });
+                if (!stopped && generation === saveGeneration && number < 2 && !store.getSnapshot().persistenceReadOnly && !["QuotaExceededError", "NS_ERROR_DOM_QUOTA_REACHED"].includes(error.name))
+                  attempt(number + 1);
+              }
+            });
+          },
+          number === 0 ? 350 : number * 1e3
+        );
       };
       attempt(0);
     }
@@ -36078,8 +39010,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           const record = await readPersistence(persistenceDb);
           if (!active) return;
           if (record?.state) {
-            const migrated = E.migrateWorkspaceRecord(record), restored = Object.fromEntries(persistedKeys.filter((key) => Object.hasOwn(migrated.state, key)).map((key) => [key, migrated.state[key]]));
-            store.set({ ...restored, persistenceExtensions: E.persistenceExtensions(migrated.state, persistedKeys), sharedContactId: "", contacts: (migrated.state.contacts || []).map((contact) => ({ ...contact, messages: E.sortChatMessages(contact.messages || []) })) });
+            const migrated = E.migrateWorkspaceRecord(record), restored = Object.fromEntries(
+              persistedKeys.filter((key) => Object.hasOwn(migrated.state, key)).map((key) => [key, migrated.state[key]])
+            );
+            store.set({
+              ...restored,
+              persistenceExtensions: E.persistenceExtensions(migrated.state, persistedKeys),
+              sharedContactId: "",
+              contacts: (migrated.state.contacts || []).map((contact) => ({
+                ...contact,
+                messages: E.sortChatMessages(contact.messages || [])
+              }))
+            });
             status = `已从本机恢复 ${record.state.contacts?.length || 0} 位联系人和聊天记录。`;
           }
         } catch (error) {
@@ -36109,13 +39051,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         } else persistenceDb?.close();
       };
     }
-    return { readyPromise: persistenceReadyPromise, ready: () => persistenceReady, flush, clear, persist: persistSnapshot, schedule: schedulePersistence, start };
+    return {
+      readyPromise: persistenceReadyPromise,
+      ready: () => persistenceReady,
+      flush,
+      clear,
+      persist: persistSnapshot,
+      schedule: schedulePersistence,
+      start
+    };
   }
 
   // src/host-api.js
   var HOST_API = "api/relationship-notes/";
   function hostPost(path, body, { signal, keepalive } = {}) {
-    return fetch(HOST_API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}), signal, keepalive });
+    return fetch(HOST_API + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+      signal,
+      keepalive
+    });
   }
 
   // src/workspace-import.js
@@ -36127,30 +39083,49 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       busy = true;
       abort = new AbortController();
       try {
-        const response = await fetch("api/relationship-notes/import/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", signal: abort.signal });
+        const response = await fetch("api/relationship-notes/import/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+          signal: abort.signal
+        });
         if (!response.ok) return;
         const data = await response.json();
         if (stopped || !data.ok) return;
         if (!persistence.ready()) await persistence.readyPromise;
         if (stopped) return;
-        const existingVersions = new Set(store.getSnapshot().contacts.map((c) => c.importVersion).filter(Boolean));
-        for (const value of data.values || []) if (existingVersions.has(value.version)) {
-          seen.add(value.version);
-          pendingAck.add(value.version);
-        }
+        const existingVersions = new Set(
+          store.getSnapshot().contacts.map((c) => c.importVersion).filter(Boolean)
+        );
+        for (const value of data.values || [])
+          if (existingVersions.has(value.version)) {
+            seen.add(value.version);
+            pendingAck.add(value.version);
+          }
         const imported = E.consumeImports(data.values, seen, E.extractFacts);
         if (imported.length) {
           for (const contact of imported) if (contact.importVersion) pendingAck.add(contact.importVersion);
           const s = store.getSnapshot(), drafts = { ...s.drafts || {} };
           if (s.selectedId) drafts[s.selectedId] = savedDraft(s);
           cancel();
-          set({ contacts: [...s.contacts, ...imported], selectedId: imported.at(-1).id, drafts, ...resetDraft(), status: "已从 DSH 对话导入 " + imported.length + " 份聊天记录。" });
+          set({
+            contacts: [...s.contacts, ...imported],
+            selectedId: imported.at(-1).id,
+            drafts,
+            ...resetDraft(),
+            status: "已从 DSH 对话导入 " + imported.length + " 份聊天记录。"
+          });
         }
         if (pendingAck.size) {
           await persistence.flush();
           if (stopped) return;
           const versions = [...pendingAck];
-          const ack = await fetch("api/relationship-notes/import/ack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ versions }), signal: abort.signal });
+          const ack = await fetch("api/relationship-notes/import/ack", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ versions }),
+            signal: abort.signal
+          });
           if (ack.ok) {
             for (const version of versions) pendingAck.delete(version);
           } else if (!stopped) {
