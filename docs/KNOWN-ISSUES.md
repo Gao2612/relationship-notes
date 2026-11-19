@@ -31,4 +31,6 @@
 
 测试不发网络请求（`fetch` 固定返回本地 404），只覆盖渲染装配与主流程，不替代现有行为断言。运行前需 `pnpm install`。
 
-仍未覆盖：`src/workspace.js` 的大量源码文本断言（`workspace.rendering.test.mjs` 等）使该文件暂不能自动格式化，已列入 `.prettierignore`；把这些断言逐步改写为基于本 DOM 测试的行为断言后，即可移除该例外。
+2026-11-19 续：环境抽成 `src/test-support/dom-harness.mjs`，新增 `workspace-dom-behavior.test.mjs`（7 项），在真实 DOM 中验证导航 tab/tabpanel 语义、三步引导跳转、身份预选与「⇄ 交换」、状态提示条、来源筛选、三张图的可访问标签与缺口标注、折叠区与数据表、未配置模型时的提示与跳转、会话列表开关与设置菜单 Esc 关闭。原先对应的源码文本断言已删除。
+
+其余源码文本断言改为匹配 `src/test-support/compact-source.mjs` 规范化后的源码（去掉字符串、模板与正则之外的空白和注释），不再受排版影响；`src/workspace.js` 已移出 `.prettierignore` 并完成格式化。

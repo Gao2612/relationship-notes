@@ -4,11 +4,12 @@ import { readFileSync } from 'node:fs';
 import { createIcon, ICON_NAMES } from './icons.js';
 import { NAVIGATION } from '../navigation.js';
 import { THEME_CSS } from '../workspace-theme.js';
+import { compactSource } from '../test-support/compact-source.mjs';
 
 const React = {
   createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat() })
 };
-const source = readFileSync(new URL('../workspace.js', import.meta.url), 'utf8');
+const source = compactSource(readFileSync(new URL('../workspace.js', import.meta.url), 'utf8'));
 
 test('every level-one navigation entry has an icon and icons are decorative by default', () => {
   const Icon = createIcon(React);
@@ -49,5 +50,5 @@ test('design tokens keep one accent per meaning and the phone layout moves navig
 });
 
 test('page changes animate once and respect reduced motion', () => {
-  assert.match(source, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches\)return;node\.animate/);
+  assert.match(source, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches\)+return;node\.animate/);
 });

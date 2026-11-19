@@ -39605,7 +39605,13 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (local) return `${local[1]}-${local[2].padStart(2, "0")}-${local[3].padStart(2, "0")}`;
       date = new Date(raw);
     } else if (value instanceof Date) date = value;
-    if (date && Number.isFinite(date.getTime())) return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+    if (date && Number.isFinite(date.getTime()))
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(date);
     return "日期未知";
   }
   function formatChatTimestamp(value) {
@@ -39616,10 +39622,20 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       date = new Date(n < 1e12 ? n * 1e3 : n);
     } else if (typeof value === "string" && value.trim()) {
       const raw = value.trim(), local = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::\d{2})?)?$/.exec(raw);
-      if (local) return `${Number(local[2])}/${Number(local[3])}${local[4] !== void 0 ? ` ${local[4].padStart(2, "0")}:${local[5]}` : ""}`;
+      if (local)
+        return `${Number(local[2])}/${Number(local[3])}${local[4] !== void 0 ? ` ${local[4].padStart(2, "0")}:${local[5]}` : ""}`;
       date = new Date(raw);
     }
-    if (date && Number.isFinite(date.getTime())) return new Intl.DateTimeFormat("zh-CN", { timeZone: timezone, month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, hourCycle: "h23" }).format(date);
+    if (date && Number.isFinite(date.getTime()))
+      return new Intl.DateTimeFormat("zh-CN", {
+        timeZone: timezone,
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        hourCycle: "h23"
+      }).format(date);
     return value ? String(value).replace("T", " ").replace(/\.\d+Z?$/, "").slice(0, 19) : "";
   }
   function cleanTimelineDisplayText(value) {
@@ -39737,1744 +39753,4515 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const h = React2.createElement, id = "local-relationship-notes", emptyMessages = [];
     const localFileUrl = createMediaUrls(), mediaLabels = MEDIA_LABELS, messageMediaKind = mediaKind;
     let pdfWorkerUrl = "";
-    return { inject: ["locale"], apply(ctx) {
-      const t = ctx.locale.bind(id);
-      ctx.effect(() => Object.entries(dictionaries).map(([lang, dict]) => ctx.locale.register(id, lang, dict)));
-      const historyViews = /* @__PURE__ */ new Map();
-      const store = E.createWorkspaceStore({ persistenceReady: false, persistenceStatus: "" });
-      let affinityController = null, autoAnalysisScheduler = null, profileRequest = 0, profileController = null, request = 0, modelRequest = 0, controller = null, timelineRequest = 0, timelineController = null, importEpoch = 0;
-      const persistence = createWorkspacePersistence({ E, store });
-      const set = (change) => store.set(change), nav = (feature, tab) => store.navigate(feature, tab);
-      const useState = () => React2.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
-      const selected2 = (s) => s.contacts.find((c) => c.id === s.selectedId);
-      const cancel = () => {
-        request++;
-        controller?.abort();
-        controller = null;
-      };
-      ctx.effect(() => {
-        let id2 = store.getSnapshot().selectedId, messages = selected2(store.getSnapshot())?.messages, voice = store.getSnapshot().selfProfile;
-        return store.subscribe(() => {
-          const current = store.getSnapshot(), next = selected2(current)?.messages;
-          if (id2 === current.selectedId && messages === next && voice === current.selfProfile) return;
-          id2 = current.selectedId;
-          messages = next;
-          voice = current.selfProfile;
-          cancel();
-          profileRequest++;
-          profileController?.abort();
-          profileController = null;
-          if (current.replyBusy || current.profileBusy) set({ replyBusy: false, profileBusy: false });
-        });
-      });
-      const resetDraft = () => ({ draft: "", draftReason: "", draftSource: "", draftEvidence: [], draftVersions: [], previousDraft: "", exchangeSent: "", exchangeReply: "", status: "", replyBusy: false });
-      const savedDraft = (s) => ({ draft: s.draft, draftReason: s.draftReason, draftSource: s.draftSource, draftEvidence: s.draftEvidence, draftVersions: s.draftVersions, previousDraft: s.previousDraft });
-      const chooseContact = (selectedId) => {
-        const s = store.getSnapshot();
-        if (selectedId === s.selectedId) return;
-        cancel();
-        const drafts = { ...s.drafts || {} };
-        if (s.selectedId) drafts[s.selectedId] = savedDraft(s);
-        set({ selectedId, drafts, evidenceContext: null, sharedContactId: "", replyContextMessages: null, ...resetDraft(), ...drafts[selectedId] || {} });
-      };
-      ctx.effect(() => {
-        const clientId = "workspace-" + Date.now() + "-" + Math.random().toString(36).slice(2);
-        let stopped = false, busy = false, shared = "", lastSync = 0, lastContact = null, lastScope = "";
-        const post = async (path, body) => {
-          const response = await fetch("api/relationship-notes/profile/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-          const data = await response.json();
-          if (!response.ok || !data.ok) throw new Error(data.error || "DSH 档案连接失败");
-          return data;
+    return {
+      inject: ["locale"],
+      apply(ctx) {
+        const t = ctx.locale.bind(id);
+        ctx.effect(() => Object.entries(dictionaries).map(([lang, dict]) => ctx.locale.register(id, lang, dict)));
+        const historyViews = /* @__PURE__ */ new Map();
+        const store = E.createWorkspaceStore({ persistenceReady: false, persistenceStatus: "" });
+        let affinityController = null, autoAnalysisScheduler = null, profileRequest = 0, profileController = null, request = 0, modelRequest = 0, controller = null, timelineRequest = 0, timelineController = null, importEpoch = 0;
+        const persistence = createWorkspacePersistence({ E, store });
+        const set = (change) => store.set(change), nav = (feature, tab) => store.navigate(feature, tab);
+        const useState = () => React2.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+        const selected2 = (s) => s.contacts.find((c) => c.id === s.selectedId);
+        const cancel = () => {
+          request++;
+          controller?.abort();
+          controller = null;
         };
-        const pump = async () => {
-          if (stopped || busy) return;
-          busy = true;
-          try {
-            const s = store.getSnapshot(), contact = selected2(s), enabled = Boolean(s.sharedContactId && s.sharedContactId === contact?.id);
-            if (shared && (!enabled || shared !== contact.id)) {
-              await post("sync", { clientId, enabled: false });
-              shared = "";
-              lastContact = null;
-              lastSync = 0;
-              if (s.sharedContactId) set({ sharedContactId: "" });
-              return;
-            }
-            if (!enabled) return;
-            if (shared !== contact.id || lastContact !== contact || lastScope !== JSON.stringify(s.shareScope || {}) || Date.now() - lastSync > 2e4) {
-              await post("sync", { clientId, enabled: true, snapshot: E.createProfileBridgeSnapshot(contact, s.shareScope || {}) });
-              shared = contact.id;
-              if (stopped || store.getSnapshot().selectedId !== contact.id || store.getSnapshot().sharedContactId !== contact.id) {
+        ctx.effect(() => {
+          let id2 = store.getSnapshot().selectedId, messages = selected2(store.getSnapshot())?.messages, voice = store.getSnapshot().selfProfile;
+          return store.subscribe(() => {
+            const current = store.getSnapshot(), next = selected2(current)?.messages;
+            if (id2 === current.selectedId && messages === next && voice === current.selfProfile) return;
+            id2 = current.selectedId;
+            messages = next;
+            voice = current.selfProfile;
+            cancel();
+            profileRequest++;
+            profileController?.abort();
+            profileController = null;
+            if (current.replyBusy || current.profileBusy) set({ replyBusy: false, profileBusy: false });
+          });
+        });
+        const resetDraft = () => ({
+          draft: "",
+          draftReason: "",
+          draftSource: "",
+          draftEvidence: [],
+          draftVersions: [],
+          previousDraft: "",
+          exchangeSent: "",
+          exchangeReply: "",
+          status: "",
+          replyBusy: false
+        });
+        const savedDraft = (s) => ({
+          draft: s.draft,
+          draftReason: s.draftReason,
+          draftSource: s.draftSource,
+          draftEvidence: s.draftEvidence,
+          draftVersions: s.draftVersions,
+          previousDraft: s.previousDraft
+        });
+        const chooseContact = (selectedId) => {
+          const s = store.getSnapshot();
+          if (selectedId === s.selectedId) return;
+          cancel();
+          const drafts = { ...s.drafts || {} };
+          if (s.selectedId) drafts[s.selectedId] = savedDraft(s);
+          set({
+            selectedId,
+            drafts,
+            evidenceContext: null,
+            sharedContactId: "",
+            replyContextMessages: null,
+            ...resetDraft(),
+            ...drafts[selectedId] || {}
+          });
+        };
+        ctx.effect(() => {
+          const clientId = "workspace-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+          let stopped = false, busy = false, shared = "", lastSync = 0, lastContact = null, lastScope = "";
+          const post = async (path, body) => {
+            const response = await fetch("api/relationship-notes/profile/" + path, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body)
+            });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error || "DSH 档案连接失败");
+            return data;
+          };
+          const pump = async () => {
+            if (stopped || busy) return;
+            busy = true;
+            try {
+              const s = store.getSnapshot(), contact = selected2(s), enabled = Boolean(s.sharedContactId && s.sharedContactId === contact?.id);
+              if (shared && (!enabled || shared !== contact.id)) {
                 await post("sync", { clientId, enabled: false });
                 shared = "";
+                lastContact = null;
+                lastSync = 0;
+                if (s.sharedContactId) set({ sharedContactId: "" });
                 return;
               }
-              lastSync = Date.now();
-              lastContact = contact;
-              lastScope = JSON.stringify(s.shareScope || {});
-            }
-            const pending = await post("pending", { clientId, contactId: contact.id });
-            if (stopped) return;
-            if (pending.values?.length) {
-              const current = store.getSnapshot();
-              if (current.sharedContactId !== contact.id || current.selectedId !== contact.id) return;
-              set({ contacts: current.contacts.map((c) => c.id === contact.id ? { ...c, profileSummary: [...c.profileSummary || [], ...pending.values.filter((f) => !(c.profileSummary || []).some((old) => old.uid === f.uid)).map((f) => ({ ...f, status: "pending", confirmed: false }))] } : c), profileBridgeStatus: "DSH 提议了新资料，请到联系人档案的“待确认”查看。" });
-              await persistence.flush();
-              const after = store.getSnapshot(), saved = after.contacts.find((c) => c.id === contact.id);
-              if (stopped || after.selectedId !== contact.id || after.sharedContactId !== contact.id || !pending.values.every((f) => saved?.profileSummary?.some((row) => row.uid === f.uid))) return;
-              await post("ack", { clientId, contactId: contact.id, ids: pending.values.map((f) => f.uid) });
-            }
-          } catch (error) {
-            if (!stopped) set({ sharedContactId: "", profileBridgeStatus: error.message });
-            if (shared) {
-              hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
-              });
-              shared = "";
-            }
-          } finally {
-            busy = false;
-            if (shared) {
-              const current = store.getSnapshot();
-              if (stopped) {
+              if (!enabled) return;
+              if (shared !== contact.id || lastContact !== contact || lastScope !== JSON.stringify(s.shareScope || {}) || Date.now() - lastSync > 2e4) {
+                await post("sync", {
+                  clientId,
+                  enabled: true,
+                  snapshot: E.createProfileBridgeSnapshot(contact, s.shareScope || {})
+                });
+                shared = contact.id;
+                if (stopped || store.getSnapshot().selectedId !== contact.id || store.getSnapshot().sharedContactId !== contact.id) {
+                  await post("sync", { clientId, enabled: false });
+                  shared = "";
+                  return;
+                }
+                lastSync = Date.now();
+                lastContact = contact;
+                lastScope = JSON.stringify(s.shareScope || {});
+              }
+              const pending = await post("pending", { clientId, contactId: contact.id });
+              if (stopped) return;
+              if (pending.values?.length) {
+                const current = store.getSnapshot();
+                if (current.sharedContactId !== contact.id || current.selectedId !== contact.id) return;
+                set({
+                  contacts: current.contacts.map(
+                    (c) => c.id === contact.id ? {
+                      ...c,
+                      profileSummary: [
+                        ...c.profileSummary || [],
+                        ...pending.values.filter((f) => !(c.profileSummary || []).some((old) => old.uid === f.uid)).map((f) => ({ ...f, status: "pending", confirmed: false }))
+                      ]
+                    } : c
+                  ),
+                  profileBridgeStatus: "DSH 提议了新资料，请到联系人档案的“待确认”查看。"
+                });
+                await persistence.flush();
+                const after = store.getSnapshot(), saved = after.contacts.find((c) => c.id === contact.id);
+                if (stopped || after.selectedId !== contact.id || after.sharedContactId !== contact.id || !pending.values.every((f) => saved?.profileSummary?.some((row) => row.uid === f.uid)))
+                  return;
+                await post("ack", { clientId, contactId: contact.id, ids: pending.values.map((f) => f.uid) });
+              }
+            } catch (error) {
+              if (!stopped) set({ sharedContactId: "", profileBridgeStatus: error.message });
+              if (shared) {
                 hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
                 });
                 shared = "";
-              } else if (current.sharedContactId !== shared || current.selectedId !== shared) queueMicrotask(pump);
+              }
+            } finally {
+              busy = false;
+              if (shared) {
+                const current = store.getSnapshot();
+                if (stopped) {
+                  hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
+                  });
+                  shared = "";
+                } else if (current.sharedContactId !== shared || current.selectedId !== shared) queueMicrotask(pump);
+              }
             }
-          }
-        };
-        const unsubscribe = store.subscribe(pump), timer = setInterval(pump, 5e3);
-        return () => {
-          stopped = true;
-          unsubscribe();
-          clearInterval(timer);
-          if (shared) hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
-          });
-        };
-      });
-      ctx.effect(() => {
-        let previous = store.getSnapshot();
-        const unsubscribe = store.subscribe(() => {
-          const current = store.getSnapshot();
-          if (current.contacts !== previous.contacts || current.undoData !== previous.undoData || current.undoRestore !== previous.undoRestore || current.undoImportContacts !== previous.undoImportContacts || current.undoMessageContact !== previous.undoMessageContact) {
-            localFileUrl.retain(current);
-          }
-          previous = current;
-        });
-        return () => {
-          unsubscribe();
-          localFileUrl.dispose();
-          if (pdfWorkerUrl) URL.revokeObjectURL(pdfWorkerUrl);
-        };
-      });
-      ctx.effect(() => persistence.start());
-      ctx.effect(() => () => {
-        cancel();
-        affinityController?.abort();
-        profileRequest++;
-        profileController?.abort();
-        modelRequest++;
-        timelineRequest++;
-        timelineController?.abort();
-        importEpoch++;
-      });
-      ctx.effect(() => startImportQueue({ E, store, set, persistence, savedDraft, resetDraft, cancel }));
-      const button = (label, onClick, props = {}) => h("button", { type: "button", onClick, ...props }, label);
-      const box = (title, ...children) => h("section", { className: "rn-box" }, h("h2", null, title), ...children);
-      const muted = (text) => h("p", { className: "rn-muted" }, text);
-      const progressBar = (done, total, label) => {
-        const percent = total ? Math.max(0, Math.min(100, Math.round((Number(done) || 0) / (Number(total) || 1) * 100))) : 0;
-        return h("div", { className: "rn-progress" }, h("div", { className: "rn-progress-track", role: "progressbar", "aria-label": label || "分析进度", "aria-valuenow": percent, "aria-valuemin": 0, "aria-valuemax": 100 }, h("div", { className: "rn-progress-fill", style: { width: percent + "%" } })), h("span", { className: "rn-progress-value" }, percent + "%" + (total ? ` · ${Number(done) || 0}/${total} 个日期` : "")));
-      };
-      const updateContact = (contactId, transform) => {
-        const current = store.getSnapshot();
-        set({ contacts: current.contacts.map((c) => c.id === contactId ? transform(c) : c) });
-      };
-      const showEvidence = (contactId, reference) => {
-        const contact = store.getSnapshot().contacts.find((c) => c.id === contactId), fact = reference.factId && (contact?.profileSummary || []).find((f) => f.uid === reference.factId);
-        set({ evidenceContext: { contactId, reference: fact ? { ...reference, sourceMessageIds: fact.sourceMessageIds, message: fact.message, quote: fact.quote || reference.quote } : reference } });
-      };
-      ctx.effect(() => {
-        autoAnalysisScheduler = E.createAutoAnalysisScheduler({ getState: store.getSnapshot, subscribe: store.subscribe, updateContact, request: async (path, body, signal) => {
-          const response = await fetch("api/relationship-notes/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal }), data = await response.json();
-          if (!response.ok || !data.ok) throw Object.assign(new Error(data.error || "自动分析失败。"), { status: response.status });
-          return data;
-        }, persist: async () => {
-          await persistence.flush();
-        } });
-        autoAnalysisScheduler.start();
-        return () => {
-          autoAnalysisScheduler?.stop();
-          autoAnalysisScheduler = null;
-        };
-      });
-      ctx.effect(() => {
-        let cancelled = false, tries = 0, timer = null;
-        const attempt = async () => {
-          await models();
-          if (cancelled) return;
-          const s = store.getSnapshot();
-          if ((!s.provider || !s.model) && tries < 5) {
-            const delay = [400, 1200, 3e3, 8e3, 2e4][tries++] || 2e4;
-            timer = setTimeout(() => {
-              timer = null;
-              void attempt();
-            }, delay);
-          }
-        };
-        void attempt();
-        return () => {
-          cancelled = true;
-          if (timer) clearTimeout(timer);
-        };
-      });
-      ctx.effect(() => {
-        let cancelled = false;
-        const wait = (predicate, steps = 60) => new Promise((resolve) => {
-          let left = steps;
-          const tick = () => {
-            if (cancelled) return resolve(false);
-            if (predicate(store.getSnapshot())) return resolve(true);
-            if (left-- <= 0) return resolve(false);
-            setTimeout(tick, 500);
           };
-          tick();
-        });
-        const sweep = async () => {
-          if (!await wait((s2) => s2.persistenceReady || s2.persistenceReadOnly)) return;
-          await wait((s2) => Boolean(s2.provider && s2.model), 40);
-          if (cancelled) return;
-          const s = store.getSnapshot();
-          if (!s.persistenceReady || s.persistenceReadOnly) return;
-          for (const contact of s.contacts) {
-            if (cancelled) return;
-            if (contact.isSample || !contact.messages?.length) continue;
-            const key = contact.id + "#" + contact.messages.length;
-            if (autoSummaryTried.has(key)) continue;
-            autoSummaryTried.add(key);
-            await analyzeTimeline(contact.id, {});
-          }
-        };
-        void sweep();
-        return () => {
-          cancelled = true;
-        };
-      });
-      const source = (m) => h("div", { className: "rn-muted rn-source" }, [m?.sender, m?.timestamp !== void 0 ? formatChatTimestamp(m.timestamp) : "", m?.file, m?.messageIndex ? `第 ${m.messageIndex} 条` : m?.line ? `第 ${m.line}${m.endLine && m.endLine !== m.line ? "–" + m.endLine : ""} 行` : ""].filter(Boolean).join(" · "), m?.text && button("查看原文上下文", () => showEvidence(store.getSnapshot().selectedId, { messageId: E.profileMessageId(m), message: m, quote: m.text })));
-      const select = (label, value, options, onChange, props = {}) => h("label", null, label, h("select", { value, onChange: (e) => onChange(e.target.value), ...props }, ...options.map(([value2, label2]) => h("option", { key: value2, value: value2 }, label2))));
-      const empty = () => h("div", { className: "rn-empty" }, h("h2", null, "还没有联系人资料"), muted("先导入聊天记录并确认双方身份。"), button("前往聊天导入", () => nav("import", "file"), { className: "primary" }));
-      function StartGuide() {
-        const loadSample = () => importFile(new File([E.sampleChat], "示例对话.txt", { type: "text/plain" }), true);
-        const steps = [["导入聊天", "从微信 / QQ 导出文件选择，或粘贴 TXT / JSON 文本。", () => nav("import", "file"), "导入聊天", "primary"], ["确认身份", "指定哪位是你、哪位是联系人；只有双方消息进入分析。", () => nav("import", "identity"), "确认身份", ""], ["查看评分与时间线", "完成后查看互动评分、每日历程与可行动线索。", () => nav("behavior", "metrics"), "查看评分与时间线", ""]];
-        return h("section", { className: "rn-empty", "aria-label": "三步开始" }, h("h2", null, "三步开始"), muted("还没有聊天记录。按下面三步完成首次配置，所有数据只保存在本机。"), h("ol", { className: "rn-onboarding-steps", style: { display: "grid", gap: 12, margin: "16px 0", paddingLeft: 20, textAlign: "left" } }, ...steps.map(([title, body, action, label, className], index) => h("li", { key: title }, h("strong", null, title), muted(body), button(label, action, { className })))), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, button("载入内置示例聊天（虚构）", loadSample)), muted("示例联系人会带「虚构示例」标记，不参与自动分析；随时可以在设置里删除。"));
-      }
-      async function parsePdfFile(file) {
-        if (typeof pdf_exports === "undefined") throw new Error("PDF 解析组件未加载，请重新构建关系手记。");
-        if (file.size > 256 * 1024 * 1024) throw new Error("PDF 超过 256 MiB，无法在本机读取。");
-        if (!pdfWorkerUrl) {
-          pdfWorkerUrl = URL.createObjectURL(new Blob([PDF_WORKER_SOURCE], { type: "text/javascript" }));
-          pdf_exports.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-        }
-        const loadingTask = pdf_exports.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false, useWasm: false });
-        const pdf = await loadingTask.promise;
-        try {
-          const lines = [];
-          for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-            const page = await pdf.getPage(pageNumber), content = await page.getTextContent(), rows = [];
-            for (const item of content.items) {
-              if (!item.str?.trim()) continue;
-              const x = Number(item.transform?.[4]) || 0, y = Number(item.transform?.[5]) || 0, height = Number(item.height) || 10;
-              let row = rows.find((value) => Math.abs(value.y - y) <= Math.max(2, height * 0.32));
-              if (!row) {
-                row = { y, items: [] };
-                rows.push(row);
-              }
-              row.items.push({ x, str: item.str });
-            }
-            rows.sort((a, b) => b.y - a.y);
-            for (const row of rows) {
-              row.items.sort((a, b) => a.x - b.x);
-              let text = "";
-              let right = null;
-              for (const item of row.items) {
-                if (right !== null && item.x - right > 7 && !/\s$/.test(text) && !/^[，。！？；：、）】」』]/.test(item.str)) text += " ";
-                text += item.str;
-                right = item.x + Math.max(1, item.str.length * 5);
-              }
-              if (text.trim()) lines.push(text.trim());
-            }
-            page.cleanup();
-          }
-          const messages = E.parseChat(lines.join("\n"), "txt");
-          return messages.map((message) => ({ ...message, typeName: "text", attachments: [] }));
-        } finally {
-          await loadingTask.destroy();
-        }
-      }
-      async function runAffinity(contactId) {
-        const start = store.getSnapshot();
-        if (start.affinityBusy) return;
-        affinityController?.abort();
-        const controller2 = new AbortController();
-        affinityController = controller2;
-        const first = start.contacts.find((c) => c.id === contactId);
-        if (!first) return;
-        const pending = E.analyzeRelationship(first).pending, failed = [];
-        let done = 0, stored = 0, consecutive = 0;
-        set({ affinityBusy: contactId, affinityProgress: "准备中…", affinityError: "" });
-        try {
-          for (const week of pending) {
-            if (controller2.signal.aborted) break;
-            const current = store.getSnapshot(), contact = current.contacts.find((c) => c.id === contactId);
-            if (!contact) break;
-            const turns = E.buildTurns(contact), fingerprint = E.weekFingerprint(contact, week, turns);
-            const previous = Object.entries(contact.affinityV3?.weeks || {}).filter(([key, entry2]) => key < week && entry2?.result?.summary).sort((a, b) => b[0].localeCompare(a[0]))[0];
-            const body = E.buildAffinityRequest(contact, week, { previousSummary: previous?.[1].result.summary, turns });
-            if (current.provider && current.model) {
-              body.provider = current.provider;
-              body.model = current.model;
-            }
-            set({ affinityProgress: `正在分析 ${week} 这一周（${done + 1} / ${pending.length}）…` });
-            const response = await hostPost("affinity-analysis", body, { signal: controller2.signal });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.ok) {
-              if ([405, 499, 503].includes(response.status)) throw new Error(data.error || "模型分析暂不可用。");
-              failed.push(week + "：" + (data.error || "HTTP " + response.status));
-              done++;
-              if (++consecutive >= 2) {
-                failed.splice(0, failed.length);
-                throw new Error(`连续 2 周分析失败，已停止：${String(data.error || "HTTP " + response.status).replace(/[。.]+$/, "")}。请检查 DSH 的模型配置后重试，已完成的周会保留。`);
-              }
-              continue;
-            }
-            consecutive = 0;
-            const latest = store.getSnapshot(), target = latest.contacts.find((c) => c.id === contactId);
-            if (!target) break;
-            if (E.weekFingerprint(target, week) === fingerprint) {
-              set({ contacts: latest.contacts.map((c) => c.id === contactId ? E.storeAiWeek(c, week, { result: data.analysis, provider: data.provider, model: data.model, fingerprint, request: body }) : c) });
-              stored++;
-            }
-            done++;
-          }
-          if (!controller2.signal.aborted) set({ status: stored ? `关系分析已更新 ${stored} 周。` : "没有新的周需要分析。" });
-        } catch (error) {
-          if (error?.name !== "AbortError" && !controller2.signal.aborted) set({ affinityError: error.message || "模型分析暂不可用。" });
-        } finally {
-          if (affinityController === controller2) affinityController = null;
-          set({ affinityBusy: "", affinityProgress: "", ...failed.length ? { affinityError: `${failed.length} 周未完成（可再次点击重试）：${failed.slice(0, 3).join("；")}` } : {} });
-          await persistence.flush?.();
-        }
-      }
-      function cancelAffinity() {
-        affinityController?.abort();
-        affinityController = null;
-        set({ affinityBusy: "", affinityProgress: "", status: "已取消关系分析；已完成的周会保留。" });
-      }
-      function guessIdentity(messages) {
-        const senders = [...new Set((messages || []).map((m) => m.sender).filter(Boolean))];
-        if (senders.length !== 2) return {};
-        const known = new Set(store.getSnapshot().contacts.filter((c) => !c.isSample).map((c) => c.self));
-        const self2 = senders.find((v) => /^(?:我|me|myself|自己|本人)$/i.test(String(v).trim())) || senders.find((v) => known.has(v));
-        return self2 ? { self: self2, target: senders.find((v) => v !== self2) } : {};
-      }
-      async function importFile(file, isSample = false) {
-        if (!file) return;
-        const epoch = ++importEpoch;
-        set({ importBusy: true, importError: "", pending: null, self: "", target: "", importName: file.name });
-        try {
-          const extension = file.name.split(".").pop().toLowerCase();
-          let messages;
-          if (extension === "bak") throw new E.ImportError("qqBackup");
-          if (extension === "pdf") messages = await parsePdfFile(file);
-          else {
-            const limit = /^(?:json|html)$/.test(extension) ? 25 * 1024 * 1024 : E.MAX_BYTES;
-            if (file.size > limit) throw new Error(`文件超过 ${Math.round(limit / 1024 / 1024)} MiB。`);
-            const bytes = await file.arrayBuffer();
-            let text;
-            if (extension === "html" || extension === "json") {
-              try {
-                text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-              } catch {
-                throw new E.ImportError("encoding");
-              }
-            }
-            messages = extension === "html" ? E.parseWechatHtml(text) : extension === "json" && text.trimStart().startsWith("[") ? E.parseWechatJson(text) : E.decodeFile(bytes, file.name, file.size);
-          }
-          if (epoch !== importEpoch) return;
-          const mediaCount = messages.reduce((count, message) => count + (message.attachments?.length || 0), 0);
-          set({ pending: { messages: messages.map((m, i) => ({ ...m, file: file.name, messageIndex: i + 1 })), isSample, assets: [], media: { linked: 0, missing: mediaCount, total: mediaCount } }, importBusy: false, ...guessIdentity(messages) });
-          nav("import", "identity");
-        } catch (error) {
-          if (epoch === importEpoch) set({ importBusy: false, importError: { qqBackup: "已识别 QQ 加密备份；完整备份解析尚未接通，本次没有导入消息。", parse10: "无法识别此文件格式，请选择 JSON、HTML、PDF 或 TXT。", encoding: "文件不是有效的 UTF-8 编码。", size: "文件超过大小限制。", empty: "没有找到可识别的聊天记录。" }[error.code] || "导入失败：" + (error.message || error.code || "请检查文件内容") });
-        }
-      }
-      async function importFiles(fileList) {
-        const files = Array.from(fileList || []);
-        if (!files.length) return;
-        const current = store.getSnapshot().pending;
-        if (current) {
-          const linked = E.linkWechatMediaFiles(current.messages, files), assets = files.map((file) => {
-            const parts = (file.webkitRelativePath || file.name).replaceAll("\\", "/").toLowerCase().split("/");
-            const folder = parts.find((part) => ["image", "video", "voice", "emoji", "emoji_sticker"].includes(part));
-            if (!folder) return null;
-            const kind = folder === "video" ? "video" : folder === "voice" ? "audio" : folder === "image" ? "image" : "sticker";
-            return { file, kind };
-          }).filter(Boolean), avatars = files.filter((file) => {
-            const parts = (file.webkitRelativePath || "").replaceAll("\\", "/").split("/");
-            return parts.length >= 3 && parts.at(-2).toLowerCase() === "avatar" && /\.(?:jpe?g|png|webp|gif|bmp)$/i.test(file.name);
-          });
-          if (!assets.length && !avatars.length) {
-            set({ importError: "这个文件夹没有找到媒体或头像文件。" });
-            return;
-          }
-          set({ pending: { ...current, messages: linked.messages, assets, avatars, media: { linked: linked.linked, missing: linked.missing, total: linked.linked + linked.missing, files: assets.length } }, importError: "" });
-          return;
-        }
-        const jsonFiles = files.filter((file) => /\.json$/i.test(file.name));
-        if (!jsonFiles.length) {
-          if (files.length === 1) return importFile(files[0]);
-          set({ importError: "没有找到可导入的聊天记录，请选择聊天文件或导出文件夹。" });
-          return;
-        }
-        const epoch = ++importEpoch;
-        set({ importBusy: true, importError: "", pending: null, self: "", target: "", importName: files[0].webkitRelativePath?.split("/")[0] || files[0].name });
-        try {
-          const candidates = [];
-          for (const file of jsonFiles) {
-            if (file.size > 25 * 1024 * 1024) continue;
-            candidates.push({ name: file.name, text: await file.text() });
-          }
-          const selected3 = E.selectBestWechatExport(candidates), linked = E.linkWechatMediaFiles(selected3.messages, files), assets = files.map((file) => {
-            const parts = (file.webkitRelativePath || file.name).replaceAll("\\", "/").toLowerCase().split("/");
-            const folder = parts.find((part) => ["image", "video", "voice", "emoji", "emoji_sticker"].includes(part));
-            if (!folder) return null;
-            const kind = folder === "video" ? "video" : folder === "voice" ? "audio" : folder === "image" ? "image" : "sticker";
-            return { file, kind };
-          }).filter(Boolean), avatars = files.filter((file) => {
-            const parts = (file.webkitRelativePath || "").replaceAll("\\", "/").split("/");
-            return parts.length >= 3 && parts.at(-2).toLowerCase() === "avatar" && /\.(?:jpe?g|png|webp|gif|bmp)$/i.test(file.name);
-          });
-          if (epoch !== importEpoch) return;
-          set({ pending: { messages: linked.messages.map((message) => ({ ...message, file: selected3.name, messageIndex: message.index })), assets, avatars, isSample: false, media: { linked: linked.linked, missing: linked.missing, total: linked.linked + linked.missing, files: assets.length } }, importSource: selected3.name, importBusy: false, ...guessIdentity(linked.messages) });
-          nav("import", "identity");
-        } catch (error) {
-          if (epoch === importEpoch) set({ importBusy: false, importError: "没有找到可导入的聊天记录，请重新选择文件。" });
-        }
-      }
-      async function canvasJpeg(drawable, width, height, maxSide = 1280) {
-        const scale = Math.min(1, maxSide / Math.max(width, height)), canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(width * scale));
-        canvas.height = Math.max(1, Math.round(height * scale));
-        const context = canvas.getContext("2d");
-        if (!context) throw new Error("无法创建本地图片预览。");
-        context.drawImage(drawable, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error("无法读取媒体帧。")), "image/jpeg", 0.78));
-        const bytes = new Uint8Array(await blob.arrayBuffer());
-        let binary = "";
-        for (let i = 0; i < bytes.length; i += 32768) binary += String.fromCharCode(...bytes.subarray(i, i + 32768));
-        return { data: btoa(binary), mimeType: "image/jpeg" };
-      }
-      async function analysisFrames(file, kind) {
-        if (kind !== "video") {
-          const bitmap = await createImageBitmap(file);
-          try {
-            return [{ ...await canvasJpeg(bitmap, bitmap.width, bitmap.height), timestamp: 0 }];
-          } finally {
-            bitmap.close?.();
-          }
-        }
-        const url = URL.createObjectURL(file), video = document.createElement("video");
-        video.muted = true;
-        video.preload = "auto";
-        video.src = url;
-        try {
-          await new Promise((resolve, reject) => {
-            video.onloadedmetadata = resolve;
-            video.onerror = () => reject(new Error("DSH 无法读取此视频格式。"));
-          });
-          if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error("视频时长无效。");
-          const positions = [Math.min(0.2, video.duration / 2), video.duration / 2, Math.max(0, video.duration - 0.2)], frames = [];
-          for (const time of [...new Set(positions)]) {
-            video.currentTime = time;
-            await new Promise((resolve, reject) => {
-              video.onseeked = resolve;
-              video.onerror = () => reject(new Error("读取视频画面失败。"));
+          const unsubscribe = store.subscribe(pump), timer = setInterval(pump, 5e3);
+          return () => {
+            stopped = true;
+            unsubscribe();
+            clearInterval(timer);
+            if (shared) hostPost("profile/sync", { clientId, enabled: false }, { keepalive: true }).catch(() => {
             });
-            frames.push({ ...await canvasJpeg(video, video.videoWidth, video.videoHeight, 960), timestamp: time });
-          }
-          return frames;
-        } finally {
-          video.pause();
-          video.removeAttribute("src");
-          video.load();
-          URL.revokeObjectURL(url);
-        }
-      }
-      async function analyzeMedia(file, kind, contact, index) {
-        const state = store.getSnapshot(), key = contact.id + ":" + index;
-        if (!state.mediaConsent) return;
-        set({ mediaAnalysisBusy: { ...state.mediaAnalysisBusy, [key]: true }, status: "本地提取媒体画面…" });
-        try {
-          const frames = await analysisFrames(file, kind);
-          const response = await hostPost("media-analysis", { mediaType: kind === "video" ? "video" : "image", frames });
-          const data = await response.json();
-          if (!response.ok || data.ok === false || typeof data.analysis !== "string") throw new Error(data.error || "媒体分析失败。");
-          const latest = store.getSnapshot();
-          set({ mediaAnalysis: { ...latest.mediaAnalysis, [key]: data.analysis }, status: "媒体画面已交给 DSH 默认模型分析，请核对结果。" });
-        } catch (error) {
-          set({ status: "媒体分析失败：" + (error.message || "请重试。") });
-        } finally {
-          const latest = store.getSnapshot(), busy = { ...latest.mediaAnalysisBusy };
-          delete busy[key];
-          set({ mediaAnalysisBusy: busy });
-        }
-      }
-      async function analyzeTimeline(contactId, { force = false, onlyDate = "" } = {}) {
-        const channelOf2 = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
-        const initial = store.getSnapshot(), contact = initial.contacts.find((item) => item.id === contactId);
-        if (!contact) return;
-        if (timelineController) timelineController.abort();
-        const ticket = ++timelineRequest;
-        timelineController = new AbortController();
-        const channelSets = [["qq", contact.messages.filter((message) => channelOf2(message) === "qq")], ["wechat", contact.messages.filter((message) => channelOf2(message) !== "qq")]], known = contact.timelineAnalysis || {}, days = channelSets.flatMap(([channel, messages]) => E.analyzeDailyTimeline(messages, contact.self, contact.target, contact.interactionCorrections || []).days.filter((day) => (force || known[day.date + "#" + channel]?.version !== 4) && (!onlyDate || day.date === onlyDate)).map((day) => ({ ...day, channel, key: day.date + "#" + channel })));
-        if (!days.length) {
-          timelineController = null;
-          set({ status: "没有可分析的聊天日期。" });
-          return;
-        }
-        const controllerForRun = timelineController;
-        set({ timelineAnalysisContact: contactId, timelineAnalysisProgress: `准备分析 ${days.length} 个日期`, timelineAnalysisDone: 0, timelineAnalysisTotal: days.length, status: "正在使用 DSH 默认模型分析聊天时间线…" });
-        try {
-          const requestDays = days.map((day) => ({ date: day.date, channel: day.channel, key: day.key, messageCount: day.messages.length, selfMessages: day.selfMessages, targetMessages: day.targetMessages, turns: day.turns, activityScore: day.activityScore, affinityScore: day.affinityScore, affinityChange: day.affinityChange, transcript: day.messages.map((message) => {
-            const body = String(message.text || "").trim(), kind = messageMediaKind(message);
-            return { sender: message.sender, text: body ? body.slice(0, 300) + (body.length > 300 ? "…" : "") : `【${mediaLabels[kind] || "媒体消息"}】` };
-          }) })), batches = [];
-          let pendingBatch = [];
-          for (const day of requestDays) {
-            const candidate = [...pendingBatch, day], size = JSON.stringify({ self: contact.self, target: contact.target, days: candidate }).length;
-            if (pendingBatch.length && (size > 24e3 || candidate.length > 4)) {
-              batches.push(pendingBatch);
-              pendingBatch = [];
-            }
-            if (JSON.stringify({ self: contact.self, target: contact.target, days: [day] }).length > 58e3) throw new Error(`${day.date} 的聊天内容过长，无法放入单次分析请求。`);
-            pendingBatch.push(day);
-          }
-          if (pendingBatch.length) batches.push(pendingBatch);
-          let completed = 0;
-          const failedDates = [], stopIfAborted = () => {
-            const current = store.getSnapshot().contacts.find((item) => item.id === contactId);
-            if (controllerForRun.signal.aborted || ticket !== timelineRequest || !current || current.messages !== contact.messages || current.self !== contact.self || current.target !== contact.target || current.interactionCorrections !== contact.interactionCorrections) {
-              controllerForRun.abort();
-              throw Object.assign(new Error("聊天或评分修正已变化，请重新分析。"), { name: "AbortError" });
-            }
           };
-          const saveBatch = async (batch) => {
-            stopIfAborted();
-            const wire = batch.map(({ channel, key, ...day }) => day), response = await hostPost("timeline-analysis", { self: contact.self, target: contact.target, days: wire }, { signal: controllerForRun.signal }), data = await response.json();
-            stopIfAborted();
-            if (!response.ok || data.ok === false || !Array.isArray(data.days)) throw new Error(data.error || "未收到有效的日期分析");
-            if (Array.isArray(data.missing) && data.missing.length) throw new Error("模型没有返回这些日期的可解析结果：" + ((data.missingDetails || []).length ? data.missingDetails.map((item) => item.date + "（" + (item.reason || "未知") + "）").join("；") : data.missing.join("、")));
-            const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
-            if (!updatedContact) throw new Error("联系人已不存在。");
-            const timelineAnalysis = { ...updatedContact.timelineAnalysis || {}, ...Object.fromEntries(data.days.map((day, index) => {
-              const request2 = batch.find((item) => item.date === day.date && item.channel === day.channel) || batch[index] || {};
-              return [request2.key || day.date, { summary: cleanTimelineDisplayText(day.summary), activityReason: cleanTimelineDisplayText(day.activityReason), affinityContext: cleanTimelineDisplayText(day.affinityContext), channel: request2.channel || null, version: 4 }];
-            })) };
-            set({ contacts: current.contacts.map((item) => item.id === contactId ? { ...item, timelineAnalysis, timelineAnalysisModel: data.model || "DSH 默认模型", timelineAnalysisUpdatedAt: Date.now() } : item) });
-            const savedKeys = new Set(data.days.map((day, index) => {
-              const request2 = batch.find((item) => item.date === day.date && item.channel === day.channel) || batch[index] || {};
-              return request2.key || day.date;
-            }));
-            return { saved: savedKeys.size, missing: batch.map((day) => day.key || day.date).filter((key) => !savedKeys.has(key)) };
-          };
-          for (const batch of batches) {
-            stopIfAborted();
-            set({ timelineAnalysisProgress: `正在分析 ${completed} / ${days.length} 个日期`, timelineAnalysisDone: completed, timelineAnalysisTotal: days.length });
-            try {
-              const result = await saveBatch(batch);
-              completed += result.saved;
-              for (const date of result.missing) {
-                stopIfAborted();
-                try {
-                  const retried = await saveBatch(batch.filter((day) => (day.key || day.date) === date));
-                  completed += retried.saved;
-                  if (!retried.saved) failedDates.push(date + "（重试后仍无该日期结果）");
-                } catch (error) {
-                  if (error.name === "AbortError") throw error;
-                  failedDates.push(date + "（" + (error.message || "重试失败") + "）");
-                }
-              }
-            } catch (error) {
-              if (error.name === "AbortError") throw error;
-              for (const day of batch) {
-                stopIfAborted();
-                set({ timelineAnalysisProgress: `正在逐日重试 ${completed} / ${days.length} 个日期`, timelineAnalysisDone: completed, timelineAnalysisTotal: days.length });
-                try {
-                  const result = await saveBatch([day]);
-                  completed += result.saved;
-                  if (!result.saved) failedDates.push((day.key || day.date) + "（接口没有返回该日期的结果）");
-                } catch (inner) {
-                  if (inner.name === "AbortError") throw inner;
-                  failedDates.push(day.date + "（" + (inner.message || "分析失败") + "）");
-                }
-              }
-            }
-            set({ timelineAnalysisProgress: `已分析 ${completed} / ${days.length} 个日期`, timelineAnalysisDone: completed, timelineAnalysisTotal: days.length });
-          }
-          if (ticket === timelineRequest) set({ timelineAnalysisContact: "", timelineAnalysisProgress: "", status: failedDates.length ? `已分析 ${completed} / ${days.length} 个日期，${failedDates.length} 个日期未能分析（${failedDates.slice(0, 2).join("；")}），可再次点击继续分析重试。` : `已完成 ${days.length} 个日期的 AI 分析。` });
-        } catch (error) {
-          if (ticket === timelineRequest) set({ timelineAnalysisContact: "", timelineAnalysisProgress: "", status: error.name === "AbortError" ? "已停止 AI 日期分析。" : "AI 日期分析中断：" + (error.message || "请求失败") + "；已完成的日期已保存，点击可继续。" });
-        } finally {
-          if (ticket === timelineRequest) timelineController = null;
-        }
-      }
-      function commitImport2() {
-        const s = store.getSnapshot();
-        if (!E.identityReady(s.pending, s.self, s.target)) return;
-        cancel();
-        const messages = s.pending.messages, pairMessages = messages.filter((m) => m.sender === s.self || m.sender === s.target), avatarFor = (name) => {
-          const id2 = messages.find((message) => message.sender === name && message.senderId)?.senderId;
-          if (!id2) return null;
-          return (s.pending.avatars || []).find((file) => file.name.replace(/\.[^.]+$/, "").toLowerCase() === id2.toLowerCase()) || null;
-        }, contact = { id: "contact-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), self: s.self, target: s.target, selfAvatarFile: avatarFor(s.self), targetAvatarFile: avatarFor(s.target), messages, pairCount: pairMessages.length, mediaAssets: s.pending.assets || [], facts: E.extractFacts(pairMessages.filter((m) => m.sender === s.target)), isSample: s.pending.isSample };
-        const merged = E.mergeContactImport(s.contacts, contact);
-        set({ undoImportContacts: s.contacts, importHistory: [...s.importHistory || [], { name: s.importName || "聊天记录", at: Date.now(), added: merged.added || 0 }].slice(-20), lastImportResult: { added: merged.added || 0, dates: [...new Set(messages.map((m) => formatChatDayKey(m.timestamp)))].filter((d) => d !== "日期未知").sort(), name: s.importName }, contacts: merged.contacts, selectedId: merged.contact.id, drafts: { ...s.drafts || {}, ...s.selectedId ? { [s.selectedId]: savedDraft(s) } : {} }, pending: null, ...resetDraft(), status: "" });
-        nav("import", "result");
-        analyzeProfile(merged.contact);
-        analyzeTimeline(merged.contact.id, {});
-      }
-      function ImportView({ s, contact, tab }) {
-        const senders = s.pending ? [...new Set(s.pending.messages.map((m) => m.sender))] : [];
-        if (!s.persistenceReady) return box("正在加载联系人…");
-        if (tab === "result") return contact ? h("div", null, box("导入完成", h("h3", null, contact.target + (contact.isSample ? " · 虚构示例" : "")), h("p", null, `新增 ${s.lastImportResult?.added || 0} 条 · 共 ${contact.messages.length} 条消息`), s.lastImportResult?.dates?.length > 0 && h("p", null, `本次记录日期：${s.lastImportResult.dates[0]} 至 ${s.lastImportResult.dates.at(-1)}`), h("div", { className: "rn-actions" }, button("查看联系人档案", () => nav("profile", "basic"), { className: "primary" }), button("查看行为记录", () => nav("behavior", "metrics")), button("继续导入", () => nav("import", "file")))), timelineAnalysisCard(s, contact)) : empty();
-        if (tab === "identity") return s.pending ? box("确认聊天双方", h("p", null, `${s.importName} · ${s.pending.messages.length} 条记录 · ${senders.length} 位发言人`), h("p", { className: "rn-muted" }, `媒体附件：${s.pending.media?.total || 0} 项，已在本地匹配 ${s.pending.media?.linked || 0} 项，未匹配 ${s.pending.media?.missing || 0} 项。`), h("div", { className: "rn-form rn-identity" }, select("哪位是你？", s.self, [["", "请选择"], ...senders.map((v) => [v, v])], (self2) => set(self2 && self2 === s.target ? { self: self2, target: s.self } : { self: self2 })), button("⇄ 交换", () => set({ self: s.target, target: s.self }), { disabled: !s.self && !s.target, "aria-label": "交换双方身份", title: "交换双方身份" }), select("哪位是联系人？", s.target, [["", "请选择"], ...senders.map((v) => [v, v])], (target) => set(target && target === s.self ? { target, self: s.target } : { target }))), senders.length > 2 && muted("检测到多位发言人：只有你选定的两位之间的消息会进入分析。"), h("div", { className: "rn-actions" }, button("确认并导入", commitImport2, { className: "primary", disabled: !E.identityReady(s.pending, s.self, s.target) }), button("重新选择文件", () => nav("import", "file")))) : box("尚未选择文件", muted("先上传聊天文件，再确认双方身份。"), button("选择聊天文件", () => nav("import", "file")));
-        const onDrag = (e, on) => {
-          e.preventDefault();
-          e.currentTarget.classList.toggle("rn-drag", on);
-        };
-        return box("导入聊天记录", h("div", { className: "rn-upload", onDragOver: (e) => onDrag(e, true), onDragEnter: (e) => onDrag(e, true), onDragLeave: (e) => onDrag(e, false), onDrop: (e) => {
-          onDrag(e, false);
-          if (s.importBusy) return;
-          const file = e.dataTransfer?.files?.[0];
-          if (file) importFile(file);
-        } }, h("span", { style: { fontSize: 28 }, "aria-hidden": true }, "↥"), h("strong", null, "拖入或选择单个聊天文件"), muted("支持微信 JSON、HTML、PDF，以及 QQ / 微信 TXT。文件只在本机读取。"), h("input", { type: "file", accept: ".json,.html,.pdf,.txt,.bak", "aria-label": "选择聊天文件", onChange: (e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          importFile(file);
-        } }), button(s.importBusy ? "正在读取…" : "选择聊天文件", (e) => {
-          const input = e.currentTarget.parentElement.querySelector("input[type=file]");
-          input?.click();
-        }, { className: "primary", disabled: s.importBusy })), h("details", { className: "rn-paste-import" }, h("summary", null, "粘贴聊天记录"), h("textarea", { "aria-label": "粘贴 TXT 或 JSON 聊天记录", style: { width: "100%", minHeight: 120 }, placeholder: "粘贴 TXT 或 JSON 聊天记录" }), button("读取粘贴内容", (e) => {
-          const text = e.currentTarget.parentElement.querySelector("textarea").value;
-          if (text.trim()) importFile(new File([text], text.trimStart().startsWith("{") ? "粘贴聊天.json" : "粘贴聊天.txt", { type: "text/plain" }));
-        }, { disabled: s.importBusy })), h("p", { role: "status", className: "rn-status" + (s.importError ? " rn-error" : "") }, s.importError || (s.importBusy ? "正在读取…" : "")));
-      }
-      function timelineAnalysisCard(s, contact) {
-        const total = E.analyzeDailyTimeline(contact.messages.filter((message) => channelOf(message) === "qq"), contact.self, contact.target, contact.interactionCorrections || []).days.length + E.analyzeDailyTimeline(contact.messages.filter((message) => channelOf(message) !== "qq"), contact.self, contact.target, contact.interactionCorrections || []).days.length, count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
-        return box("AI 聊天分析", muted(busy ? s.timelineAnalysisProgress || "正在分析…" : count ? `已分析 ${count} / ${total} 个有记录日期。` : "分析全部有记录日期。"), busy && progressBar(s.timelineAnalysisDone, s.timelineAnalysisTotal, "日期分析进度"), button(busy ? "正在分析…" : count >= total ? "重新生成全部日期总结" : count ? "继续分析日期" : "开始 AI 分析", () => analyzeTimeline(contact.id, { force: count >= total }), { className: "primary", disabled: busy }));
-      }
-      const messageChannel = (m) => /QQ/i.test((m.file || "") + " " + (m.source || "")) ? "qq" : "wechat";
-      function markProfileSettled(contact) {
-        set({ contacts: store.getSnapshot().contacts.map((c) => c.id === contact.id ? { ...c, profileNeedsRefresh: false } : c), status: "已标记为整理；需要时可随时手动更新档案。" });
-      }
-      async function analyzeProfile(contact, httpPost = hostPost) {
-        if (store.getSnapshot().profileBusy) return;
-        const ticket = ++profileRequest;
-        profileController?.abort();
-        profileController = new AbortController();
-        const valid = () => ticket === profileRequest && store.getSnapshot().selectedId === contact.id && selected2(store.getSnapshot())?.messages === contact.messages;
-        set({ profileBusy: true, status: "正在整理 QQ 与微信联系人资料…" });
-        const requestMessages = new Map(contact.messages.map((message, id2) => [id2, { ...message, stableId: E.profileMessageId(message) }]));
-        try {
-          const input = contact.messages.map((m, id2) => ({ m, id: id2 })).filter(({ m }) => m.sender === contact.target && m.text?.trim() && !/^【(?:QQ小程序|图片|视频|语音|表情|系统|媒体|转发)/.test(m.text)), batches = [];
-          let batch = [];
-          for (const { m, id: id2 } of input) {
-            const row = { id: id2, text: m.text.slice(0, 2e3) };
-            if (batch.length && (batch.length >= 450 || JSON.stringify([...batch, row]).length > 24e3)) {
-              batches.push(batch);
-              batch = [];
-            }
-            batch.push(row);
-          }
-          if (batch.length) batches.push(batch);
-          if (!batches.length) throw new Error("没有可整理的对方文本消息。");
-          const facts = [...contact.facts || []];
-          for (let i = 0; i < batches.length; i++) {
-            set({ status: `正在整理联系人资料 ${i + 1} / ${batches.length}…` });
-            const response = await httpPost("profile-analysis", { target: contact.target, messages: batches[i] }, { signal: profileController.signal }), data = await response.json();
-            if (!valid()) return;
-            if (!response.ok || !data.ok) throw new Error(data.error || "资料分析失败");
-            const liveMessages = store.getSnapshot().contacts.find((c) => c.id === contact.id)?.messages || [];
-            for (const f of data.facts || []) {
-              const resolved = E.resolveProfileResponseFact(f, requestMessages, liveMessages, contact.target);
-              if (resolved) facts.push(resolved);
-            }
-            const partial = [...new Map(facts.map((f) => [f.field + "|" + f.value, f])).values()], snapshot = store.getSnapshot();
-            set({ contacts: snapshot.contacts.map((c) => c.id === contact.id ? { ...c, facts: partial } : c) });
-          }
-          const unique = [...new Map(facts.map((f) => [f.field + "|" + f.value, f])).values()];
-          const current = store.getSnapshot();
-          set({ contacts: current.contacts.map((c) => c.id === contact.id ? { ...c, facts: unique, profileAnalyzedAt: Date.now() } : c), status: `已整理 ${unique.length} 条联系人资料。` });
-          await summarizeProfile({ ...contact, facts: unique }, ticket);
-        } catch (error) {
-          if (valid() && error.name !== "AbortError") set({ status: "资料整理失败：" + error.message });
-        } finally {
-          if (ticket === profileRequest) set({ profileBusy: false });
-        }
-      }
-      async function summarizeProfile(contact) {
-        set({ profileBusy: true, status: "正在归纳联系人档案…" });
-        const ticket = profileRequest;
-        const valid = () => ticket === profileRequest && store.getSnapshot().selectedId === contact.id;
-        const requestMessages = new Map(contact.messages.map((message, id2) => [id2, { ...message, stableId: E.profileMessageId(message) }]));
-        try {
-          const ids = [...new Set((contact.facts || []).filter((f) => (f.quote?.trim().length >= 5 || /^(?:我)?(?:很)?(?:喜欢|爱好|爱吃|偏好|讨厌|不喜欢).{1,10}$/.test(f.quote || "")) && !/某食品|某东西/.test(f.value)).map((f) => contact.messages.findIndex((m) => m.sender === contact.target && m.text === f.message?.text && String(m.timestamp) === String(f.message?.timestamp))).filter((id2) => id2 >= 0))];
-          const messages = ids.map((id2) => ({ id: id2, text: contact.messages[id2].text.slice(0, 2e3) }));
-          if (!messages.length) {
-            set({ contacts: store.getSnapshot().contacts.map((c) => c.id === contact.id ? { ...c, profileNeedsRefresh: false } : c), status: "没有可归纳的新资料，已清除「待整理」提示。" });
-            return;
-          }
-          const response = await hostPost("profile-analysis", { target: contact.target, messages, mode: "summary" }, { signal: profileController.signal }), data = await response.json();
-          if (!valid()) return;
-          if (!response.ok || !data.ok) throw new Error(data.error || "档案归纳失败");
-          const current = store.getSnapshot(), liveMessages = current.contacts.find((c) => c.id === contact.id)?.messages || [], profileSummary = (data.facts || []).filter(E.supportedProfileSummary).map((f) => E.resolveProfileResponseFact(f, requestMessages, liveMessages, contact.target)).filter(Boolean);
-          set({ contacts: current.contacts.map((c) => c.id === contact.id ? { ...E.mergeProfileAnalysis(c, profileSummary), profileNeedsRefresh: false } : c), status: "联系人档案已更新。" });
-        } catch (error) {
-          if (valid() && error.name !== "AbortError") set({ status: "档案整理失败：" + error.message });
-        } finally {
-          if (ticket === profileRequest) set({ profileBusy: false });
-        }
-      }
-      function Profile({ contact, tab, s }) {
-        React2.useEffect(() => {
-          if (!contact || !contact.profileNeedsRefresh || s.profileBusy) return;
-          const key = contact.id + "#" + (contact.messages?.length || 0);
-          if (autoProfileTried.has(key)) return;
-          autoProfileTried.add(key);
-          analyzeProfile(contact);
-        }, [contact?.id, contact?.profileNeedsRefresh, s.profileBusy]);
-        const [editing, setEditing] = React2.useState(null), [editValue, setEditValue] = React2.useState(""), [addField, setAddField] = React2.useState("daily"), [editMode, setEditMode] = React2.useState("edit"), [effectiveAt, setEffectiveAt] = React2.useState(""), [view, setView] = React2.useState("active"), [undo, setUndo] = React2.useState(null);
-        React2.useEffect(() => {
-          setEditing(null);
-          setView("active");
-          setUndo(null);
-        }, [contact?.id, tab]);
-        if (!contact) return empty();
-        if (tab === "stage") return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(RelationStageView, { contact, onAction: (action) => {
-          const current = store.getSnapshot();
-          set({ contacts: current.contacts.map((c) => c.id === contact.id ? E.changeRelationProfile(c, action) : c), status: "关系画像与阶段已保存。" });
-        }, onEvidence: (ref2) => showEvidence(contact.id, ref2) }));
-        const fields = tab === "basic" ? [["city", "城市"], ["job", "工作情况"], ["daily", "生活习惯"], ["recent", "最近近况"], ["agreement", "重要约定"], ["style", "沟通风格（行为模式）"], ["boundary", "明确边界"], ["followup", "待跟进事项"], ["inference", "可能解释（推测）"]] : [["interests", "兴趣爱好"], ["preferences", "个人偏好"]], all = E.profileRows(contact), facts = all.filter((f) => (f.manual || E.supportedProfileSummary(f)) && (view === "active" ? f.status === "active" : view === "pending" ? f.status === "pending" : ["archived", "superseded"].includes(f.status)));
-        const act = (action) => {
-          const current = store.getSnapshot();
-          set({ contacts: current.contacts.map((c) => c.id === contact.id ? E.changeProfile(c, action) : c) });
-        };
-        const open = (fact, mode) => {
-          setEditing(fact?.uid || "new");
-          setEditMode(mode);
-          setEditValue(mode === "update" ? "" : fact?.value || "");
-          setAddField(fact?.field || fields[0][0]);
-          setEffectiveAt((/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false }).slice(0, 16).replace(" ", "T"));
-        };
-        const save = () => {
-          if (!editValue.trim()) return;
-          act({ type: editing === "new" ? "add" : editMode, uid: editing, field: addField, value: editValue, effectiveAt: effectiveAt ? effectiveAt.replace("T", " ") : void 0 });
-          setEditing(null);
-        };
-        const editor = h("div", { className: "rn-profile-editor" }, editing === "new" && select("资料分类", addField, fields, setAddField), h("label", null, editMode === "update" ? "现在的情况" : "资料内容", h("textarea", { value: editValue, onChange: (e) => setEditValue(e.target.value), maxLength: 600, rows: 3, "aria-label": "资料内容", placeholder: "填写准确的资料内容" })), (editMode === "update" || editing === "new") && h("label", null, "生效时间", h("input", { type: "datetime-local", value: effectiveAt, onChange: (e) => setEffectiveAt(e.target.value) })), h("div", { className: "rn-actions" }, button("保存", save, { className: "primary", disabled: !editValue.trim() }), button("取消", () => setEditing(null))));
-        const statusLabels = { active: "当前", archived: "已归档", superseded: "历史情况", pending: "待确认" };
-        return box(contact.target + (contact.isSample ? " · 虚构示例" : ""), h(ProfileLifecycleView, { contact, onAction: act, onEvidence: (ref2) => showEvidence(contact.id, ref2) }), contact.profileNeedsRefresh && h("div", { className: "rn-profile-undo" }, "新增聊天待整理", button("分析新增资料", () => analyzeProfile(contact), { disabled: s.profileBusy }), button("标记为已整理", () => markProfileSettled(contact), { disabled: s.profileBusy })), h("div", { className: "rn-profile-filters" }, ...["active", "pending", "history"].map((key) => button(key === "active" ? "当前资料" : key === "pending" ? "待确认 " + all.filter((f) => f.status === "pending").length : "历史资料", () => {
-          setView(key);
-          setEditing(null);
-        }, { "aria-pressed": view === key }))), undo && h("div", { className: "rn-profile-undo" }, h("span", null, "资料已删除"), button("撤销", () => {
-          act({ type: "undoDelete", uid: undo });
-          setUndo(null);
-        })), editing === "new" && editor, ...fields.map(([field, label]) => {
-          const rows = facts.filter((f) => f.field === field);
-          if (!rows.length) return null;
-          return h("section", { className: "rn-fact", key: field }, h("h3", null, label), ...rows.map((f) => h("article", { key: f.uid, className: "rn-profile-card" }, h("div", { className: "rn-profile-card-head" }, h("small", null, statusLabels[f.status], f.confirmed ? " · 已确认" : "", f.field === "inference" ? " · 推测，不代表真实想法" : "", f.provenance === "model" ? " · 模型提议" : "", Number.isFinite(f.confidence) ? " · 可信度 " + Math.round(f.confidence * 100) + "%" : ""), h("details", { className: "rn-profile-menu" }, h("summary", { "aria-label": "资料操作", title: "资料操作" }, "⋯"), h("div", { className: "rn-profile-menu-items" }, ...f.status === "active" ? [button("编辑纠错", () => open(f, "edit")), button("更新近况", () => open(f, "update")), button("归档", () => act({ type: "archive", uid: f.uid }))] : f.status === "pending" ? [button("采用并替换当前资料", () => act({ type: "accept", uid: f.uid, replaceCurrent: true })), button("作为补充采用", () => act({ type: "accept", uid: f.uid })), button("编辑后采用", () => open(f, "edit"))] : [button("恢复并替换后续版本", () => act({ type: "restore", uid: f.uid })), button("恢复并保留现有资料", () => act({ type: "restore", uid: f.uid, keepBoth: true }))], button("删除", () => {
-            act({ type: "delete", uid: f.uid });
-            setUndo(f.uid);
-          })))), f.status === "pending" && h("div", { className: "rn-profile-comparison" }, h("small", null, "当前资料"), ...all.filter((old) => old.field === f.field && old.status === "active").map((old) => h("p", { key: old.uid }, old.value)), h("small", null, "新提取的资料")), editing === f.uid ? editor : h("p", null, f.value), f.effectiveAt && h("small", { className: "rn-profile-date" }, "生效：" + formatChatTimestamp(f.effectiveAt) + (f.effectiveUntil ? " — " + formatChatTimestamp(f.effectiveUntil) : "")), f.quote && h("details", { className: "rn-profile-evidence" }, h("summary", null, "查看依据"), h("blockquote", null, f.quote), button("定位资料原文", () => showEvidence(contact.id, { sourceMessageIds: f.sourceMessageIds, message: f.message, quote: f.quote })), f.message && source(f.message)), f.revisions?.length > 0 && h("details", null, h("summary", null, "修改记录"), ...f.revisions.map((revision, i) => h("p", { key: i }, formatChatTimestamp(revision.at) + " · " + revision.value))))));
-        }), !facts.length && muted(view === "active" ? "暂无当前资料。" : view === "pending" ? "暂无待确认资料。" : "暂无历史资料。"));
-      }
-      function InteractionEvidence({ contact }) {
-        const analysis = E.analyzeInteractionMetrics(contact), correct = (row, excluded) => {
-          const current = store.getSnapshot();
-          set({ contacts: current.contacts.map((c) => c.id === contact.id ? E.correctInteraction(c, { key: row.key, kind: row.kind, excluded, note: excluded ? "用户标记误识别" : "用户恢复识别" }) : c) });
-        };
-        const metricValues = [
-          [analysis.score ?? "未评分", "关系指数（全部记录）"],
-          [analysis.indicators.find((item) => item.kind === "positive").count, "正向表达条数"],
-          [analysis.answeredTurns, "回应问题回合"],
-          [analysis.continuedTurns, "承接话题回合"]
-        ];
-        const metricCards = metricValues.map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", null, label), h("strong", null, value)));
-        const sceneLabels = { work: "工作", daily: "日常", mixed: "混合", unknown: "未分类" };
-        const grouped = E.sceneGroups(contact.messages);
-        const sceneRows = ["work", "daily", "mixed"].map((scene) => {
-          const items = grouped[scene];
-          const report = E.analyzeInteractionMetrics({ ...contact, messages: items });
-          return muted(sceneLabels[scene] + "场景消息 " + items.length + " 条，关系指数 " + (report.score ?? "未评分"));
         });
-        const sceneSummary = Object.entries(sceneLabels).map(([key, label]) => label + " " + analysis.scenes[key]).join("，");
-        const initiativeSummary = Object.entries(sceneLabels).map(([key, label]) => label + " " + analysis.startsByScene[key]).join("，");
-        return box(
-          "互动评分与识别证据",
-          muted("关系分析 v3 规则层，合并全部回合评分；系统与媒体占位排除计分。下方十类识别是关系指数的输入，标记误识别后所有页面立即重算。指数概括可观察的互动过程，不是好感概率。"),
-          h("div", { className: "rn-metrics" }, ...metricCards),
-          analysis.v3?.scored && h("p", { className: "rn-muted" }, "维度估计：" + E.DIMENSIONS.map((d) => d.label + " " + Math.round(analysis.v3.dims[d.key].estimate * 100) / 100).join("、") + "；摩擦 " + Math.round(analysis.v3.friction.estimate * 100) / 100 + (analysis.v3.boundary.rule ? "；出现明确边界，指数封顶 30" : "") + "。"),
-          h("p", null, "对方回合场景：" + sceneSummary),
-          h("p", null, "主动发起场景：" + initiativeSummary),
-          ...sceneRows,
-          analysis.turnEvidence.some((row) => row.needsReview) && h("details", null, h("summary", null, "待核对的含糊回复"), ...analysis.turnEvidence.filter((row) => row.needsReview).map((row, index) => h("article", { key: index }, h("blockquote", null, row.quote), source(row.message), muted("上下文不足，未计入摩擦分")))),
-          analysis.ambiguousCorrectionCount > 0 && h("p", { role: "status" }, "有 " + analysis.ambiguousCorrectionCount + " 条旧纠正无法唯一定位，请重新核对原文。"),
-          ...analysis.indicators.map((indicator) => h("details", { key: indicator.kind }, h("summary", null, indicator.label + " · " + indicator.count + " 条"), ...indicator.evidence.map((row, index) => h("article", { className: "rn-message", key: row.key + index }, h("blockquote", null, row.quote), row.signal && h("small", { className: "rn-muted" }, row.signal.label + " · 同轮取最高层级"), source(row.message), h("small", null, row.excluded ? "已排除此项识别" : "计入指标"), button(row.excluded ? "恢复识别" : "标记误识别", () => correct(row, !row.excluded)))))),
-          h("details", null, h("summary", null, "纠正历史"), ...(contact.interactionCorrections || []).map((item, index) => h("p", { key: index }, formatChatTimestamp(item.at || item.createdAt) + " · " + item.kind + " · " + (item.excluded ? "排除" : "恢复") + " · " + (item.note || ""))))
-        );
-      }
-      function Behavior({ contact, tab, s }) {
-        const calendarRef = React2.useRef(null);
-        const [moreOpen, setMoreOpen] = React2.useState(false);
-        const [filter, setFilter] = React2.useState("all"), [evidenceOrder, setEvidenceOrder] = React2.useState("desc"), [evidenceQuery, setEvidenceQuery] = React2.useState(""), [evidenceAppliedQuery, setEvidenceAppliedQuery] = React2.useState(""), [evidencePage, setEvidencePage] = React2.useState(1);
-        const evidenceSearch = React2.useRef(null);
-        if (!evidenceSearch.current) evidenceSearch.current = createDebounced((value) => setEvidenceAppliedQuery(value), EVIDENCE_SEARCH_DELAY);
-        React2.useEffect(() => () => evidenceSearch.current?.cancel(), []);
-        React2.useEffect(() => {
-          setEvidencePage(1);
-        }, [filter, evidenceAppliedQuery, evidenceOrder]);
-        const [granularity, setGranularity] = React2.useState("month"), timeline = React2.useMemo(() => contact ? E.analyzeDailyTimeline(contact.messages, contact.self, contact.target, contact.interactionCorrections || []) : null, [contact?.messages, contact?.self, contact?.target, contact?.interactionCorrections]), lastDate = timeline?.days.at(-1)?.date || formatChatDayKey(Date.now()), [month, setMonth] = React2.useState(lastDate.slice(0, 7)), [selectedDate, setSelectedDate] = React2.useState(lastDate), [year, setYear] = React2.useState(lastDate.slice(0, 4));
-        React2.useEffect(() => {
-          if (contact) {
-            const last = s.behaviorDate || timeline?.days.at(-1)?.date || formatChatDayKey(Date.now());
-            setMonth(last.slice(0, 7));
-            setSelectedDate(last);
-            setYear(last.slice(0, 4));
-          }
-        }, [contact?.id, lastDate, s.behaviorDate]);
-        const a = React2.useMemo(() => contact ? E.analyzeConversation(contact.messages, contact.self, contact.target) : null, [contact?.messages, contact?.self, contact?.target]);
-        const media = React2.useMemo(() => contact ? contact.messages.reduce((out, message) => {
-          for (const attachment of message.attachments || []) out[attachment.kind] = (out[attachment.kind] || 0) + 1;
-          return out;
-        }, { image: 0, video: 0, audio: 0, sticker: 0 }) : null, [contact?.messages]);
-        if (!contact) return empty();
-        const overallIndex = E.analyzePeriodsCached(contact, "all")[0]?.index ?? null;
-        if (tab === "insight") return h(RelationshipInsightView, { contact, busy: s.affinityBusy === contact.id, progress: s.affinityProgress, error: s.affinityError, modelReady: Boolean(s.provider && s.model), onRun: () => runAffinity(contact.id), onCancel: cancelAffinity, onEvidence: (ref2) => showEvidence(contact.id, ref2), onConfigure: () => nav("settings", "general") });
-        if (tab === "review") return h(PeriodReviewView, { contact, preferences: s.reviewPreferences?.[contact.id] || {}, onPreferencesChange: (value) => set({ reviewPreferences: { ...store.getSnapshot().reviewPreferences || {}, [contact.id]: value } }), onEvidence: (ref2) => showEvidence(contact.id, ref2) });
-        if (tab === "daily") {
-          const [calendarYear, monthNumber] = month.split("-").map(Number);
-          const firstWeekday = new Date(Date.UTC(calendarYear, monthNumber - 1, 1)).getUTCDay();
-          const daysInMonth = new Date(Date.UTC(calendarYear, monthNumber, 0)).getUTCDate();
-          const byDate = new Map(timeline.days.map((day) => [day.date, day]));
-          const dates = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`)];
-          const shown = byDate.get(selectedDate), monthLabel = `${calendarYear} 年 ${monthNumber} 月`, storedQq = contact.timelineAnalysis?.[selectedDate + "#qq"], storedWechat = contact.timelineAnalysis?.[selectedDate + "#wechat"], storedDay = storedQq?.version === 4 ? storedQq : storedWechat?.version === 4 ? storedWechat : contact.timelineAnalysis?.[selectedDate], aiDay = storedDay?.version === 4 ? storedDay : null;
-          const moveMonth = (delta) => {
-            const date = new Date(Date.UTC(calendarYear, monthNumber - 1 + delta, 1));
-            setMonth(`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`);
-          };
-          const weekdays = ["日", "一", "二", "三", "四", "五", "六"].map((label, i) => h("div", { className: "rn-calendar-weekday", key: "weekday-" + i }, label));
-          const dayCells = dates.map((date, i) => {
-            if (!date) return h("div", { className: "rn-calendar-cell empty", key: "empty-" + i });
-            const day = byDate.get(date), dayNumber = String(Number(date.slice(-2)));
-            const content = day ? h("button", { className: "rn-day", type: "button", "aria-pressed": selectedDate === date, "data-level": day.activityScore >= 70 ? "2" : day.activityScore >= 35 ? "1" : "0", "aria-label": `${date}，${day.messages.length} 条消息，活跃度 ${day.activityScore}，${day.affinityScore !== null ? "关系指数 " + day.affinityScore : "未评分（对方无回合）"}`, onClick: () => setSelectedDate(date) }, h("strong", null, dayNumber), h("span", { className: "rn-day-count" }, `${day.messages.length} 条 · 活跃 ${day.activityScore}`), h("span", { className: "rn-day-affinity" }, day.affinityScore !== null ? `指数 ${day.affinityScore}` : "未评分")) : h("span", { className: "rn-day-gap", title: date + " 当天无记录（缺口），不代表分数下降" }, dayNumber);
-            return h("div", { className: "rn-calendar-cell", key: date }, content);
-          });
-          const recognizedRange = timeline.days.length ? `${timeline.days[0].date} 至 ${timeline.days.at(-1).date}` : "暂无可识别日期";
-          const yearOptions = [...new Set(timeline.days.map((day) => day.date.slice(0, 4)))].sort((left, right) => right.localeCompare(left)), chartYear = yearOptions.includes(year) ? year : yearOptions[0] || lastDate.slice(0, 4), annualDays = timeline.days.filter((day) => day.date.startsWith(chartYear));
-          const mergedIndex = (list) => {
-            const rows = list.filter((day) => day.v3Signals);
-            if (!rows.length) return null;
-            return E.scoreMergedPeriods(rows.map((day) => day.v3Signals)).index;
-          };
-          const makeBucket = (label) => ({ label, self: 0, target: 0, messages: 0, scoreTotal: 0, scoreDays: 0, averageAffinity: null, recorded: false });
-          const dailyBuckets = annualDays.map((day) => {
-            const bucket = makeBucket(day.date);
-            bucket.self = day.selfMessages;
-            bucket.target = day.targetMessages;
-            bucket.messages = day.messages.length;
-            bucket.turns = day.targetTurns || 0;
-            if (day.affinityScore !== null) {
-              bucket.scoreDays = 1;
-              bucket.averageAffinity = day.affinityScore;
+        ctx.effect(() => {
+          let previous = store.getSnapshot();
+          const unsubscribe = store.subscribe(() => {
+            const current = store.getSnapshot();
+            if (current.contacts !== previous.contacts || current.undoData !== previous.undoData || current.undoRestore !== previous.undoRestore || current.undoImportContacts !== previous.undoImportContacts || current.undoMessageContact !== previous.undoMessageContact) {
+              localFileUrl.retain(current);
             }
-            bucket.recorded = bucket.messages > 0;
-            return bucket;
+            previous = current;
           });
-          const monthlyBuckets = Array.from({ length: 12 }, (_, index) => makeBucket(String(index + 1) + " 月"));
-          for (const day of annualDays) {
-            const bucket = monthlyBuckets[Number(day.date.slice(5, 7)) - 1];
-            bucket.self += day.selfMessages;
-            bucket.target += day.targetMessages;
-            bucket.messages += day.messages.length;
-            bucket.turns = (bucket.turns || 0) + (day.targetTurns || 0);
-            (bucket.days || (bucket.days = [])).push(day);
-            if (day.affinityScore !== null) bucket.scoreDays++;
-          }
-          for (const bucket of monthlyBuckets) {
-            bucket.recorded = bucket.messages > 0;
-            bucket.averageAffinity = bucket.days ? mergedIndex(bucket.days) : null;
-          }
-          const yearlyBuckets = yearOptions.slice().sort().map((value) => ({ bucket: makeBucket(value + " 年"), year: value }));
-          for (const { bucket, year: bucketYear } of yearlyBuckets) for (const day of timeline.days.filter((item) => item.date.startsWith(bucketYear))) {
-            bucket.self += day.selfMessages;
-            bucket.target += day.targetMessages;
-            bucket.messages += day.messages.length;
-            bucket.turns = (bucket.turns || 0) + (day.targetTurns || 0);
-            (bucket.days || (bucket.days = [])).push(day);
-            if (day.affinityScore !== null) bucket.scoreDays++;
-          }
-          for (const { bucket } of yearlyBuckets) bucket.recorded = bucket.messages > 0;
-          for (const { bucket } of yearlyBuckets) bucket.averageAffinity = bucket.days ? mergedIndex(bucket.days) : null;
-          const buckets = granularity === "day" ? dailyBuckets : granularity === "year" ? yearlyBuckets.map((item) => item.bucket) : monthlyBuckets, scopeLabel = granularity === "year" ? "全部年份" : chartYear + " 年", periodLabel = granularity === "day" ? "每日" : granularity === "year" ? "每年" : "每月";
-          const selectBucket = (bucket) => {
-            const prefix = granularity === "day" ? bucket.label : granularity === "year" ? bucket.label.slice(0, 4) : chartYear + "-" + String(parseInt(bucket.label, 10)).padStart(2, "0");
-            const date = timeline.days.find((day) => day.date.startsWith(prefix))?.date;
-            if (!date) return;
-            setMoreOpen(true);
-            setSelectedDate(date);
-            setMonth(date.slice(0, 7));
-            requestAnimationFrame(() => calendarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+          return () => {
+            unsubscribe();
+            localFileUrl.dispose();
+            if (pdfWorkerUrl) URL.revokeObjectURL(pdfWorkerUrl);
           };
-          const bucketActions = (bucket) => ({ tabIndex: bucket.messages ? 0 : void 0, role: bucket.messages ? "button" : void 0, "aria-label": bucket.label + "，" + bucket.messages + " 条消息，查看日历", style: { cursor: bucket.messages ? "pointer" : "default" }, onClick: () => selectBucket(bucket), onKeyDown: (event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              selectBucket(bucket);
+        });
+        ctx.effect(() => persistence.start());
+        ctx.effect(() => () => {
+          cancel();
+          affinityController?.abort();
+          profileRequest++;
+          profileController?.abort();
+          modelRequest++;
+          timelineRequest++;
+          timelineController?.abort();
+          importEpoch++;
+        });
+        ctx.effect(() => startImportQueue({ E, store, set, persistence, savedDraft, resetDraft, cancel }));
+        const button = (label, onClick, props = {}) => h("button", { type: "button", onClick, ...props }, label);
+        const box = (title, ...children) => h("section", { className: "rn-box" }, h("h2", null, title), ...children);
+        const muted = (text) => h("p", { className: "rn-muted" }, text);
+        const progressBar = (done, total, label) => {
+          const percent = total ? Math.max(0, Math.min(100, Math.round((Number(done) || 0) / (Number(total) || 1) * 100))) : 0;
+          return h(
+            "div",
+            { className: "rn-progress" },
+            h(
+              "div",
+              {
+                className: "rn-progress-track",
+                role: "progressbar",
+                "aria-label": label || "分析进度",
+                "aria-valuenow": percent,
+                "aria-valuemin": 0,
+                "aria-valuemax": 100
+              },
+              h("div", { className: "rn-progress-fill", style: { width: percent + "%" } })
+            ),
+            h(
+              "span",
+              { className: "rn-progress-value" },
+              percent + "%" + (total ? ` · ${Number(done) || 0}/${total} 个日期` : "")
+            )
+          );
+        };
+        const updateContact = (contactId, transform) => {
+          const current = store.getSnapshot();
+          set({ contacts: current.contacts.map((c) => c.id === contactId ? transform(c) : c) });
+        };
+        const showEvidence = (contactId, reference) => {
+          const contact = store.getSnapshot().contacts.find((c) => c.id === contactId), fact = reference.factId && (contact?.profileSummary || []).find((f) => f.uid === reference.factId);
+          set({
+            evidenceContext: {
+              contactId,
+              reference: fact ? {
+                ...reference,
+                sourceMessageIds: fact.sourceMessageIds,
+                message: fact.message,
+                quote: fact.quote || reference.quote
+              } : reference
             }
-          } });
-          const yearSelectOptions = (yearOptions.length ? yearOptions : [chartYear]).map((value) => [value, value + " 年"]);
-          const chartLeft = 48, chartRight = 704, chartWidth = chartRight - chartLeft, chartX = (index) => chartLeft + (buckets.length <= 1 ? chartWidth / 2 : index * chartWidth / (buckets.length - 1)), scoreSegments = [];
-          let scoreSegment = [];
-          const scoreValues = buckets.map((bucket) => bucket.averageAffinity).filter((value) => typeof value === "number"), scoreLow = scoreValues.length ? Math.max(0, Math.floor((Math.min(...scoreValues) - 4) / 10) * 10) : 0, scoreHigh = scoreValues.length ? Math.min(100, Math.ceil((Math.max(...scoreValues) + 4) / 10) * 10) : 100, scoreSpan = Math.max(10, scoreHigh - scoreLow), scoreY = (value) => 30 + (scoreHigh - value) * 210 / scoreSpan;
-          for (let index = 0; index < buckets.length; index++) {
-            const value = buckets[index].averageAffinity;
-            if (value === null) {
-              if (scoreSegment.length) scoreSegments.push(scoreSegment);
-              scoreSegment = [];
-            } else scoreSegment.push({ index, value });
-          }
-          if (scoreSegment.length) scoreSegments.push(scoreSegment);
-          const scoreGrid = [scoreLow, Math.round((scoreLow + scoreHigh) / 2), scoreHigh].map((value) => h("g", { key: "score-grid-" + value }, h("line", { x1: 46, y1: scoreY(value), x2: 704, y2: scoreY(value), stroke: "#e7ece8" }), h("text", { x: 34, y: scoreY(value) + 5, textAnchor: "end" }, value)));
-          const scorePaths = scoreSegments.filter((segment) => segment.length > 1).map((segment, index) => h("path", { key: "score-line-" + index, d: segment.map((point, position) => (position ? "L" : "M") + chartX(point.index) + " " + scoreY(point.value)).join(" "), fill: "none", stroke: "var(--rn-chart-line,#68aa70)", strokeWidth: 3, strokeLinecap: "round", strokeLinejoin: "round" }));
-          const scorePoints = buckets.map((bucket, index) => bucket.averageAffinity === null ? null : h("circle", { key: "score-point-" + index, ...bucketActions(bucket), cx: chartX(index), cy: scoreY(bucket.averageAffinity), r: granularity === "day" ? 2.2 : 4, fill: "var(--rn-chart-line,#68aa70)" }, h("title", null, bucket.label + "：关系指数 " + bucket.averageAffinity + (bucket.scoreDays > 1 ? " · " + bucket.scoreDays + " 个已评分日" : "") + (bucket.turns ? " · 对方 " + bucket.turns + " 个回合" : "")))).filter(Boolean);
-          const labelStep = Math.max(1, Math.ceil(buckets.length / (granularity === "day" ? 7 : 10))), labelIndexes = buckets.map((_, index) => index).filter((index) => granularity === "month" || index === 0 || index === buckets.length - 1 || index % labelStep === 0), axisLabel = (label) => granularity === "day" ? Number(label.slice(5, 7)) + "/" + Number(label.slice(8, 10)) : label.replace(" 月", "").replace(" 年", "");
-          const scoreLabels = labelIndexes.map((index) => h("text", { key: "score-label-" + index, x: chartX(index), y: 278, textAnchor: "middle" }, axisLabel(buckets[index].label)));
-          const scoreValueLabels = buckets.map((b, i) => b.averageAffinity === null || granularity === "day" && !labelIndexes.includes(i) ? null : h("text", { key: "score-value-" + i, x: chartX(i), y: scoreY(b.averageAffinity) - 9, textAnchor: "middle", fontSize: granularity === "day" ? 10 : 11, fontWeight: 600, fill: "var(--rn-chart-text,#3f5f45)" }, b.averageAffinity)).filter(Boolean);
-          const gapIndexes = buckets.map((bucket, index) => bucket.averageAffinity === null ? index : -1).filter((index) => index >= 0), gapMarkers = gapIndexes.map((index) => h("g", { key: "score-gap-" + index }, h("circle", { cx: chartX(index), cy: 290, r: 3.6, fill: "var(--rn-bg,#fff)", stroke: "#9db3a4", strokeWidth: 1.4, strokeDasharray: "2 2" }, h("title", null, buckets[index].label + "：" + (scoreBucketState(buckets[index]) === "gap" ? "无记录（缺口），不代表分数下降" : "有记录，但对方没有回合，未评分"))))), scoreStats = scoreValues.length ? Math.min(...scoreValues) + "–" + Math.max(...scoreValues) : "暂无", scoreSummary = "共 " + buckets.length + " 个时段，已评分 " + (buckets.length - gapIndexes.length) + " 个、关系指数 " + scoreStats + "，" + gapIndexes.length + " 个无记录或未评分（缺口不代表分数下降）";
-          const scoreGraphic = h("svg", { className: "rn-annual-chart", viewBox: "0 0 720 300", role: "img", "aria-labelledby": "rn-score-chart-title rn-score-chart-desc", "aria-label": scopeLabel + periodLabel + "关系指数趋势：" + scoreSummary }, h("title", { id: "rn-score-chart-title" }, scopeLabel + periodLabel + "关系指数（v3）趋势"), h("desc", { id: "rn-score-chart-desc" }, scoreSummary), ...scoreGrid, ...scorePaths, ...scoreValueLabels, ...scorePoints, ...gapMarkers, ...scoreLabels);
-          const scoreLegend = h("div", { className: "rn-annual-note" }, h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-line,#68aa70)" } }), "实心点与实线：已评分时段的关系指数，低分同样是实线"), h("span", null, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-bg)", border: "1px dashed #9db3a4" } }), "空心点：无记录或未评分"), h("span", null, "缺口 = 该时段没有聊天记录，不代表分数下降。"));
-          const barMax = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.self, bucket.target))), barTop = 30, barHeight = 210, barBottom = barTop + barHeight, barTicks = [.../* @__PURE__ */ new Set([0, Math.round(barMax / 2), barMax])], slot = buckets.length > 1 ? chartWidth / (buckets.length - 1) : chartWidth, barWidth = Math.max(2, Math.min(16, slot * 0.34));
-          const barGrid = barTicks.map((value) => {
-            const y = barBottom - value / barMax * barHeight;
-            return h("g", { key: "bar-grid-" + value }, h("line", { x1: 38, y1: y, x2: 706, y2: y, stroke: "#e7ece8" }), h("text", { x: 31, y: y + 4, textAnchor: "end" }, value));
           });
-          const barGroups = buckets.map((bucket, index) => {
-            const center = chartX(index), selfHeight = bucket.self / barMax * barHeight, targetHeight = bucket.target / barMax * barHeight;
-            return h("g", { key: "bar-period-" + index, ...bucketActions(bucket) }, h("rect", { x: center - barWidth - 1, y: barBottom - selfHeight, width: barWidth, height: selfHeight, rx: 2, fill: "var(--rn-chart-self,#8acb8e)" }, h("title", null, bucket.label + " " + contact.self + "：" + bucket.self + " 条")), h("rect", { x: center + 1, y: barBottom - targetHeight, width: barWidth, height: targetHeight, rx: 2, fill: "var(--rn-chart-target,#8da3b3)" }, h("title", null, bucket.label + " " + contact.target + "：" + bucket.target + " 条")), bucket.self || bucket.target ? h("text", { x: center - barWidth / 2 - 1, y: barBottom - selfHeight - 4, textAnchor: "middle", fontSize: 8.5, fill: "var(--rn-chart-line-strong,#4d8f55)" }, bucket.self) : null, bucket.self || bucket.target ? h("text", { x: center + barWidth / 2 + 1, y: barBottom - targetHeight - 4, textAnchor: "middle", fontSize: 8.5, fill: "var(--rn-chart-target-text,#5b7285)" }, bucket.target) : null, labelIndexes.includes(index) && h("text", { x: center, y: 278, textAnchor: "middle" }, axisLabel(bucket.label)));
+        };
+        ctx.effect(() => {
+          autoAnalysisScheduler = E.createAutoAnalysisScheduler({
+            getState: store.getSnapshot,
+            subscribe: store.subscribe,
+            updateContact,
+            request: async (path, body, signal) => {
+              const response = await fetch("api/relationship-notes/" + path, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+                signal
+              }), data = await response.json();
+              if (!response.ok || !data.ok)
+                throw Object.assign(new Error(data.error || "自动分析失败。"), { status: response.status });
+              return data;
+            },
+            persist: async () => {
+              await persistence.flush();
+            }
           });
-          const barGraphic = h("svg", { className: "rn-annual-chart", viewBox: "0 0 720 300", role: "img", "aria-labelledby": "rn-bar-chart-title rn-bar-chart-desc", "aria-label": scopeLabel + periodLabel + "双方消息量柱状图：绿色为" + contact.self + "，蓝色为" + contact.target }, h("title", { id: "rn-bar-chart-title" }, scopeLabel + periodLabel + "双方消息量"), h("desc", { id: "rn-bar-chart-desc" }, "每个时段两根柱，绿色为" + contact.self + "的消息条数，蓝色为" + contact.target + "的消息条数。"), ...barGrid, ...barGroups);
-          const selfTotal = buckets.reduce((sum, bucket) => sum + bucket.self, 0), targetTotal = buckets.reduce((sum, bucket) => sum + bucket.target, 0), shareTotal = selfTotal + targetTotal, pieCenterX = 120, pieCenterY = 86, pieRadius = 62;
-          const piePath = (fraction, startAngle) => {
-            if (fraction <= 0) return "";
-            if (fraction >= 0.999999) return "M " + pieCenterX + " " + (pieCenterY - pieRadius) + " A " + pieRadius + " " + pieRadius + " 0 1 1 " + pieCenterX + " " + (pieCenterY + pieRadius) + " A " + pieRadius + " " + pieRadius + " 0 1 1 " + pieCenterX + " " + (pieCenterY - pieRadius) + " Z";
-            const endAngle = startAngle + fraction * Math.PI * 2, x1 = pieCenterX + pieRadius * Math.cos(startAngle), y1 = pieCenterY + pieRadius * Math.sin(startAngle), x2 = pieCenterX + pieRadius * Math.cos(endAngle), y2 = pieCenterY + pieRadius * Math.sin(endAngle);
-            return "M " + pieCenterX + " " + pieCenterY + " L " + x1 + " " + y1 + " A " + pieRadius + " " + pieRadius + " 0 " + (fraction > 0.5 ? 1 : 0) + " 1 " + x2 + " " + y2 + " Z";
+          autoAnalysisScheduler.start();
+          return () => {
+            autoAnalysisScheduler?.stop();
+            autoAnalysisScheduler = null;
           };
-          const selfShare = shareTotal ? selfTotal / shareTotal : 0, targetStart = -Math.PI / 2 + selfShare * Math.PI * 2;
-          const pieGraphic = shareTotal ? h("svg", { className: "rn-annual-chart", viewBox: "0 0 240 172", role: "img", "aria-labelledby": "rn-pie-chart-title rn-pie-chart-desc", "aria-label": scopeLabel + "双方消息占比：" + contact.self + " " + Math.round(selfTotal / shareTotal * 100) + "%，" + contact.target + " " + Math.round(targetTotal / shareTotal * 100) + "%" }, h("title", { id: "rn-pie-chart-title" }, scopeLabel + "双方消息占比"), h("desc", { id: "rn-pie-chart-desc" }, "圆形图按消息条数拆分：" + contact.self + " " + selfTotal.toLocaleString() + " 条，" + contact.target + " " + targetTotal.toLocaleString() + " 条。"), selfTotal > 0 && h("path", { d: piePath(selfShare, -Math.PI / 2), fill: "var(--rn-chart-self,#8acb8e)" }), targetTotal > 0 && h("path", { d: piePath(targetTotal / shareTotal, targetStart), fill: "var(--rn-chart-target,#8da3b3)" })) : muted("当前范围暂无双方消息。");
-          const pieLegend = h("div", { className: "rn-annual-pie-legend" }, [[contact.self, selfTotal, "var(--rn-chart-self,#8acb8e)"], [contact.target, targetTotal, "var(--rn-chart-target,#8da3b3)"]].map(([name, count, color]) => h("div", { className: "rn-annual-pie-row", key: name }, h("span", { className: "rn-annual-swatch", style: { background: color } }), h("span", null, name), h("strong", null, shareTotal ? Math.round(count / shareTotal * 100) + "%" : "—"), h("small", null, count.toLocaleString() + " 条"))));
-          const granularityOptions = [["day", "日"], ["month", "月"], ["year", "年"]].map(([key, label]) => button(label, () => setGranularity(key), { key, "aria-pressed": granularity === key }));
-          const selectedRange = granularity === "year" ? yearlyBuckets.length + " 个年份" : annualDays.length + " 个有记录日 · " + annualDays.filter((day) => day.affinityScore !== null).length + " 天已评分（对方有回合）";
-          const periodRows = buckets.map((bucket, index) => h("tr", { key: "period-row-" + index }, h("td", null, button(bucket.label, () => selectBucket(bucket), { disabled: !bucket.messages })), h("td", null, bucket.self.toLocaleString()), h("td", null, bucket.target.toLocaleString()), h("td", null, bucket.messages.toLocaleString()), h("td", null, bucket.averageAffinity === null ? "—" : bucket.averageAffinity), h("td", null, bucket.scoreDays.toLocaleString())));
-          const fullTable = h("details", { className: "rn-annual-data" }, h("summary", null, "查看完整数据表（" + buckets.length + " 行）"), h("div", { className: "rn-annual-data-scroll" }, h("table", null, h("thead", null, h("tr", null, ...["日期 / 时段", contact.self, contact.target, "双方消息", "关系指数（v3）", "已评分日"].map((label, index) => h("th", { key: "data-head-" + index }, label)))), h("tbody", null, ...periodRows))));
-          const scopeIndex = mergedIndex(granularity === "year" ? timeline.days : annualDays), keyFigures = h("div", { className: "rn-metrics rn-annual-figures" }, ...[[annualDays.length + " 天", "有记录日"], [annualDays.reduce((sum, day) => sum + day.messages.length, 0).toLocaleString() + " 条", "双方消息"], [scopeIndex === null ? "未评分" : scopeIndex + " / 100", "关系指数（" + scopeLabel + "）"], [gapIndexes.length + " 个", "无记录时段（缺口）"]].map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value))));
-          const buildAnnualPanel = () => box("关系指数与互动趋势", h("div", { className: "rn-annual-head" }, muted(selectedRange), h("div", { className: "rn-annual-controls" }, h("div", { className: "rn-annual-granularity", "aria-label": "图表时间粒度" }, ...granularityOptions), granularity !== "year" && select("年份", chartYear, yearSelectOptions, setYear))), keyFigures, h("div", { className: "rn-annual-top" }, h("section", { className: "rn-annual-card rn-annual-trend" }, h("h3", null, periodLabel + "关系指数（v3）趋势"), muted(granularity === "day" ? "每日关系指数（规则层）；对方当天没有回合时不评分；缺口=无记录，不代表分数下降" : granularity === "month" ? "把当月各日信号相加后整体评分（不是日指数平均）；缺口=无记录或未评分，不代表分数下降" : "把当年各日信号相加后整体评分；缺口=无记录或未评分，不代表分数下降"), buckets.some((bucket) => bucket.averageAffinity !== null) ? scoreGraphic : muted("当前范围暂无已评分时段（对方没有回合）。"), scoreLegend), h("section", { className: "rn-annual-card" }, h("h3", null, periodLabel + "双方消息量"), h("div", { className: "rn-annual-legend" }, h("span", { className: "rn-annual-legend-item" }, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-self,#8acb8e)" } }), contact.self), h("span", { className: "rn-annual-legend-item" }, h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-target,#8da3b3)" } }), contact.target)), barGraphic)), h("details", { className: "rn-more", open: moreOpen, onToggle: (e) => setMoreOpen(e.currentTarget.open) }, h("summary", null, "展开更多分析（消息占比 · 完整数据表 · 每日日历）"), h("div", { className: "rn-annual-grid" }, h("section", { className: "rn-annual-card rn-annual-pie-card" }, h("h3", null, "当前范围消息占比"), pieGraphic, pieLegend), fullTable), h("div", { className: "rn-calendar-detail-layout" }, calendar, h("aside", { className: "rn-calendar-detail-panel" }, details))));
-          const calendar = h("section", { ref: calendarRef }, box("每日互动日历", muted(`识别到的聊天日期：${recognizedRange} · 共 ${timeline.days.length} 个有记录日期；活跃度按每天消息数和轮次数相对比较。`), h("div", { className: "rn-calendar-wrap" }, h("div", { className: "rn-calendar-head" }, button("上个月", () => moveMonth(-1)), h("strong", null, monthLabel), button("下个月", () => moveMonth(1))), h("div", { className: "rn-calendar" }, ...weekdays, ...dayCells)), h("div", { className: "rn-calendar-legend" }, h("span", null, "颜色深浅：当天聊天活跃度"), h("span", null, "每格显示当天关系指数（v3 规则层）；对方当天没有回合时显示“未评分”。"), h("span", null, "虚线空心格：当天无记录（缺口），不代表分数下降。"))));
-          let details;
-          if (shown) {
-            const shownAffinity = shown.affinityScore !== null ? `${shown.affinityScore} / 100（${shown.affinityLow}–${shown.affinityHigh}）` : "未评分";
-            const metrics = [[shown.messages.length, "双方消息"], [`${shown.selfMessages} / ${shown.targetMessages}`, "你 / 对方"], [shown.turns, "交流轮次"], [shown.medianReplyMinutes === null ? void 0 : shown.medianReplyMinutes + " 分钟", "对方回复中位间隔"], [shown.perfunctoryReplies, "敷衍/收尾回合"], [shown.activityScore, "活跃度"], [shownAffinity, "当天关系指数（v3）"], [shown.affinityChange === null ? "—" : `${shown.affinityChange > 0 ? "+" : ""}${shown.affinityChange}`, "相较上一个已评分日"]];
-            const metricCards = metrics.map(([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value)));
-            const messages = shown.messages.map((message, i) => h("article", { className: "rn-message", key: i }, source(message), h("p", { style: { whiteSpace: "pre-wrap" } }, message.text || "[" + (message.typeName || "媒体消息") + "]"), message.attachments?.length ? muted(`媒体附件 ${message.attachments.length} 项`) : null));
-            const isTimelineBusy = s.timelineAnalysisContact === contact.id;
-            const channelToday = [["qq", "QQ"], ["wechat", "微信"]].filter(([channel]) => (shown?.messages || []).some((message) => channelOf(message) === channel)), cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
-            const aiDetails = box("当天内容总结", channelToday.length ? h("div", null, ...channelToday.map(([channel, label]) => {
-              const entry2 = contact.timelineAnalysis?.[selectedDate + "#" + channel], summary = entry2?.version === 4 ? cleanTimelineDisplayText(entry2.summary) : "";
-              return h("section", { key: channel, className: "rn-channel-block" }, h("h4", null, label + " 渠道"), summary ? h("p", { style: { whiteSpace: "pre-wrap" } }, summary) : muted(isTimelineBusy ? s.timelineAnalysisProgress || "正在生成…" : "这个渠道当天还没有总结，可用下方按钮生成。"));
-            })) : muted("当天没有可分渠道的聊天记录。"), isTimelineBusy ? null : button("生成当天总结", () => analyzeTimeline(contact.id, { force: true, onlyDate: selectedDate }), { className: "primary" }));
-            const addDayGoal = () => {
-              set({ goalPrefill: { contactId: contact.id, date: selectedDate, title: "" } });
-              nav("goals", "current");
+        });
+        ctx.effect(() => {
+          let cancelled = false, tries = 0, timer = null;
+          const attempt = async () => {
+            await models();
+            if (cancelled) return;
+            const s = store.getSnapshot();
+            if ((!s.provider || !s.model) && tries < 5) {
+              const delay = [400, 1200, 3e3, 8e3, 2e4][tries++] || 2e4;
+              timer = setTimeout(() => {
+                timer = null;
+                void attempt();
+              }, delay);
+            }
+          };
+          void attempt();
+          return () => {
+            cancelled = true;
+            if (timer) clearTimeout(timer);
+          };
+        });
+        ctx.effect(() => {
+          let cancelled = false;
+          const wait = (predicate, steps = 60) => new Promise((resolve) => {
+            let left = steps;
+            const tick = () => {
+              if (cancelled) return resolve(false);
+              if (predicate(store.getSnapshot())) return resolve(true);
+              if (left-- <= 0) return resolve(false);
+              setTimeout(tick, 500);
             };
-            details = h("div", { className: "rn-day-detail" }, box(selectedDate + " · 当天概览", h("div", { className: "rn-metrics" }, ...metricCards), button("添加当天约定", addDayGoal), button("查看打分依据", () => {
-              set({ behaviorDate: selectedDate });
-              nav("behavior", "basis");
-            })), aiDetails, box("聊天量与互动变化", cleanReason && h("p", null, cleanReason), cleanAffinity && h("p", null, cleanAffinity)));
-          } else details = box("选择一个日期", muted("点击有记录的日期查看当天概览。"));
-          return h("div", null, buildAnnualPanel());
-        }
-        if (tab === "basis") return h(ScoringBasisView, { contact, date: s.behaviorDate || (timeline?.days.at(-1)?.date || ""), onDateChange: (value) => set({ behaviorDate: value }), onOpenDaily: (value) => {
-          set({ behaviorDate: value });
-          nav("behavior", "daily");
-        }, onOpenRules: () => nav("behavior", "rules"), onOpenInsight: () => nav("behavior", "insight") });
-        if (tab === "rules") return h(ScoringRulesView, { onOpenInsight: () => nav("behavior", "insight"), onRegenerate: () => analyzeTimeline(contact.id, { force: true }) });
-        if (tab === "evidence") {
-          const view = buildEvidenceView(a.evidence, { order: evidenceOrder, type: filter, query: evidenceAppliedQuery, page: evidencePage, pageSize: EVIDENCE_PAGE_SIZE }), rows = view.items.map((e) => h("article", { className: "rn-message", key: e.id }, h("strong", null, e.label), h("blockquote", null, e.quote), source(e.message))), clearSearch = () => {
-            setEvidenceQuery("");
-            setEvidenceAppliedQuery("");
-            evidenceSearch.current.cancel();
+            tick();
+          });
+          const sweep = async () => {
+            if (!await wait((s2) => s2.persistenceReady || s2.persistenceReadOnly)) return;
+            await wait((s2) => Boolean(s2.provider && s2.model), 40);
+            if (cancelled) return;
+            const s = store.getSnapshot();
+            if (!s.persistenceReady || s.persistenceReadOnly) return;
+            for (const contact of s.contacts) {
+              if (cancelled) return;
+              if (contact.isSample || !contact.messages?.length) continue;
+              const key = contact.id + "#" + contact.messages.length;
+              if (autoSummaryTried.has(key)) continue;
+              autoSummaryTried.add(key);
+              await analyzeTimeline(contact.id, {});
+            }
           };
-          return box(
-            "可核对的行为记录",
-            h("div", { className: "rn-evidence-toolbar" }, select("记录类型", filter, EVIDENCE_FILTERS, setFilter), h("label", { className: "rn-evidence-search" }, "搜索消息原文", h("input", { type: "search", value: evidenceQuery, placeholder: "输入关键词，匹配消息原文", "aria-label": "搜索记录原文", onChange: (e) => {
-              const value = e.target.value;
-              setEvidenceQuery(value);
-              evidenceSearch.current(value);
-            } })), button("排序：" + orderLabel(evidenceOrder), () => setEvidenceOrder(evidenceOrder === "desc" ? "asc" : "desc"), { "aria-pressed": evidenceOrder === "desc", "aria-label": "切换排序方向，当前" + (evidenceOrder === "desc" ? "最新在上" : "最早在上") })),
-            h("p", { className: "rn-evidence-status", role: "status", "aria-live": "polite" }, `${view.total ? `第 ${view.start + 1}–${view.end} 条 / 共 ${view.total} 条` : "共 0 条"} · 第 ${view.page} / ${view.pageCount} 页 · ${orderLabel(evidenceOrder)}${view.searching ? ` · 关键词「${view.query}」` : ""}`),
-            ...view.items.length ? rows : [muted(view.searching ? `没有匹配「${view.query}」的记录，换个关键词或切换记录类型试试。` : "当前筛选下没有匹配记录。")],
-            h("div", { className: "rn-evidence-pager" }, button("上一页", () => setEvidencePage(view.page - 1), { disabled: view.page <= 1 }), h("span", { className: "rn-evidence-page" }, `第 ${view.page} / ${view.pageCount} 页`), button("下一页", () => setEvidencePage(view.page + 1), { disabled: view.page >= view.pageCount }), view.searching ? button("清除搜索", clearSearch) : null)
+          void sweep();
+          return () => {
+            cancelled = true;
+          };
+        });
+        const source = (m) => h(
+          "div",
+          { className: "rn-muted rn-source" },
+          [
+            m?.sender,
+            m?.timestamp !== void 0 ? formatChatTimestamp(m.timestamp) : "",
+            m?.file,
+            m?.messageIndex ? `第 ${m.messageIndex} 条` : m?.line ? `第 ${m.line}${m.endLine && m.endLine !== m.line ? "–" + m.endLine : ""} 行` : ""
+          ].filter(Boolean).join(" · "),
+          m?.text && button(
+            "查看原文上下文",
+            () => showEvidence(store.getSnapshot().selectedId, {
+              messageId: E.profileMessageId(m),
+              message: m,
+              quote: m.text
+            })
+          )
+        );
+        const select = (label, value, options, onChange, props = {}) => h(
+          "label",
+          null,
+          label,
+          h(
+            "select",
+            { value, onChange: (e) => onChange(e.target.value), ...props },
+            ...options.map(([value2, label2]) => h("option", { key: value2, value: value2 }, label2))
+          )
+        );
+        const empty = () => h(
+          "div",
+          { className: "rn-empty" },
+          h("h2", null, "还没有联系人资料"),
+          muted("先导入聊天记录并确认双方身份。"),
+          button("前往聊天导入", () => nav("import", "file"), { className: "primary" })
+        );
+        function StartGuide() {
+          const loadSample = () => importFile(new File([E.sampleChat], "示例对话.txt", { type: "text/plain" }), true);
+          const steps = [
+            [
+              "导入聊天",
+              "从微信 / QQ 导出文件选择，或粘贴 TXT / JSON 文本。",
+              () => nav("import", "file"),
+              "导入聊天",
+              "primary"
+            ],
+            [
+              "确认身份",
+              "指定哪位是你、哪位是联系人；只有双方消息进入分析。",
+              () => nav("import", "identity"),
+              "确认身份",
+              ""
+            ],
+            [
+              "查看评分与时间线",
+              "完成后查看互动评分、每日历程与可行动线索。",
+              () => nav("behavior", "metrics"),
+              "查看评分与时间线",
+              ""
+            ]
+          ];
+          return h(
+            "section",
+            { className: "rn-empty", "aria-label": "三步开始" },
+            h("h2", null, "三步开始"),
+            muted("还没有聊天记录。按下面三步完成首次配置，所有数据只保存在本机。"),
+            h(
+              "ol",
+              {
+                className: "rn-onboarding-steps",
+                style: { display: "grid", gap: 12, margin: "16px 0", paddingLeft: 20, textAlign: "left" }
+              },
+              ...steps.map(
+                ([title, body, action, label, className], index) => h("li", { key: title }, h("strong", null, title), muted(body), button(label, action, { className }))
+              )
+            ),
+            h(
+              "div",
+              { className: "rn-actions", style: { justifyContent: "center" } },
+              button("载入内置示例聊天（虚构）", loadSample)
+            ),
+            muted("示例联系人会带「虚构示例」标记，不参与自动分析；随时可以在设置里删除。")
           );
         }
-        return h("div", null, h(InteractionEvidence, { contact }), h("div", { className: "rn-metrics" }, ...[[contact.messages.length, "完整记录", ""], [a.messageBalanceScore === null ? "—" : a.messageBalanceScore, "互动均衡分", "口径：只比较双方发言条数是否接近，100 表示条数持平。"], [overallIndex === null ? "未评分" : overallIndex, "关系指数（全部记录）", "口径：关系分析 v3 规则层，把全部回合合并后评分；50 为缺少证据时的中性值。"], [a.scoringTurns, "交流轮次", ""], [a.boundaryCount, "明确边界", ""], [media.image, "图片附件", ""], [media.video, "视频附件", ""]].map(([value, label, note]) => h("div", { className: "rn-metric", key: label }, h("span", { className: "rn-muted" }, label), h("strong", null, value), note && h("small", { className: "rn-metric-note" }, note)))), h("p", { className: "rn-metric-scale" }, "互动均衡分与关系指数不是同一标尺，不可直接相比：前者数的是双方发言条数，后者按关系分析 v3 评估互动过程。"), h("details", { className: "rn-metric-why" }, h("summary", null, "两个分数各自怎么算"), h("p", null, "互动均衡分按双方发言条数计算；关系指数（关系分析 v3）合并全部回合，评估回应性、自我开示、相互性、积极回应、主动投入与语言同步六个维度，按证据量向中性 0.5 收缩，再按摩擦折减、明确边界封顶 30。回复时延与条数失衡只作统计。")), box("统计依据", h("p", null, a.summary), h("p", null, `${contact.self}：${a.selfCount} 条；${contact.target}：${a.targetCount} 条；双方共 ${a.total} 条消息。`), h("p", null, overallIndex === null ? "关系指数（全部记录）未评分" : `关系指数（全部记录） ${overallIndex} / 100`), h("p", null, `媒体附件：图片 ${media.image}、视频 ${media.video}、语音 ${media.audio}、表情 ${media.sticker}。可在联系人档案 → 图片与视频中逐项分析。`), h("div", { className: "rn-actions" }, button("查看每日历程", () => nav("behavior", "daily")), button("核对原文记录", () => nav("behavior", "evidence")), button("查看打分依据", () => nav("behavior", "basis")), button("查看评分规则", () => nav("behavior", "rules")))));
-      }
-      function Goals({ s, contact, tab }) {
-        const [title, setTitle] = React2.useState(""), [dueDate, setDueDate] = React2.useState(""), [linkedDate, setLinkedDate] = React2.useState("");
-        React2.useEffect(() => {
-          if (s.goalPrefill?.contactId === contact?.id) {
-            setTitle(s.goalPrefill.title || "");
-            setLinkedDate(s.goalPrefill.date || "");
+        async function parsePdfFile(file) {
+          if (typeof pdf_exports === "undefined") throw new Error("PDF 解析组件未加载，请重新构建关系手记。");
+          if (file.size > 256 * 1024 * 1024) throw new Error("PDF 超过 256 MiB，无法在本机读取。");
+          if (!pdfWorkerUrl) {
+            pdfWorkerUrl = URL.createObjectURL(new Blob([PDF_WORKER_SOURCE], { type: "text/javascript" }));
+            pdf_exports.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
           }
-        }, [s.goalPrefill, contact?.id]);
-        if (!contact) return empty();
-        const goals = s.goals.filter((g) => g.contactId === contact.id), shown = tab === "progress" ? goals.filter((g) => g.done) : goals;
-        const titleInput = React2.useRef(null);
-        const update = (goal, change) => set({ goals: store.getSnapshot().goals.map((g) => g.id === goal.id ? { ...g, ...change } : g) }), openDate = (date) => {
-          set({ behaviorDate: date });
-          nav("behavior", "daily");
-        };
-        return box(tab === "progress" ? "已完成的行动" : "我的行动计划", tab === "current" && h("form", { className: "rn-form rn-goal-form", onSubmit: (e) => {
-          e.preventDefault();
-          if (!title.trim()) return;
-          set({ goals: [...store.getSnapshot().goals, { id: "goal-" + Date.now(), contactId: contact.id, title: title.trim(), done: false, status: "planned", dueDate, linkedDate }] });
-          setTitle("");
-          setDueDate("");
-          setLinkedDate("");
-        } }, h("input", { ref: titleInput, value: title, onChange: (e) => setTitle(e.target.value), placeholder: "填写约定或具体行动", "aria-label": "新行动计划", maxLength: 160 }), h("label", null, "截止日期", h("input", { type: "date", value: dueDate, onChange: (e) => setDueDate(e.target.value) })), h("label", null, "关联聊天日期", h("input", { type: "date", value: linkedDate, onChange: (e) => setLinkedDate(e.target.value) })), h("button", { type: "submit", disabled: !title.trim(), className: "primary" }, "添加目标")), h("p", { className: "rn-muted" }, `已完成 ${goals.filter((g) => g.done).length} / ${goals.length}`), ...shown.map((goal) => h("div", { className: "rn-goal", key: goal.id, style: { display: "grid", gap: 8 } }, h("strong", null, goal.title), select("状态", goal.done ? "done" : goal.status || "planned", [["planned", "待进行"], ["active", "进行中"], ["done", "已完成"]], (status) => update(goal, { status, done: status === "done", completedAt: status === "done" ? (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" }) : "" })), h("label", null, "截止日期", h("input", { type: "date", value: goal.dueDate || "", onChange: (e) => update(goal, { dueDate: e.target.value }) })), goal.linkedDate && button("查看 " + goal.linkedDate + " 聊天概览", () => openDate(goal.linkedDate)), goal.completedAt && muted("完成于 " + goal.completedAt), button("删除", () => set({ goals: store.getSnapshot().goals.filter((g) => g.id !== goal.id) }), { "aria-label": "删除目标：" + goal.title }))), !shown.length && (tab === "progress" ? muted("还没有已完成的行动。先到「当前目标」把状态改为「已完成」，这里就会按完成时间列出来。") : h("div", { className: "rn-empty" }, h("h3", null, "还没有行动计划"), muted("行动计划由你手动记录：一条具体的约定或下一步，例如下次见面的时间、需要回复的话题。目前不会自动从聊天记录生成目标。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, button("手动添加目标", () => titleInput.current?.focus(), { className: "primary" }), button("查看最近对话", () => nav("behavior", "daily")), button("查看记录列表", () => nav("behavior", "evidence"))))));
-      }
-      function payload(s, contact) {
-        return E.buildReplyPayload(s, { ...contact, messages: s.replyContextMessages || contact.messages, facts: [...contact.facts || []] });
-      }
-      async function models() {
-        const ticket = ++modelRequest;
-        set({ modelBusy: true, modelError: "" });
-        try {
-          const response = await hostPost("models", {});
-          const data = await response.json();
-          if (ticket !== modelRequest) return;
-          if (!response.ok || data.ok === false) throw new Error(data.error || "读取模型失败");
-          const providers = Array.isArray(data.providers) ? data.providers : [], def = data.default;
-          const modelId = (value) => typeof value === "string" ? value : typeof value?.id === "string" ? value.id : typeof value?.modelId === "string" ? value.modelId : typeof value?.model_id === "string" ? value.model_id : typeof value?.model === "string" ? value.model : typeof value?.name === "string" ? value.name : "";
-          const hasProvider = (provider2) => providers.some((item) => item.id === provider2), hasModel = (provider2, model2) => providers.some((item) => item.id === provider2 && Array.isArray(item.models) && item.models.some((value) => modelId(value) === model2));
-          const validDefault = def && typeof def.provider === "string" && !!def.provider && typeof def.model === "string" && !!def.model, defaultAvailable = validDefault && hasProvider(def.provider), current = store.getSnapshot();
-          const preserveProvider = current.modelOverride && hasProvider(current.provider), provider = preserveProvider ? current.provider : defaultAvailable ? def.provider : providers[0]?.id || "", preserveModel = preserveProvider && hasModel(provider, current.model), catalog = providers.find((item) => item.id === provider), fallbackModel = (Array.isArray(catalog?.models) ? catalog.models : []).map(modelId).find((value) => !!value) || "", model = preserveModel ? current.model : defaultAvailable && provider === def.provider ? def.model : fallbackModel;
-          const modelError = !providers.length ? "DSH 没有返回可用服务商。" : !catalog ? "请选择服务商。" : catalog.modelsError || (!catalog.models?.length && !model ? "DSH 未返回该服务商的模型列表；可输入已配置的模型 ID。" : !model ? "未找到可用模型，可输入已配置的模型 ID。" : "");
-          set({ models: providers, modelCatalogRevision: Date.now(), modelBusy: false, modelDefault: defaultAvailable ? def : null, provider, model, modelError });
-        } catch (error) {
-          if (ticket === modelRequest) set({ modelBusy: false, modelError: error.message || "无法读取模型列表" });
-        }
-      }
-      async function generate(ai, refine = "") {
-        const s = store.getSnapshot(), contact = selected2(s);
-        if (!contact) return;
-        cancel();
-        const ticket = request, previous = s.draft;
-        const keep = (result) => set({ ...result, previousDraft: previous, draftVersions: result.draftVersions || [] });
-        if (!ai) {
-          try {
-            const candidates = ["gentle", "concise", "direct"].map((tone) => {
-              const result = E.generateLocalDraft({ ...contact, scenario: s.scenario, tone, intent: s.intent });
-              return { label: tone === "gentle" ? "自然接话" : tone === "concise" ? "简短回复" : "直接清晰", text: result.draft };
-            });
-            keep({ draft: candidates[0].text, draftVersions: candidates, draftReason: "", draftSource: "本地草稿", status: "草稿已生成。" });
-          } catch (e) {
-            set({ status: e.message });
-          }
-          return;
-        }
-        if (!s.provider || !s.model) {
-          await models();
-          if (ticket !== request || store.getSnapshot().selectedId !== contact.id || selected2(store.getSnapshot())?.messages !== contact.messages) return;
-          const ready = store.getSnapshot();
-          if (ready.provider && ready.model) return generate(ai, refine);
-          set({ status: "DSH 尚未提供可用模型，请在设置中选择。" });
-          return;
-        }
-        controller = new AbortController();
-        set({ replyBusy: true, status: "正在生成回复…" });
-        try {
-          const variants = refine ? [{ label: refine, tone: s.tone }] : [{ label: "自然接话", tone: "gentle" }, { label: "简短回复", tone: "concise" }, { label: "直接清晰", tone: "direct" }], results = [];
-          for (const variant of variants) {
-            const state = { ...s, tone: variant.tone, intent: refine ? (s.intent + "；请改写以下草稿，要求" + refine + "：" + previous).slice(0, 500) : s.intent };
-            const response = await hostPost("reply", payload(state, contact), { signal: controller.signal }), data = await response.json();
-            if (ticket !== request || store.getSnapshot().selectedId !== contact.id) return;
-            if (!response.ok || data.ok === false || typeof data.draft !== "string") throw new Error(data.error || "未收到有效草稿");
-            results.push({ label: variant.label, text: data.draft });
-            keep({ draft: results[0].text, draftVersions: [...results], draftSource: "AI · " + s.model, draftReason: "", draftEvidence: [], status: "已生成 " + results.length + " 个候选…" });
-          }
-          set({ status: "回复草稿已生成。" });
-        } catch (error) {
-          if (ticket === request) set({ status: error.name === "AbortError" ? "已取消生成。" : "生成失败：" + error.message });
-        } finally {
-          if (ticket === request) {
-            set({ replyBusy: false });
-            controller = null;
-          }
-        }
-      }
-      function DraftEditor({ value, onChange }) {
-        const ref2 = React2.useRef(null);
-        React2.useLayoutEffect(() => {
-          const node = ref2.current;
-          if (!node) return;
-          const resize = () => {
-            node.style.height = "0px";
-            node.style.height = Math.max(64, node.scrollHeight + 2) + "px";
-          };
-          resize();
-          let width = node.clientWidth;
-          const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
-            if (node.clientWidth !== width) {
-              width = node.clientWidth;
-              resize();
-            }
+          const loadingTask = pdf_exports.getDocument({
+            data: new Uint8Array(await file.arrayBuffer()),
+            isEvalSupported: false,
+            useWasm: false
           });
-          observer?.observe(node);
-          return () => observer?.disconnect();
-        }, [value]);
-        return h("textarea", { ref: ref2, value, onChange, rows: 2, "aria-label": "编辑未发送的 AI 草稿", style: { resize: "none", overflow: "hidden", maxHeight: "none" } });
-      }
-      function Replies({ s, contact }) {
-        const formatTimestamp = formatChatTimestamp;
-        const nextSuggestions = React2.useMemo(() => E.suggestNextSteps({ ...contact, selfProfile: s.selfProfile }), [contact?.messages, contact?.profileSummary, contact?.topicFeedback, s.selfProfile]);
-        const [toolsOpen, setToolsOpen] = React2.useState(false), [listHidden, setListHidden] = React2.useState(false), [messagePreview, setMessagePreview] = React2.useState(null);
-        const [search, setSearch] = React2.useState(""), [jumpDate, setJumpDate] = React2.useState(""), [messageSide, setMessageSide] = React2.useState("target"), [messageText, setMessageText] = React2.useState(""), [messageTime, setMessageTime] = React2.useState(""), [chatSource, setChatSource] = React2.useState("all");
-        const photoInput = React2.useRef(null), selfAvatarInput = React2.useRef(null), targetAvatarInput = React2.useRef(null), historyRef = React2.useRef(null), [recordOpen, setRecordOpen] = React2.useState(false), messageCount = contact?.messages?.length || 0, contactMessages = contact?.messages || emptyMessages;
-        const latestMessages = React2.useMemo(() => contact ? contactMessages.filter((message) => (message.sender === contact.self || message.sender === contact.target) && (chatSource === "all" || (chatSource === "qq" ? /QQ/i.test((message.file || "") + " " + (message.source || "")) : !/QQ/i.test((message.file || "") + " " + (message.source || ""))))) : emptyMessages, [contactMessages, contact?.self, contact?.target, chatSource]);
-        const historyChunkSize = 120, [historyStart, setHistoryStart] = React2.useState(() => Math.max(0, latestMessages.length - historyChunkSize)), historyAnchor = React2.useRef(null), restoredHistory = React2.useRef(false);
-        const rememberAnchor = () => {
-          const pane = historyRef.current;
-          if (!pane) return;
-          const top = pane.getBoundingClientRect().top, row = [...pane.querySelectorAll("[data-message-index]")].find((node) => node.getBoundingClientRect().bottom > top);
-          if (row) historyAnchor.current = { index: row.dataset.messageIndex, offset: row.getBoundingClientRect().top - top };
-        };
-        const loadOlder = () => {
-          if (historyStart <= 0 || historyAnchor.current) return;
-          rememberAnchor();
-          setHistoryStart((start) => Math.max(0, start - historyChunkSize));
-        };
-        const loadNewer = () => {
-          if (historyStart + 360 >= latestMessages.length || historyAnchor.current) return;
-          rememberAnchor();
-          setHistoryStart((start) => Math.min(Math.max(0, latestMessages.length - historyChunkSize), start + historyChunkSize));
-        };
-        const daily = React2.useMemo(() => contact ? E.analyzeDailyTimeline(contactMessages, contact.self, contact.target, contact.interactionCorrections || []) : { days: [] }, [contactMessages, contact?.self, contact?.target, contact?.interactionCorrections]);
-        React2.useLayoutEffect(() => {
-          const pane = historyRef.current;
-          if (!pane) return;
-          if (restoredHistory.current !== contact?.id + ":" + chatSource) {
-            restoredHistory.current = contact?.id + ":" + chatSource;
-            pane.scrollTop = pane.scrollHeight;
-            return;
-          }
-          const anchor = historyAnchor.current;
-          if (anchor) {
-            const row = pane.querySelector('[data-message-index="' + anchor.index + '"]');
-            if (row) pane.scrollTop += row.getBoundingClientRect().top - pane.getBoundingClientRect().top - anchor.offset;
-            historyAnchor.current = null;
-            return;
-          }
-          pane.scrollTop = search.trim() ? 0 : pane.scrollHeight;
-        }, [contact?.id, messageCount, Boolean(s.draft), historyStart, search, chatSource]);
-        React2.useEffect(() => {
-          setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
-        }, [contact?.id, messageCount, chatSource]);
-        const [listDrawer, setListDrawer] = React2.useState(false), [toolsHidden, setToolsHidden] = React2.useState(false), [shellWidth, setShellWidth] = React2.useState(0), shellRef = React2.useRef(null);
-        (React2.useLayoutEffect || React2.useEffect)(() => {
-          const node = shellRef.current;
-          if (!node) return;
-          const measure = () => setShellWidth(Math.round(node.getBoundingClientRect().width));
-          measure();
-          if (typeof ResizeObserver === "undefined") return;
-          const observer = new ResizeObserver(measure);
-          observer.observe(node);
-          return () => observer.disconnect();
-        }, [Boolean(contact)]);
-        const layout = E.sessionPaneLayout(shellWidth, { listHidden, listDrawer, toolsOpen, toolsHidden });
-        const toggleList = () => {
-          if (layout.listMode === "drawer") setListDrawer(!listDrawer);
-          else setListHidden(!listHidden);
-        };
-        const toggleTools = () => {
-          if (layout.toolsMode === "overlay") setToolsOpen(!toolsOpen);
-          else setToolsHidden(!toolsHidden);
-        };
-        React2.useEffect(() => {
-          if (!layout.listVisible || layout.listMode !== "drawer") return;
-          const onKey = (e) => {
-            if (e.key === "Escape") setListDrawer(false);
-          };
-          document.addEventListener("keydown", onKey);
-          return () => document.removeEventListener("keydown", onKey);
-        }, [layout.listVisible, layout.listMode]);
-        if (!contact) return empty();
-        const provider = s.models.find((p) => p.id === s.provider), modelOptions = (provider?.models || []).map((m) => {
-          const id2 = typeof m === "string" ? m : m?.id || m?.modelId || m?.model_id || m?.model || m?.name;
-          return typeof id2 === "string" && id2.trim() ? [id2.trim(), typeof m === "string" ? m : m.displayName || m.name || id2.trim()] : null;
-        }).filter(Boolean), lastDay = daily.days.at(-1), latestAffinity = [...daily.days].reverse().find((day) => day.affinityScore !== null);
-        const stamp = (message) => formatTimestamp(message.timestamp);
-        const dayKey2 = (message) => formatChatDayKey(message.timestamp);
-        const fileAvatar = (file, name) => {
-          const src = typeof file === "string" ? file : file ? localFileUrl(file) : "";
-          return h("span", { className: "rn-session-avatar" }, src ? h("img", { src, alt: name + " 头像" }) : Array.from(name || "?")[0]);
-        };
-        const updateContact2 = (patch) => {
-          const current = store.getSnapshot();
-          set({ contacts: current.contacts.map((item) => item.id === contact.id ? { ...item, ...patch } : item) });
-        };
-        const choosePhoto = (file) => {
-          if (!file) return;
-          if (!file.type.startsWith("image/") || file.size > 12 * 1024 * 1024) {
-            set({ status: "请选择 12 MiB 以内的图片文件。" });
-            return;
-          }
-          const reader = new FileReader();
-          reader.onerror = () => set({ status: "图片读取失败，请重新选择。" });
-          reader.onload = () => {
-            if (typeof reader.result === "string") {
-              updateContact2({ sessionPhoto: reader.result });
-              set({ status: "展示图片已更新。" });
-            }
-          };
-          reader.readAsDataURL(file);
-        };
-        const chooseAvatar = (file, side) => {
-          if (!file) return;
-          if (!file.type.startsWith("image/") || file.size > 12 * 1024 * 1024) {
-            set({ status: "请选择 12 MiB 以内的图片文件。" });
-            return;
-          }
-          const reader = new FileReader();
-          reader.onerror = () => set({ status: "头像读取失败，请重新选择。" });
-          reader.onload = () => {
-            if (typeof reader.result === "string") {
-              updateContact2(side === "self" ? { selfAvatarData: reader.result } : { targetAvatarData: reader.result });
-              set({ status: (side === "self" ? "你的" : "对方") + "头像已保存。" });
-            }
-          };
-          reader.readAsDataURL(file);
-        };
-        const previewMedia = (attachment, index, inferredKind) => {
-          const kind = attachment.kind === "file" ? inferredKind || attachment.kind : attachment.kind || "file", label = mediaLabels[kind] || "文件", url = attachment.file ? localFileUrl(attachment.file) : "";
-          return h("div", { key: index }, h("span", { className: "rn-media-placeholder" }, `【${label}】`), url && (kind === "image" || kind === "sticker") ? h("img", { className: "rn-session-media", src: url, alt: `【${label}】`, loading: "lazy" }) : url && kind === "video" ? h("video", { className: "rn-session-media video", src: url, controls: true, preload: "metadata" }) : url && kind === "audio" ? h("audio", { className: "rn-session-media audio", src: url, controls: true, preload: "none" }) : null);
-        };
-        const mediaFallback = (message) => {
-          const kind = messageMediaKind(message);
-          return kind ? h("span", { className: "rn-media-placeholder" }, `【${mediaLabels[kind] || "文件"}】`) : null;
-        };
-        const visibleMessages = search.trim() ? latestMessages.filter((m) => String(m.text || "").toLowerCase().includes(search.trim().toLowerCase())) : latestMessages;
-        const jumpToDate = (value) => {
-          setJumpDate(value);
-          if (!value) return;
-          setSearch("");
-          const index = latestMessages.findIndex((m) => dayKey2(m) >= value);
-          if (index < 0) {
-            set({ status: "该日期之后没有记录。" });
-            return;
-          }
-          historyAnchor.current = null;
-          setHistoryStart(Math.max(0, index - 20));
-          requestAnimationFrame(() => requestAnimationFrame(() => historyRef.current?.querySelector('[data-date="' + dayKey2(latestMessages[index]) + '"]')?.scrollIntoView({ block: "start" })));
-        };
-        const addMessage = () => {
-          if (!messageText.trim()) return;
-          if (!messagePreview) {
-            const lines = messageText.split(/\r?\n/).filter((line) => line.trim()), recognized = lines.map((line) => {
-              const match = /^([^：:]{1,30})[：:]\s*(.+)$/.exec(line);
-              return match && ["我", contact.self, contact.target, "对方"].includes(match[1]) ? { sender: match[1] === "我" || match[1] === contact.self ? contact.self : contact.target, text: match[2] } : null;
-            });
-            setMessagePreview(recognized.length > 1 && recognized.every(Boolean) ? recognized : [{ sender: messageSide === "self" ? contact.self : contact.target, text: messageText.trim() }]);
-            return;
-          }
-          const current = store.getSnapshot(), active = selected2(current), timestamp2 = messageTime ? messageTime.replace("T", " ") : (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false });
-          const message = { sender: messageSide === "self" ? active.self : active.target, text: messageText.trim(), timestamp: timestamp2, source: "manual" }, messages = E.sortChatMessages([...active.messages, ...messagePreview.map((row) => ({ ...message, ...row }))]);
-          set({ contacts: current.contacts.map((c) => c.id === active.id ? { ...c, messages, pairCount: messages.filter((m) => m.sender === c.self || m.sender === c.target).length, timelineAnalysis: Object.fromEntries(Object.entries(c.timelineAnalysis || {}).filter(([date]) => String(date).split("#")[0] !== formatChatDayKey(timestamp2))), timelineAnalysisUpdatedAt: null, profileSummaryUpdatedAt: null } : c), undoMessageContact: active, status: "新消息已加入时间线。" });
-          setMessageText("");
-          setMessagePreview(null);
-          analyzeTimeline(active.id, { onlyDate: formatChatDayKey(timestamp2) });
-        };
-        const history = [];
-        let prior = "";
-        visibleMessages.slice(search.trim() ? 0 : historyStart, search.trim() ? void 0 : historyStart + 360).forEach((message, visibleIndex) => {
-          const index = historyStart + visibleIndex, date = dayKey2(message);
-          if (date !== prior) {
-            history.push(h("div", { className: "rn-session-day", "data-date": date, key: "day-" + index }, date));
-            prior = date;
-          }
-          const own = message.sender === contact.self, attachments = message.attachments || [], kind = messageMediaKind(message), avatarFile = own ? contact.selfAvatarData || contact.selfAvatarFile : contact.targetAvatarData || contact.targetAvatarFile;
-          history.push(h("article", { className: "rn-session-message " + (own ? "self" : "other"), key: "message-" + index, "data-message-index": index, onDoubleClick: () => {
-            if (search.trim()) {
-              const found = latestMessages.indexOf(message);
-              setSearch("");
-              historyAnchor.current = null;
-              setHistoryStart(Math.max(0, found - 20));
-              requestAnimationFrame(() => requestAnimationFrame(() => {
-                const pane = historyRef.current, row = pane?.querySelector('[data-message-index="' + found + '"]');
-                if (row) pane.scrollTop += row.getBoundingClientRect().top - pane.getBoundingClientRect().top;
-              }));
-            }
-            set({ replyContextMessages: latestMessages.slice(Math.max(0, latestMessages.indexOf(message) - 11), latestMessages.indexOf(message) + 1), status: "已选择这段对话作为生成背景。" });
-          } }, fileAvatar(avatarFile, message.sender), h("div", { className: "rn-session-message-body" }, h("div", { className: "rn-session-message-meta" }, h("span", null, message.sender), stamp(message) && h("time", null, stamp(message))), h("div", { className: "rn-session-bubble" }, message.text && !(kind && /^【[^】]+】$/.test(message.text.trim())) && h("div", { className: "rn-session-bubble-text" }, message.text), ...attachments.map((attachment, i) => previewMedia(attachment, i, kind)), !attachments.length && kind ? mediaFallback(message) : null, !message.text && !attachments.length && !kind ? h("span", { className: "rn-media-placeholder" }, "【消息】") : null))));
-        });
-        const saveExchange = () => {
-          const current = store.getSnapshot(), active = selected2(current), sent = (current.exchangeSent || current.draft || "").trim(), received = (current.exchangeReply || "").trim();
-          if (!active || !sent || !received) {
-            set({ status: "请填写实际发送内容和对方回复后再记录。" });
-            return;
-          }
-          const timestamp2 = (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false }), nextMessages = [...active.messages, { sender: active.self, text: sent, timestamp: timestamp2, source: "manual" }, { sender: active.target, text: received, timestamp: timestamp2, source: "manual" }], targetMessages = nextMessages.filter((message) => message.sender === active.target), updated = { ...active, timelineAnalysis: Object.fromEntries(Object.entries(active.timelineAnalysis || {}).filter(([date]) => String(date).split("#")[0] !== formatChatDayKey(timestamp2))), timelineAnalysisUpdatedAt: null, messages: nextMessages, pairCount: nextMessages.filter((message) => message.sender === active.self || message.sender === active.target).length, facts: E.extractFacts(targetMessages) }, next = E.generateLocalDraft({ ...updated, scenario: current.scenario, tone: current.tone, intent: current.intent });
-          set({ contacts: current.contacts.map((item) => item.id === active.id ? updated : item), draft: next.draft, draftReason: next.reason, draftSource: "本地规则（根据新回复）", draftEvidence: next.evidence, exchangeSent: "", exchangeReply: "", status: `已把本轮实际往来加入 ${timestamp2.slice(0, 10)} 的时间线；日历和每日统计已更新。` });
-          setRecordOpen(false);
-          analyzeTimeline(active.id, { onlyDate: formatChatDayKey(timestamp2) });
-        };
-        const evidence = s.draftEvidence.map((item, i) => h("div", { className: "rn-message", key: i }, h("blockquote", null, item.quote), source(item.message))), lastCount = lastDay?.messages.length ?? 0, latestScore = latestAffinity ? latestAffinity.affinityScore : null, photo = contact.sessionPhoto || "", targetAvatar = contact.targetAvatarData || (contact.targetAvatarFile ? localFileUrl(contact.targetAvatarFile) : "");
-        const photoPane = photo ? h("img", { src: photo, alt: "会话展示图片", style: { objectFit: s.photoFit || "cover" } }) : h("div", { className: "rn-session-photo-empty" }, h("span", { "aria-hidden": true }, "▧"), h("span", null, "选择一张图片作为会话展示"), h("button", { type: "button", onClick: (e) => {
-          e.stopPropagation();
-          photoClick();
-        } }, "选择图片"));
-        const photoClick = () => photoInput.current?.click();
-        const scenarioLabels = { continue: "继续当前话题", question: "轻量提问", invite: "发出邀请", boundary: "表达自己的边界" }, toneLabels = { gentle: "真诚", casual: "轻松", concise: "简短", direct: "直接清晰" };
-        const copyPrompt = async () => {
-          const text = "请以「" + contact.self + "」的身份回复「" + contact.target + "」。场景：" + (scenarioLabels[s.scenario] || "继续当前话题") + "；语气：" + (toneLabels[s.tone] || "真诚") + "。" + (String(s.intent || "").trim() ? "我想表达的意思是：" + String(s.intent).trim() + "。" : "回复要具体、简短，不给对方下结论。") + "只依据聊天原文，不推测对方的真实想法；需要什么就直接说清，不靠试探或冷处理；鼓励对方按自己的意愿回应。";
+          const pdf = await loadingTask.promise;
           try {
-            await navigator.clipboard.writeText(text);
-            set({ status: "提示词已复制，可粘贴到 DSH 主对话使用。" });
-          } catch {
-            set({ status: "无法复制，请手动选中文字复制。" });
-          }
-        };
-        return h("div", { ref: shellRef, className: "rn-session-shell " + layout.classes.join(" ") }, h(
-          "div",
-          { className: "rn-session", style: { display: "grid", gridTemplateColumns: "190px minmax(0,1fr) 250px", gridTemplateAreas: '"list main right"', width: "100%", minWidth: 0, gap: 14 } },
-          layout.listMode === "drawer" && layout.listVisible && h("div", { className: "rn-session-scrim", "aria-hidden": true, onClick: () => setListDrawer(false) }),
-          h("aside", { className: "rn-session-pane rn-session-list-pane", id: "rn-session-list", "aria-label": "会话列表", style: { gridArea: "list", minWidth: 0 } }, h("div", { className: "rn-session-list" }, h("h3", null, "会话"), ...s.contacts.map((item) => h("button", { type: "button", className: "rn-session-contact", key: item.id, "aria-current": item.id === contact.id ? "true" : void 0, onClick: () => {
-            chooseContact(item.id);
-            setListDrawer(false);
-          } }, fileAvatar(item.targetAvatarData || item.targetAvatarFile, item.target), h("span", { className: "rn-session-contact-copy" }, h("strong", null, item.target)))), h("div", { className: "rn-session-links" }, h("h3", null, "相关页面"), button("关系观察", () => nav("behavior", "metrics")), button("每日历程", () => nav("behavior", "daily"))))),
-          h("main", { className: "rn-session-main", style: { gridArea: "main", display: "flex", flexDirection: "column", gap: 12, minWidth: 0 } }, h("header", { className: "rn-session-pane rn-session-header" }, h("button", { type: "button", onClick: () => targetAvatarInput.current?.click(), title: "更换对方头像", style: { padding: 0, border: 0 } }, fileAvatar(contact.targetAvatarData || contact.targetAvatarFile, contact.target)), h("button", { type: "button", onClick: () => selfAvatarInput.current?.click(), title: "更换我的头像", style: { padding: 0, border: 0 } }, fileAvatar(contact.selfAvatarData || contact.selfAvatarFile, contact.self)), h("div", { className: "rn-session-heading" }, h("strong", null, contact.target)), button("☰ 列表", toggleList, { "aria-pressed": layout.listVisible, "aria-expanded": layout.listVisible, "aria-label": layout.listVisible ? "隐藏会话列表" : "显示会话列表", title: layout.listVisible ? "隐藏会话列表" : "显示会话列表" }), button(layout.toolsVisible ? "收起工具" : "工具", toggleTools, { "aria-pressed": layout.toolsVisible, "aria-expanded": layout.toolsVisible, title: layout.toolsVisible ? "收起沟通工具与头像" : "显示沟通工具与头像" })), h("div", { className: "rn-history-toolbar" }, select("来源", chatSource, [["all", "全部"], ["qq", "QQ"], ["wechat", "微信"]], setChatSource), h("input", { type: "search", value: search, onChange: (e) => setSearch(e.target.value), placeholder: "搜索聊天记录", "aria-label": "搜索聊天记录" }), h("input", { type: "date", value: jumpDate, onChange: (e) => jumpToDate(e.target.value), "aria-label": "跳转日期" }), button("最新", () => {
-            setSearch("");
-            setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
-            requestAnimationFrame(() => {
-              if (historyRef.current) historyRef.current.scrollTop = historyRef.current.scrollHeight;
-            });
-          })), h("section", { className: "rn-session-history", "aria-label": "聊天历史", ref: historyRef, onScroll: (event) => {
-            if (!search.trim()) historyViews.set(contact.id + ":" + chatSource, { start: historyStart, top: event.currentTarget.scrollTop, count: messageCount });
-            if (!search.trim()) {
-              const pane = event.currentTarget;
-              if (pane.scrollTop <= 24) loadOlder();
-              else if (pane.scrollHeight - pane.scrollTop - pane.clientHeight <= 24) loadNewer();
+            const lines = [];
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+              const page = await pdf.getPage(pageNumber), content = await page.getTextContent(), rows = [];
+              for (const item of content.items) {
+                if (!item.str?.trim()) continue;
+                const x = Number(item.transform?.[4]) || 0, y = Number(item.transform?.[5]) || 0, height = Number(item.height) || 10;
+                let row = rows.find((value) => Math.abs(value.y - y) <= Math.max(2, height * 0.32));
+                if (!row) {
+                  row = { y, items: [] };
+                  rows.push(row);
+                }
+                row.items.push({ x, str: item.str });
+              }
+              rows.sort((a, b) => b.y - a.y);
+              for (const row of rows) {
+                row.items.sort((a, b) => a.x - b.x);
+                let text = "";
+                let right = null;
+                for (const item of row.items) {
+                  if (right !== null && item.x - right > 7 && !/\s$/.test(text) && !/^[，。！？；：、）】」』]/.test(item.str))
+                    text += " ";
+                  text += item.str;
+                  right = item.x + Math.max(1, item.str.length * 5);
+                }
+                if (text.trim()) lines.push(text.trim());
+              }
+              page.cleanup();
             }
-          } }, ...history.length ? history : [h("p", { className: "rn-muted", key: "empty" }, "还没有双方聊天记录。")]), h("div", { className: "rn-session-draft" }, h("strong", null, "AI 草稿 · 未发送"), s.replyContextMessages && button("恢复最新对话", () => set({ replyContextMessages: null, status: "" })), (s.draftVersions || []).length > 0 && h("div", { className: "rn-actions" }, ...(s.draftVersions || []).map((v, i) => button(v.label, () => set({ draft: v.text }), { key: i, "aria-pressed": s.draft === v.text }))), !s.draft && (!s.provider || !s.model) && h("div", { className: "rn-empty" }, h("strong", null, "尚未配置模型，暂时不能生成 AI 草稿"), muted("未配置模型时不会调用模型，也不会推断对方的真实想法；可以先用「生成本地草稿」按本地规则拼出模板。"), h("div", { className: "rn-actions", style: { justifyContent: "center" } }, button("去设置选择模型", () => nav("settings", "general"), { className: "primary" }), button("复制提示词", copyPrompt), h("details", null, h("summary", null, "查看如何配置"), h("p", null, "设置 → 回复设置与模型授权 → 选择服务商与模型，保存后回到会话点「生成回复」。也可以把提示词粘贴到 DSH 主对话手动生成。")))), s.draft ? h(DraftEditor, { value: s.draft, onChange: (e) => set({ draft: e.target.value }) }) : h("p", { className: "rn-session-draft-empty" }, !s.draft && (!s.provider || !s.model) ? "未配置模型：可先用「生成本地草稿」，或按上面的步骤配置模型。" : "生成的回复草稿会显示在这里。"), h(ReplyFeedbackView, { contactId: contact.id, draft: s.draft, selfProfile: s.selfProfile, onChange: (value) => set({ selfProfile: value }) }), s.draftSource && muted("来源：" + s.draftSource), s.draft && s.draftReason && h("p", { className: "rn-session-draft-preview" }, s.draftReason), ...evidence, s.draft && h("div", { className: "rn-actions" }, button("短一点", () => generate(true, "短一点"), { disabled: s.replyBusy }), button("换个说法", () => generate(true, "换个说法"), { disabled: s.replyBusy }), button("像我的表达", () => generate(true, "贴近我在历史聊天中的表达习惯"), { disabled: s.replyBusy }), s.previousDraft && button("上一版", () => set({ draft: s.previousDraft, previousDraft: s.draft })), button("复制草稿", async () => {
-            try {
-              await navigator.clipboard.writeText(store.getSnapshot().draft);
-              set({ status: "草稿已复制，尚未发送。" });
-            } catch {
-              set({ status: "无法复制，请选中文字手动复制。" });
-            }
-          }, { className: "primary" }))), h("section", { className: "rn-session-pane rn-session-compose" }, h("textarea", { value: s.intent, onChange: (e) => set({ intent: e.target.value }), maxLength: 500, placeholder: "写下你想表达的意思，可选补充真实意图与边界。（Ctrl/⌘ + Enter 生成）", rows: 2, "aria-label": "回复意图", onKeyDown: (e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent?.isComposing) {
-              e.preventDefault();
-              const cur = store.getSnapshot();
-              if (cur.replyBusy) return;
-              generate(Boolean(cur.provider && cur.model && !cur.modelBusy));
-            }
-          } }), h("div", { className: "rn-session-compose-tools" }, select("场景", s.scenario, [["continue", "继续当前话题"], ["question", "轻量提问"], ["invite", "发出邀请"], ["boundary", "表达自己的边界"]], (scenario) => set({ scenario })), select("语气", s.tone, [["gentle", "真诚"], ["casual", "轻松"], ["concise", "简短"], ["direct", "直接清晰"]], (tone) => set({ tone })), button("生成本地草稿", () => generate(false), { disabled: s.replyBusy }), button(s.replyBusy ? "生成中…" : "生成回复", () => generate(true), { className: "primary", disabled: !s.provider || !s.model || s.replyBusy || s.modelBusy })))),
-          h("aside", { className: "rn-session-right", style: { gridArea: "right", display: "grid", minWidth: 0 } }, h("div", { className: "rn-session-photo", "role": "button", tabIndex: 0, "aria-label": photo ? "点击更换会话展示图片" : "选择会话展示图片", onClick: photoClick, onKeyDown: (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              photoClick();
-            }
-          } }, photoPane, h("input", { ref: photoInput, type: "file", accept: "image/*", "aria-label": "选择会话展示图片", onClick: (e) => e.stopPropagation(), onChange: (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            choosePhoto(file);
-          } })), h("section", { className: "rn-session-pane rn-session-tools" }, h("h3", null, "沟通工具"), h(InterpretationView, { contact, s, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2), onOpenSettings: () => nav("settings", "general"), onEvidence: (ref2) => showEvidence(contact.id, ref2) }), h(TopicSuggestionsView, { result: nextSuggestions, onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)), onEvidence: (ref2) => showEvidence(contact.id, ref2) }), h("div", { className: "rn-session-stat" }, h("strong", null, `${lastCount} 条消息`), h("small", null, [lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录", latestScore === null ? "关系指数 —" : `关系指数 ${latestScore}`].join(" · "))), h("div", { className: "rn-session-tool-buttons" }, button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)), button(s.timelineAnalysisContact === contact.id ? "正在重算…" : "重算评分", () => analyzeTimeline(contact.id, { force: true }), { disabled: s.timelineAnalysisContact === contact.id }), button("模型设置", () => nav("settings", "general"))), h("div", { className: "rn-session-avatar-actions" }, h("input", { ref: selfAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置我的头像", onChange: (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            chooseAvatar(file, "self");
-          } }), h("input", { ref: targetAvatarInput, type: "file", accept: "image/*", className: "rn-session-avatar-input", "aria-label": "设置对方头像", onChange: (e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            chooseAvatar(file, "target");
-          } })), recordOpen && h("div", { className: "rn-session-exchange" }, h("label", null, "我实际发送了", h("textarea", { value: s.exchangeSent || s.draft, onChange: (e) => set({ exchangeSent: e.target.value }), placeholder: "填入实际发出的内容。" })), h("label", null, "对方回复了", h("textarea", { value: s.exchangeReply, onChange: (e) => set({ exchangeReply: e.target.value }), placeholder: "填入对方的实际回复。" })), button("记录并更新时间线", saveExchange, { className: "primary", disabled: !((s.exchangeSent || s.draft || "").trim() && s.exchangeReply.trim()) }))), h("details", { className: "rn-session-details" }, h("summary", null, "补充新消息"), select("发送者", messageSide, [["target", contact.target], ["self", "我"]], setMessageSide), h("textarea", { value: messageText, onChange: (e) => {
-            setMessageText(e.target.value);
-            setMessagePreview(null);
-          }, placeholder: "输入实际聊天内容；多条可使用“我：… / 对方：…”分行", "aria-label": "补充新消息" }), h("input", { type: "datetime-local", value: messageTime, onChange: (e) => setMessageTime(e.target.value), "aria-label": "消息时间" }), s.undoMessageContact && button("撤销上次录入", () => {
-            if (timelineController) {
-              timelineController.abort();
-              timelineRequest++;
-              timelineController = null;
-            }
-            const before = store.getSnapshot().undoMessageContact;
-            set({ contacts: store.getSnapshot().contacts.map((c) => c.id === before.id ? before : c), undoMessageContact: null, status: "已撤销。" });
-          }), messagePreview && h("div", { className: "rn-message" }, ...messagePreview.map((row, i) => h("p", { key: i }, row.sender + "：" + row.text)), button("返回修改", () => setMessagePreview(null))), button(messagePreview ? "确认保存" : "预览消息", addMessage, { disabled: !messageText.trim() })), s.status && h("p", { className: "rn-session-status", role: "status" }, s.status))
-        ));
-      }
-      function SelfProfileEditor({ s }) {
-        const initial = E.normalizeSelfProfile(s.selfProfile), [draft, setDraft] = React2.useState(initial), [saved, setSaved] = React2.useState(false);
-        React2.useEffect(() => {
-          setDraft(E.normalizeSelfProfile(s.selfProfile));
-        }, [s.selfProfile]);
-        const lines = (value) => String(value).split(/\n/);
-        const update = (key, value) => {
-          setSaved(false);
-          setDraft({ ...draft, [key]: value });
-        };
-        const voice = (key, value) => update("voice", { ...draft.voice, [key]: value });
-        const area = (label, value, onChange, placeholder) => h("label", null, label, h("textarea", { value, onChange: (e) => onChange(e.target.value), rows: 3, maxLength: 4e3, placeholder, "aria-label": label }));
-        return h("section", { className: "rn-self-profile" }, h("h3", null, "我的表达档案"), muted("填写你认可的表达习惯和真实样例。生成回复时会把这些内容交给你选择的模型；每行填写一项。"), h("div", { className: "rn-form" }, area("常用语气", draft.voice.tone.join("\n"), (value) => voice("tone", lines(value)), "自然、轻松、直接"), select("句子长度", draft.voice.sentenceLength, [["short", "简短"], ["medium", "适中"], ["long", "详细"]], (value) => voice("sentenceLength", value)), select("表情使用", draft.voice.emoji, [["none", "不用"], ["rare", "偶尔"], ["often", "经常"]], (value) => voice("emoji", value)), area("常用语气词与口癖", draft.voice.particles.join("\n"), (value) => voice("particles", lines(value)), "例如：嗯、好呀"), area("我的兴趣", draft.interests.join("\n"), (value) => update("interests", lines(value)), "只填你真实愿意聊的兴趣"), area("近期计划", draft.plans.map((p) => p.text).join("\n"), (value) => update("plans", lines(value).map((text) => ({ ...draft.plans.find((plan) => plan.text === text), text }))), "仍然有效且愿意分享的计划"), area("我的沟通边界", draft.boundaries.join("\n"), (value) => update("boundaries", lines(value)), "例如：不替我承诺具体时间"), area("本人认可的消息样例", draft.samples.map((p) => p.text).join("\n"), (value) => update("samples", lines(value).map((text) => ({ ...draft.samples.find((sample) => sample.text === text), text }))), "每行一条你自己的消息，最多八条")), h("div", { className: "rn-actions" }, button("保存我的档案", () => {
-          set({ selfProfile: E.normalizeSelfProfile({ ...draft, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }) });
-          setSaved(true);
-        }, { className: "primary" }), button("清空我的档案", () => {
-          if (confirm("清空我的表达档案？聊天记录不会删除。")) {
-            const next = E.normalizeSelfProfile();
-            setDraft(next);
-            set({ selfProfile: next });
-            setSaved(false);
-          }
-        })), h(SelfPlanView, { profile: draft, onChange: (value) => {
-          setDraft(value);
-          set({ selfProfile: value });
-          setSaved(true);
-        } }), saved && h("p", { role: "status" }, "我的档案已保存，随项目备份一起导出。"));
-      }
-      function Settings({ s }) {
-        const provider = s.models.find((p) => p.id === s.provider), modelOptions = (provider?.models || []).map((m) => {
-          const id2 = typeof m === "string" ? m : m?.id || m?.modelId || m?.name;
-          return [id2, typeof m === "string" ? m : m.displayName || m.name || id2];
-        }).filter((v) => v[0]);
-        const restoreInput = React2.useRef(null), [preview, setPreview] = React2.useState(null), [backupBusy, setBackupBusy] = React2.useState(false), [backupError, setBackupError] = React2.useState(""), [includeBackupMedia, setIncludeBackupMedia] = React2.useState(true);
-        const settingsKeys = ["displayFontSize", "displayDensity", "photoFit"], backupState = (current) => ({ ...current.persistenceExtensions, ...persistableState(current), ...Object.fromEntries(settingsKeys.map((key) => [key, current[key]])) });
-        const encodeBackup = async (value) => {
-          if (value instanceof Blob) {
-            const bytes = new Uint8Array(await value.arrayBuffer());
-            let binary = "";
-            for (let i = 0; i < bytes.length; i += 16384) binary += String.fromCharCode(...bytes.subarray(i, i + 16384));
-            return { __rnFile: true, name: value.name || "", type: value.type, lastModified: value.lastModified || 0, data: btoa(binary) };
-          }
-          if (Array.isArray(value)) return Promise.all(value.map(encodeBackup));
-          if (value && typeof value === "object") {
-            const out = {};
-            for (const [key, item] of Object.entries(value)) {
-              if (["__proto__", "constructor", "prototype"].includes(key)) continue;
-              out[key] = await encodeBackup(item);
-            }
-            return out;
-          }
-          return value;
-        };
-        const decodeBackup = (value) => {
-          if (value && value.__rnFile === true) {
-            if (typeof value.data !== "string" || typeof value.type !== "string") throw new Error("备份附件格式不完整。");
-            const binary = atob(value.data), bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-            return value.name ? new File([bytes], value.name, { type: value.type, lastModified: value.lastModified || 0 }) : new Blob([bytes], { type: value.type });
-          }
-          if (Array.isArray(value)) return value.map(decodeBackup);
-          if (value && typeof value === "object") {
-            const out = {};
-            for (const [key, item] of Object.entries(value)) {
-              if (["__proto__", "constructor", "prototype"].includes(key)) continue;
-              out[key] = decodeBackup(item);
-            }
-            return out;
-          }
-          return value;
-        };
-        const validateBackup = (record) => {
-          if (record?.format !== "relationship-notes-backup" || record.version !== 1 || !record.state || !Array.isArray(record.state.contacts) || !Array.isArray(record.state.goals)) throw new Error("请选择关系手记导出的完整项目备份。");
-          const ids = /* @__PURE__ */ new Set();
-          for (const contact of record.state.contacts) {
-            if (!contact || typeof contact.id !== "string" || !contact.id || ids.has(contact.id) || typeof contact.self !== "string" || typeof contact.target !== "string" || !Array.isArray(contact.messages)) throw new Error("备份中的联系人信息不完整或重复。");
-            ids.add(contact.id);
-            for (const message of contact.messages) if (!message || typeof message.sender !== "string" || typeof message.text !== "string") throw new Error("备份中的聊天记录格式不正确。");
-          }
-          return record;
-        };
-        const exportBackup = async () => {
-          setBackupBusy(true);
-          setBackupError("");
-          try {
-            const raw = backupState(store.getSnapshot()), withoutMedia = { ...raw, contacts: raw.contacts.map((c) => ({ ...c, selfAvatarData: null, targetAvatarData: null, selfAvatarFile: null, targetAvatarFile: null, sessionPhoto: null, mediaAssets: [], messages: c.messages.map((m) => ({ ...m, attachments: (m.attachments || []).map((a) => ({ ...a, file: null })) })) })) }, state = await encodeBackup(includeBackupMedia ? raw : withoutMedia), record = { format: "relationship-notes-backup", version: 1, schemaVersion: E.WORKSPACE_SCHEMA_VERSION, createdAt: (/* @__PURE__ */ new Date()).toISOString(), state };
-            downloadObjectUrl(new Blob([JSON.stringify(record)], { type: "application/json" }), "关系手记-完整备份-" + (/* @__PURE__ */ new Date()).toLocaleDateString("sv-SE") + ".json");
-            set({ status: "完整项目备份已导出。" });
-          } catch (error) {
-            setBackupError("导出失败：" + error.message);
+            const messages = E.parseChat(lines.join("\n"), "txt");
+            return messages.map((message) => ({ ...message, typeName: "text", attachments: [] }));
           } finally {
-            setBackupBusy(false);
+            await loadingTask.destroy();
           }
-        };
-        const readBackup = async (file) => {
-          if (!file) return;
-          setBackupBusy(true);
-          setBackupError("");
-          setPreview(null);
-          try {
-            if (file.size > 300 * 1024 * 1024) throw new Error("备份文件超过 300 MiB。");
-            const record = validateBackup(E.migrateBackupRecord(JSON.parse(await file.text())));
-            setPreview({ ...record, fileName: file.name });
-          } catch (error) {
-            setBackupError("读取失败：" + error.message);
-          } finally {
-            setBackupBusy(false);
-          }
-        };
-        const restoreBackup = async () => {
-          if (!preview) return;
-          setBackupBusy(true);
-          setBackupError("");
-          set({ sharedContactId: "" });
-          try {
-            const decoded = decodeBackup(preview.state), before = backupState(store.getSnapshot()), defaults = E.createWorkspaceStore().getSnapshot(), next = { ...Object.fromEntries(PERSISTED_KEYS.map((key) => [key, defaults[key]])), ...Object.fromEntries([...PERSISTED_KEYS, ...settingsKeys].filter((key) => Object.hasOwn(decoded, key)).map((key) => [key, decoded[key]])) };
-            next.persistenceExtensions = E.persistenceExtensions(decoded, PERSISTED_KEYS);
-            next.selfProfile = E.migrateWorkspaceState(decoded, E.WORKSPACE_SCHEMA_VERSION).selfProfile;
-            next.contacts = next.contacts.map((contact) => E.ensureContactMessageIds({ ...contact, messages: E.sortChatMessages(contact.messages) }));
-            next.selectedId = next.contacts.some((c) => c.id === next.selectedId) ? next.selectedId : next.contacts[0]?.id || "";
-            await assertStorageSpace({ state: next });
-            cancel();
-            set({ ...next, persistenceReadOnly: false, evidenceContext: null, sharedContactId: "", undoRestore: before, undoImportContacts: null, undoMessageContact: null, replyContextMessages: null, persistenceReady: true, status: "项目备份已恢复。", replyBusy: false, modelBusy: false, importBusy: false });
-            setPreview(null);
-          } catch (error) {
-            setBackupError("恢复失败：" + error.message);
-          } finally {
-            setBackupBusy(false);
-          }
-        };
-        const clearLocalData = async () => {
-          if (!confirm("确定清除已保存的聊天记录、头像、媒体副本和草稿？原始导出文件不会被删除。")) return;
-          const before = store.getSnapshot();
-          set({ sharedContactId: "" });
-          try {
-            await persistence.clear();
-            cancel();
-            modelRequest++;
-            importEpoch++;
-            store.set(E.createWorkspaceStore({ feature: "settings", tab: "general", undoData: before, persistenceReady: true, persistenceReadOnly: false, persistenceExtensions: {}, sharedContactId: "", persistenceStatus: "", status: "" }).getSnapshot());
-          } catch (error) {
-            set({ persistenceStatus: "", status: "清除失败：" + (error.message || "请重试。") });
-          }
-        };
-        const dates = preview?.state.contacts.flatMap((c) => c.messages.map((m) => formatChatDayKey(m.timestamp))).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort() || [];
-        return box("通用设置", h(SelfProfileEditor, { s }), h("h3", null, "DSH 主对话读取档案"), h(ShareScopeView, { contact: selected2(s), scope: s.shareScope || {}, onApply: (scope) => set({ shareScope: scope, sharedContactId: "", profileBridgeStatus: "读取范围已保存；请按新范围重新开启授权。" }) }), h("label", null, h("input", { type: "checkbox", checked: Boolean(s.sharedContactId && s.sharedContactId === s.selectedId), disabled: !s.selectedId, onChange: (e) => set({ sharedContactId: e.target.checked ? s.selectedId : "", profileBridgeStatus: e.target.checked ? "正在连接当前联系人…" : "已关闭 DSH 读取。" }) }), "允许 DSH 读取当前联系人"), muted("开启期间 DSH 工具可读取当前联系人的已确认资料和最近最多 500 条消息，会随模型调用发送给所选模型服务。切换联系人或关闭后停止共享；模型新增资料需你确认。"), s.profileBridgeStatus && h("p", { role: "status" }, s.profileBridgeStatus), h("details", { className: "rn-session-details" }, h("summary", null, "回复设置与模型授权"), s.modelBusy ? muted("正在读取 DSH 模型…") : muted(s.provider && s.model ? `当前模型：${provider?.name || s.provider} / ${modelOptions.find((option) => option[0] === s.model)?.[1] || s.model}` : "尚未选定可用模型。"), s.modelError && h("p", { className: "rn-error", role: "alert" }, s.modelError), h("details", { className: "rn-session-details" }, h("summary", null, "选择其他模型"), h("div", { className: "rn-form" }, select("服务商", s.provider, [["", "请选择服务商"], ...s.models.map((p) => [p.id, p.name || p.id])], (value) => set({ provider: value, model: "", modelOverride: true }), { disabled: s.replyBusy || s.modelBusy }), modelOptions.length ? select("模型", s.model, [["", "请选择模型"], ...modelOptions], (value) => set({ model: value, modelOverride: true }), { disabled: !s.provider || s.replyBusy || s.modelBusy }) : h("label", null, "模型 ID", h("input", { value: s.model, onChange: (e) => set({ model: e.target.value, modelOverride: true }), placeholder: "输入该服务商已配置的模型 ID", disabled: !s.provider || s.replyBusy || s.modelBusy }), muted("当前服务商没有返回模型清单；可输入模型 ID，或点击下方重新读取。")), button("重新读取 DSH 模型", models, { disabled: s.modelBusy || s.replyBusy }))), s.replyBusy && button("取消生成", () => {
-          cancel();
-          set({ replyBusy: false, status: "已取消生成，保留现有草稿。" });
-        })), h("h3", null, "显示设置"), h("div", { className: "rn-form" }, select("聊天字号", String(s.displayFontSize || 13), [["13", "标准"], ["15", "较大"], ["17", "大字"]], (value) => set({ displayFontSize: Number(value) })), select("聊天密度", s.displayDensity || "comfortable", [["comfortable", "舒适"], ["compact", "紧凑"]], (displayDensity) => set({ displayDensity })), select("展示图片", s.photoFit || "cover", [["cover", "填满区域"], ["contain", "完整显示"]], (photoFit) => set({ photoFit }))), h("h3", null, "备份与恢复"), h("label", null, h("input", { type: "checkbox", checked: includeBackupMedia, onChange: (e) => setIncludeBackupMedia(e.target.checked) }), "备份包含头像、图片、语音和视频副本"), muted(includeBackupMedia ? "完整备份包含聊天及媒体副本，请妥善保管。" : "仅导出聊天、档案和设置；保留附件信息，不包含媒体文件副本。"), h("div", { className: "rn-actions" }, button(backupBusy ? "处理中…" : "导出完整项目", exportBackup, { disabled: backupBusy }), button("选择备份文件", () => restoreInput.current?.click(), { disabled: backupBusy }), h("input", { ref: restoreInput, type: "file", accept: ".json,application/json", style: { display: "none" }, "aria-label": "选择项目备份", onChange: (e) => {
-          const file = e.target.files?.[0];
-          e.target.value = "";
-          readBackup(file);
-        } }), s.undoRestore && button("撤销本次恢复", () => {
-          set({ ...s.undoRestore, evidenceContext: null, sharedContactId: "", undoRestore: null, status: "已恢复到导入备份前的数据。" });
-        })), preview && h("section", { className: "rn-message" }, h("h3", null, "备份预览"), h("p", null, preview.fileName), h("p", null, `${preview.state.contacts.length} 位联系人 · ${preview.state.contacts.reduce((sum, c) => sum + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${preview.state.goals.length} 条行动计划`), h("p", null, "联系人：" + preview.state.contacts.map((c) => c.target).join("、")), dates.length > 0 && h("p", null, dates[0] + " 至 " + dates.at(-1)), h("div", { className: "rn-actions" }, button("恢复此备份", restoreBackup, { className: "primary", disabled: backupBusy }), button("取消", () => setPreview(null)))), backupError && h("p", { className: "rn-error", role: "alert" }, backupError), h("h3", null, "导入记录"), ...(s.importHistory || []).slice().reverse().map((entry2, i) => h("p", { key: i }, new Date(entry2.at).toLocaleString() + " · " + entry2.name + " · 新增 " + entry2.added + " 条")), s.undoImportContacts && button("撤销最近一次导入", () => set({ contacts: s.undoImportContacts, undoImportContacts: null, status: "已撤销最近一次导入。" })), h("h3", null, "当前数据"), h("p", null, `${s.contacts.length} 位联系人 · ${s.contacts.reduce((n, c) => n + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${s.goals.length} 条行动计划`), h("div", { className: "rn-actions" }, button("清除已保存数据", clearLocalData), s.undoData && button("撤销清除", () => {
-          const before = s.undoData;
-          set({ ...before, evidenceContext: null, sharedContactId: "", undoData: null, status: "已恢复清除前的数据。", persistenceReady: true, persistenceStatus: "", replyBusy: false, modelBusy: false, importBusy: false });
-        }, { className: "primary" })));
-      }
-      function TabStrip({ label, items, selected: selected3, onSelect, className }) {
-        const ref2 = React2.useRef(null);
-        const onKeyDown = (e) => {
-          const index = items.findIndex((item) => item[0] === selected3);
-          let next;
-          if (e.key === "ArrowRight") next = (index + 1) % items.length;
-          if (e.key === "ArrowLeft") next = (index + items.length - 1) % items.length;
-          if (e.key === "Home") next = 0;
-          if (e.key === "End") next = items.length - 1;
-          if (next !== void 0) {
-            e.preventDefault();
-            onSelect(items[next][0], true);
-            ref2.current?.querySelectorAll("button")[next]?.focus();
-          }
-        };
-        return h("div", { className: "rn-tabs " + className, role: "tablist", "aria-label": label, ref: ref2, onKeyDown }, ...items.map(([key, text, icon]) => button(icon ? h(React2.Fragment, null, h(Icon, { name: icon, size: 20 }), h("span", null, text)) : text, () => onSelect(key, false), { key, role: "tab", id: "rn-tab-" + className + "-" + key, "aria-controls": "rn-panel", "aria-selected": selected3 === key, tabIndex: selected3 === key ? 0 : -1 })));
-      }
-      function SettingsMenu() {
-        const detailsRef = React2.useRef(null), summaryRef = React2.useRef(null), [open, setOpen] = React2.useState(false);
-        const close = (restoreFocus) => {
-          const details = detailsRef.current;
-          if (details) details.open = false;
-          setOpen(false);
-          if (restoreFocus) summaryRef.current?.focus();
-        };
-        React2.useEffect(() => {
-          if (!open) return;
-          const details = detailsRef.current;
-          details?.querySelector("button")?.focus();
-          const onKeyDown = (event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              close(true);
-            }
-          };
-          const onPointerDown = (event) => {
-            if (!details?.contains(event.target)) close(false);
-          };
-          document.addEventListener("keydown", onKeyDown);
-          document.addEventListener("pointerdown", onPointerDown);
-          return () => {
-            document.removeEventListener("keydown", onKeyDown);
-            document.removeEventListener("pointerdown", onPointerDown);
-          };
-        }, [open]);
-        return h("details", { className: "rn-settings-menu", ref: detailsRef, onToggle: (event) => setOpen(Boolean(event.currentTarget.open)) }, h("summary", { "aria-label": "设置", title: "设置", ref: summaryRef }, "⚙"), h("div", { className: "rn-settings-menu-items", role: "group", "aria-label": "设置菜单" }, button("聊天导入", () => {
-          close(false);
-          nav("import", "file");
-        }), button("通用设置", () => {
-          close(false);
-          nav("settings", "general");
-        })));
-      }
-      function HeadSummary({ contact }) {
-        const info2 = React2.useMemo(() => {
-          const msgs = contact.messages || [];
-          let last = "";
-          for (let i = msgs.length - 1; i >= 0 && !last; i--) {
-            const key = formatChatDayKey(msgs[i]?.timestamp);
-            if (key !== "日期未知") last = key;
-          }
-          return { count: msgs.length, last };
-        }, [contact.messages]);
-        return h("p", { className: "rn-head-sub" }, contact.isSample && h("span", { className: "rn-chip" }, "虚构示例"), h("span", null, `${info2.count} 条消息`), info2.last && h("span", null, "最近聊天 " + info2.last.slice(5)));
-      }
-      const PULSE_MAX_MESSAGES = 4e4;
-      function HeadAvatar({ contact }) {
-        const data = contact.targetAvatarData || contact.targetAvatarFile, src = typeof data === "string" ? data : data ? localFileUrl(data) : "";
-        return h("span", { className: "rn-identity-avatar", "aria-hidden": true }, src ? h("img", { src, alt: "" }) : Array.from(contact.target || "?")[0]);
-      }
-      function Pulse({ contact }) {
-        const analysis = (contact.messages?.length || 0) <= PULSE_MAX_MESSAGES ? E.analyzeRelationshipCached(contact) : null;
-        if (!analysis?.current) return null;
-        const pts = analysis.points.slice(-20), W = 112, H = 30, x = (i) => pts.length < 2 ? W / 2 : 3 + i * (W - 6) / (pts.length - 1), y = (v) => H - 3 - v / 100 * (H - 6);
-        const segs = [];
-        let cur = [];
-        pts.forEach((p, i) => {
-          if (!E.isScored(p)) {
-            if (cur.length) segs.push(cur);
-            cur = [];
-          } else cur.push([x(i), y(p.index)]);
-        });
-        if (cur.length) segs.push(cur);
-        const last = pts.map((p, i) => [p, i]).filter(([p]) => E.isScored(p)).at(-1), value = Math.round(analysis.current.ewma ?? analysis.current.index);
-        return h(
-          "button",
-          { type: "button", className: "rn-pulse", onClick: () => nav("behavior", "insight"), "aria-label": `关系指数 ${value}，查看关系分析`, title: "最近 20 周的关系互动指数，点击查看关系分析" },
-          h("svg", { className: "rn-pulse-line", width: W, height: H, viewBox: `0 0 ${W} ${H}`, "aria-hidden": true }, h("line", { x1: 0, x2: W, y1: y(50), y2: y(50), className: "rn-pulse-mid" }), ...segs.map((seg, i) => h("polyline", { key: i, points: seg.map((p) => p.join(",")).join(" ") })), last && h("circle", { cx: x(last[1]), cy: y(last[0].index), r: 3 })),
-          h("span", { className: "rn-pulse-copy" }, h("strong", { className: "rn-num" }, value), h("small", null, "关系指数"))
-        );
-      }
-      function StatusToast({ text, busy, onClose }) {
-        React2.useEffect(() => {
-          if (busy || /失败|错误|无法|不能|请/.test(text)) return;
-          const timer = setTimeout(() => {
-            if (store.getSnapshot().status === text) onClose();
-          }, 6e3);
-          return () => clearTimeout(timer);
-        }, [text, busy]);
-        const error = /失败|错误|无法/.test(text);
-        return h("div", { className: "rn-status rn-toast" + (error ? " rn-toast-error" : ""), role: "status", "aria-live": "polite" }, h("span", null, text), h("button", { type: "button", onClick: onClose, "aria-label": "关闭提示", title: "关闭" }, "×"));
-      }
-      function NativePanelIcon({ size = 20 }) {
-        return h("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true }, h("path", { d: "M5 4.5h10.5a3 3 0 0 1 3 3V19.5H8a3 3 0 0 1-3-3z" }), h("path", { d: "M5 16.5a3 3 0 0 1 3-3h10.5" }), h("path", { d: "M11.8 10.6c-.9-.9-2.6-.4-2.6 1 0 1.3 2.6 2.6 2.6 2.6s2.6-1.3 2.6-2.6c0-1.4-1.7-1.9-2.6-1z", fill: "currentColor", stroke: "none" }));
-      }
-      function NativePanel() {
-        return h("div", { className: "rn-native-panel", style: { height: "100%", minHeight: 0, overflow: "hidden" } }, h(Page, {}));
-      }
-      function mountWorkspace(ctx2, { entry: entry2, label, namespace }) {
-        const PANEL_ID = "relationship-notes";
-        const hasService = (name) => {
-          try {
-            return Boolean(typeof ctx2.get === "function" && ctx2.get(name));
-          } catch {
-            return false;
-          }
-        };
-        if (typeof ctx2.inject !== "function") {
-          if (ctx2.subdsh) ctx2.effect(() => ctx2.subdsh.register(entry2), "local-relationship-notes: module");
-          return;
         }
-        let fallback = null;
-        ctx2.inject(["subdsh"], (sub) => {
+        async function runAffinity(contactId) {
+          const start = store.getSnapshot();
+          if (start.affinityBusy) return;
+          affinityController?.abort();
+          const controller2 = new AbortController();
+          affinityController = controller2;
+          const first = start.contacts.find((c) => c.id === contactId);
+          if (!first) return;
+          const pending = E.analyzeRelationship(first).pending, failed = [];
+          let done = 0, stored = 0, consecutive = 0;
+          set({ affinityBusy: contactId, affinityProgress: "准备中…", affinityError: "" });
           try {
-            fallback?.dispose?.();
-          } catch {
+            for (const week of pending) {
+              if (controller2.signal.aborted) break;
+              const current = store.getSnapshot(), contact = current.contacts.find((c) => c.id === contactId);
+              if (!contact) break;
+              const turns = E.buildTurns(contact), fingerprint = E.weekFingerprint(contact, week, turns);
+              const previous = Object.entries(contact.affinityV3?.weeks || {}).filter(([key, entry2]) => key < week && entry2?.result?.summary).sort((a, b) => b[0].localeCompare(a[0]))[0];
+              const body = E.buildAffinityRequest(contact, week, {
+                previousSummary: previous?.[1].result.summary,
+                turns
+              });
+              if (current.provider && current.model) {
+                body.provider = current.provider;
+                body.model = current.model;
+              }
+              set({ affinityProgress: `正在分析 ${week} 这一周（${done + 1} / ${pending.length}）…` });
+              const response = await hostPost("affinity-analysis", body, { signal: controller2.signal });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok || !data.ok) {
+                if ([405, 499, 503].includes(response.status)) throw new Error(data.error || "模型分析暂不可用。");
+                failed.push(week + "：" + (data.error || "HTTP " + response.status));
+                done++;
+                if (++consecutive >= 2) {
+                  failed.splice(0, failed.length);
+                  throw new Error(
+                    `连续 2 周分析失败，已停止：${String(data.error || "HTTP " + response.status).replace(/[。.]+$/, "")}。请检查 DSH 的模型配置后重试，已完成的周会保留。`
+                  );
+                }
+                continue;
+              }
+              consecutive = 0;
+              const latest = store.getSnapshot(), target = latest.contacts.find((c) => c.id === contactId);
+              if (!target) break;
+              if (E.weekFingerprint(target, week) === fingerprint) {
+                set({
+                  contacts: latest.contacts.map(
+                    (c) => c.id === contactId ? E.storeAiWeek(c, week, {
+                      result: data.analysis,
+                      provider: data.provider,
+                      model: data.model,
+                      fingerprint,
+                      request: body
+                    }) : c
+                  )
+                });
+                stored++;
+              }
+              done++;
+            }
+            if (!controller2.signal.aborted)
+              set({ status: stored ? `关系分析已更新 ${stored} 周。` : "没有新的周需要分析。" });
+          } catch (error) {
+            if (error?.name !== "AbortError" && !controller2.signal.aborted)
+              set({ affinityError: error.message || "模型分析暂不可用。" });
+          } finally {
+            if (affinityController === controller2) affinityController = null;
+            set({
+              affinityBusy: "",
+              affinityProgress: "",
+              ...failed.length ? { affinityError: `${failed.length} 周未完成（可再次点击重试）：${failed.slice(0, 3).join("；")}` } : {}
+            });
+            await persistence.flush?.();
           }
-          fallback = null;
-          sub.effect(() => sub.subdsh.register(entry2), "local-relationship-notes: module");
-        });
-        if (hasService("subdsh")) return;
-        fallback = ctx2.inject(["slots"], (ui) => {
+        }
+        function cancelAffinity() {
+          affinityController?.abort();
+          affinityController = null;
+          set({ affinityBusy: "", affinityProgress: "", status: "已取消关系分析；已完成的周会保留。" });
+        }
+        function guessIdentity(messages) {
+          const senders = [...new Set((messages || []).map((m) => m.sender).filter(Boolean))];
+          if (senders.length !== 2) return {};
+          const known = new Set(
+            store.getSnapshot().contacts.filter((c) => !c.isSample).map((c) => c.self)
+          );
+          const self2 = senders.find((v) => /^(?:我|me|myself|自己|本人)$/i.test(String(v).trim())) || senders.find((v) => known.has(v));
+          return self2 ? { self: self2, target: senders.find((v) => v !== self2) } : {};
+        }
+        async function importFile(file, isSample = false) {
+          if (!file) return;
+          const epoch = ++importEpoch;
+          set({ importBusy: true, importError: "", pending: null, self: "", target: "", importName: file.name });
+          try {
+            const extension = file.name.split(".").pop().toLowerCase();
+            let messages;
+            if (extension === "bak") throw new E.ImportError("qqBackup");
+            if (extension === "pdf") messages = await parsePdfFile(file);
+            else {
+              const limit = /^(?:json|html)$/.test(extension) ? 25 * 1024 * 1024 : E.MAX_BYTES;
+              if (file.size > limit) throw new Error(`文件超过 ${Math.round(limit / 1024 / 1024)} MiB。`);
+              const bytes = await file.arrayBuffer();
+              let text;
+              if (extension === "html" || extension === "json") {
+                try {
+                  text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+                } catch {
+                  throw new E.ImportError("encoding");
+                }
+              }
+              messages = extension === "html" ? E.parseWechatHtml(text) : extension === "json" && text.trimStart().startsWith("[") ? E.parseWechatJson(text) : E.decodeFile(bytes, file.name, file.size);
+            }
+            if (epoch !== importEpoch) return;
+            const mediaCount = messages.reduce((count, message) => count + (message.attachments?.length || 0), 0);
+            set({
+              pending: {
+                messages: messages.map((m, i) => ({ ...m, file: file.name, messageIndex: i + 1 })),
+                isSample,
+                assets: [],
+                media: { linked: 0, missing: mediaCount, total: mediaCount }
+              },
+              importBusy: false,
+              ...guessIdentity(messages)
+            });
+            nav("import", "identity");
+          } catch (error) {
+            if (epoch === importEpoch)
+              set({
+                importBusy: false,
+                importError: {
+                  qqBackup: "已识别 QQ 加密备份；完整备份解析尚未接通，本次没有导入消息。",
+                  parse10: "无法识别此文件格式，请选择 JSON、HTML、PDF 或 TXT。",
+                  encoding: "文件不是有效的 UTF-8 编码。",
+                  size: "文件超过大小限制。",
+                  empty: "没有找到可识别的聊天记录。"
+                }[error.code] || "导入失败：" + (error.message || error.code || "请检查文件内容")
+              });
+          }
+        }
+        async function importFiles(fileList) {
+          const files = Array.from(fileList || []);
+          if (!files.length) return;
+          const current = store.getSnapshot().pending;
+          if (current) {
+            const linked = E.linkWechatMediaFiles(current.messages, files), assets = files.map((file) => {
+              const parts = (file.webkitRelativePath || file.name).replaceAll("\\", "/").toLowerCase().split("/");
+              const folder = parts.find((part) => ["image", "video", "voice", "emoji", "emoji_sticker"].includes(part));
+              if (!folder) return null;
+              const kind = folder === "video" ? "video" : folder === "voice" ? "audio" : folder === "image" ? "image" : "sticker";
+              return { file, kind };
+            }).filter(Boolean), avatars = files.filter((file) => {
+              const parts = (file.webkitRelativePath || "").replaceAll("\\", "/").split("/");
+              return parts.length >= 3 && parts.at(-2).toLowerCase() === "avatar" && /\.(?:jpe?g|png|webp|gif|bmp)$/i.test(file.name);
+            });
+            if (!assets.length && !avatars.length) {
+              set({ importError: "这个文件夹没有找到媒体或头像文件。" });
+              return;
+            }
+            set({
+              pending: {
+                ...current,
+                messages: linked.messages,
+                assets,
+                avatars,
+                media: {
+                  linked: linked.linked,
+                  missing: linked.missing,
+                  total: linked.linked + linked.missing,
+                  files: assets.length
+                }
+              },
+              importError: ""
+            });
+            return;
+          }
+          const jsonFiles = files.filter((file) => /\.json$/i.test(file.name));
+          if (!jsonFiles.length) {
+            if (files.length === 1) return importFile(files[0]);
+            set({ importError: "没有找到可导入的聊天记录，请选择聊天文件或导出文件夹。" });
+            return;
+          }
+          const epoch = ++importEpoch;
+          set({
+            importBusy: true,
+            importError: "",
+            pending: null,
+            self: "",
+            target: "",
+            importName: files[0].webkitRelativePath?.split("/")[0] || files[0].name
+          });
+          try {
+            const candidates = [];
+            for (const file of jsonFiles) {
+              if (file.size > 25 * 1024 * 1024) continue;
+              candidates.push({ name: file.name, text: await file.text() });
+            }
+            const selected3 = E.selectBestWechatExport(candidates), linked = E.linkWechatMediaFiles(selected3.messages, files), assets = files.map((file) => {
+              const parts = (file.webkitRelativePath || file.name).replaceAll("\\", "/").toLowerCase().split("/");
+              const folder = parts.find((part) => ["image", "video", "voice", "emoji", "emoji_sticker"].includes(part));
+              if (!folder) return null;
+              const kind = folder === "video" ? "video" : folder === "voice" ? "audio" : folder === "image" ? "image" : "sticker";
+              return { file, kind };
+            }).filter(Boolean), avatars = files.filter((file) => {
+              const parts = (file.webkitRelativePath || "").replaceAll("\\", "/").split("/");
+              return parts.length >= 3 && parts.at(-2).toLowerCase() === "avatar" && /\.(?:jpe?g|png|webp|gif|bmp)$/i.test(file.name);
+            });
+            if (epoch !== importEpoch) return;
+            set({
+              pending: {
+                messages: linked.messages.map((message) => ({
+                  ...message,
+                  file: selected3.name,
+                  messageIndex: message.index
+                })),
+                assets,
+                avatars,
+                isSample: false,
+                media: {
+                  linked: linked.linked,
+                  missing: linked.missing,
+                  total: linked.linked + linked.missing,
+                  files: assets.length
+                }
+              },
+              importSource: selected3.name,
+              importBusy: false,
+              ...guessIdentity(linked.messages)
+            });
+            nav("import", "identity");
+          } catch (error) {
+            if (epoch === importEpoch)
+              set({ importBusy: false, importError: "没有找到可导入的聊天记录，请重新选择文件。" });
+          }
+        }
+        async function canvasJpeg(drawable, width, height, maxSide = 1280) {
+          const scale = Math.min(1, maxSide / Math.max(width, height)), canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(width * scale));
+          canvas.height = Math.max(1, Math.round(height * scale));
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("无法创建本地图片预览。");
+          context.drawImage(drawable, 0, 0, canvas.width, canvas.height);
+          const blob = await new Promise(
+            (resolve, reject) => canvas.toBlob(
+              (result) => result ? resolve(result) : reject(new Error("无法读取媒体帧。")),
+              "image/jpeg",
+              0.78
+            )
+          );
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          let binary = "";
+          for (let i = 0; i < bytes.length; i += 32768) binary += String.fromCharCode(...bytes.subarray(i, i + 32768));
+          return { data: btoa(binary), mimeType: "image/jpeg" };
+        }
+        async function analysisFrames(file, kind) {
+          if (kind !== "video") {
+            const bitmap = await createImageBitmap(file);
+            try {
+              return [{ ...await canvasJpeg(bitmap, bitmap.width, bitmap.height), timestamp: 0 }];
+            } finally {
+              bitmap.close?.();
+            }
+          }
+          const url = URL.createObjectURL(file), video = document.createElement("video");
+          video.muted = true;
+          video.preload = "auto";
+          video.src = url;
+          try {
+            await new Promise((resolve, reject) => {
+              video.onloadedmetadata = resolve;
+              video.onerror = () => reject(new Error("DSH 无法读取此视频格式。"));
+            });
+            if (!Number.isFinite(video.duration) || video.duration <= 0) throw new Error("视频时长无效。");
+            const positions = [Math.min(0.2, video.duration / 2), video.duration / 2, Math.max(0, video.duration - 0.2)], frames = [];
+            for (const time of [...new Set(positions)]) {
+              video.currentTime = time;
+              await new Promise((resolve, reject) => {
+                video.onseeked = resolve;
+                video.onerror = () => reject(new Error("读取视频画面失败。"));
+              });
+              frames.push({ ...await canvasJpeg(video, video.videoWidth, video.videoHeight, 960), timestamp: time });
+            }
+            return frames;
+          } finally {
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
+            URL.revokeObjectURL(url);
+          }
+        }
+        async function analyzeMedia(file, kind, contact, index) {
+          const state = store.getSnapshot(), key = contact.id + ":" + index;
+          if (!state.mediaConsent) return;
+          set({ mediaAnalysisBusy: { ...state.mediaAnalysisBusy, [key]: true }, status: "本地提取媒体画面…" });
+          try {
+            const frames = await analysisFrames(file, kind);
+            const response = await hostPost("media-analysis", {
+              mediaType: kind === "video" ? "video" : "image",
+              frames
+            });
+            const data = await response.json();
+            if (!response.ok || data.ok === false || typeof data.analysis !== "string")
+              throw new Error(data.error || "媒体分析失败。");
+            const latest = store.getSnapshot();
+            set({
+              mediaAnalysis: { ...latest.mediaAnalysis, [key]: data.analysis },
+              status: "媒体画面已交给 DSH 默认模型分析，请核对结果。"
+            });
+          } catch (error) {
+            set({ status: "媒体分析失败：" + (error.message || "请重试。") });
+          } finally {
+            const latest = store.getSnapshot(), busy = { ...latest.mediaAnalysisBusy };
+            delete busy[key];
+            set({ mediaAnalysisBusy: busy });
+          }
+        }
+        async function analyzeTimeline(contactId, { force = false, onlyDate = "" } = {}) {
+          const channelOf2 = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
+          const initial = store.getSnapshot(), contact = initial.contacts.find((item) => item.id === contactId);
+          if (!contact) return;
+          if (timelineController) timelineController.abort();
+          const ticket = ++timelineRequest;
+          timelineController = new AbortController();
+          const channelSets = [
+            ["qq", contact.messages.filter((message) => channelOf2(message) === "qq")],
+            ["wechat", contact.messages.filter((message) => channelOf2(message) !== "qq")]
+          ], known = contact.timelineAnalysis || {}, days = channelSets.flatMap(
+            ([channel, messages]) => E.analyzeDailyTimeline(messages, contact.self, contact.target, contact.interactionCorrections || []).days.filter(
+              (day) => (force || known[day.date + "#" + channel]?.version !== 4) && (!onlyDate || day.date === onlyDate)
+            ).map((day) => ({ ...day, channel, key: day.date + "#" + channel }))
+          );
+          if (!days.length) {
+            timelineController = null;
+            set({ status: "没有可分析的聊天日期。" });
+            return;
+          }
+          const controllerForRun = timelineController;
+          set({
+            timelineAnalysisContact: contactId,
+            timelineAnalysisProgress: `准备分析 ${days.length} 个日期`,
+            timelineAnalysisDone: 0,
+            timelineAnalysisTotal: days.length,
+            status: "正在使用 DSH 默认模型分析聊天时间线…"
+          });
+          try {
+            const requestDays = days.map((day) => ({
+              date: day.date,
+              channel: day.channel,
+              key: day.key,
+              messageCount: day.messages.length,
+              selfMessages: day.selfMessages,
+              targetMessages: day.targetMessages,
+              turns: day.turns,
+              activityScore: day.activityScore,
+              affinityScore: day.affinityScore,
+              affinityChange: day.affinityChange,
+              transcript: day.messages.map((message) => {
+                const body = String(message.text || "").trim(), kind = messageMediaKind(message);
+                return {
+                  sender: message.sender,
+                  text: body ? body.slice(0, 300) + (body.length > 300 ? "…" : "") : `【${mediaLabels[kind] || "媒体消息"}】`
+                };
+              })
+            })), batches = [];
+            let pendingBatch = [];
+            for (const day of requestDays) {
+              const candidate = [...pendingBatch, day], size = JSON.stringify({ self: contact.self, target: contact.target, days: candidate }).length;
+              if (pendingBatch.length && (size > 24e3 || candidate.length > 4)) {
+                batches.push(pendingBatch);
+                pendingBatch = [];
+              }
+              if (JSON.stringify({ self: contact.self, target: contact.target, days: [day] }).length > 58e3)
+                throw new Error(`${day.date} 的聊天内容过长，无法放入单次分析请求。`);
+              pendingBatch.push(day);
+            }
+            if (pendingBatch.length) batches.push(pendingBatch);
+            let completed = 0;
+            const failedDates = [], stopIfAborted = () => {
+              const current = store.getSnapshot().contacts.find((item) => item.id === contactId);
+              if (controllerForRun.signal.aborted || ticket !== timelineRequest || !current || current.messages !== contact.messages || current.self !== contact.self || current.target !== contact.target || current.interactionCorrections !== contact.interactionCorrections) {
+                controllerForRun.abort();
+                throw Object.assign(new Error("聊天或评分修正已变化，请重新分析。"), { name: "AbortError" });
+              }
+            };
+            const saveBatch = async (batch) => {
+              stopIfAborted();
+              const wire = batch.map(({ channel, key, ...day }) => day), response = await hostPost(
+                "timeline-analysis",
+                { self: contact.self, target: contact.target, days: wire },
+                { signal: controllerForRun.signal }
+              ), data = await response.json();
+              stopIfAborted();
+              if (!response.ok || data.ok === false || !Array.isArray(data.days))
+                throw new Error(data.error || "未收到有效的日期分析");
+              if (Array.isArray(data.missing) && data.missing.length)
+                throw new Error(
+                  "模型没有返回这些日期的可解析结果：" + ((data.missingDetails || []).length ? data.missingDetails.map((item) => item.date + "（" + (item.reason || "未知") + "）").join("；") : data.missing.join("、"))
+                );
+              const current = store.getSnapshot(), updatedContact = current.contacts.find((item) => item.id === contactId);
+              if (!updatedContact) throw new Error("联系人已不存在。");
+              const timelineAnalysis = {
+                ...updatedContact.timelineAnalysis || {},
+                ...Object.fromEntries(
+                  data.days.map((day, index) => {
+                    const request2 = batch.find((item) => item.date === day.date && item.channel === day.channel) || batch[index] || {};
+                    return [
+                      request2.key || day.date,
+                      {
+                        summary: cleanTimelineDisplayText(day.summary),
+                        activityReason: cleanTimelineDisplayText(day.activityReason),
+                        affinityContext: cleanTimelineDisplayText(day.affinityContext),
+                        channel: request2.channel || null,
+                        version: 4
+                      }
+                    ];
+                  })
+                )
+              };
+              set({
+                contacts: current.contacts.map(
+                  (item) => item.id === contactId ? {
+                    ...item,
+                    timelineAnalysis,
+                    timelineAnalysisModel: data.model || "DSH 默认模型",
+                    timelineAnalysisUpdatedAt: Date.now()
+                  } : item
+                )
+              });
+              const savedKeys = new Set(
+                data.days.map((day, index) => {
+                  const request2 = batch.find((item) => item.date === day.date && item.channel === day.channel) || batch[index] || {};
+                  return request2.key || day.date;
+                })
+              );
+              return {
+                saved: savedKeys.size,
+                missing: batch.map((day) => day.key || day.date).filter((key) => !savedKeys.has(key))
+              };
+            };
+            for (const batch of batches) {
+              stopIfAborted();
+              set({
+                timelineAnalysisProgress: `正在分析 ${completed} / ${days.length} 个日期`,
+                timelineAnalysisDone: completed,
+                timelineAnalysisTotal: days.length
+              });
+              try {
+                const result = await saveBatch(batch);
+                completed += result.saved;
+                for (const date of result.missing) {
+                  stopIfAborted();
+                  try {
+                    const retried = await saveBatch(batch.filter((day) => (day.key || day.date) === date));
+                    completed += retried.saved;
+                    if (!retried.saved) failedDates.push(date + "（重试后仍无该日期结果）");
+                  } catch (error) {
+                    if (error.name === "AbortError") throw error;
+                    failedDates.push(date + "（" + (error.message || "重试失败") + "）");
+                  }
+                }
+              } catch (error) {
+                if (error.name === "AbortError") throw error;
+                for (const day of batch) {
+                  stopIfAborted();
+                  set({
+                    timelineAnalysisProgress: `正在逐日重试 ${completed} / ${days.length} 个日期`,
+                    timelineAnalysisDone: completed,
+                    timelineAnalysisTotal: days.length
+                  });
+                  try {
+                    const result = await saveBatch([day]);
+                    completed += result.saved;
+                    if (!result.saved) failedDates.push((day.key || day.date) + "（接口没有返回该日期的结果）");
+                  } catch (inner) {
+                    if (inner.name === "AbortError") throw inner;
+                    failedDates.push(day.date + "（" + (inner.message || "分析失败") + "）");
+                  }
+                }
+              }
+              set({
+                timelineAnalysisProgress: `已分析 ${completed} / ${days.length} 个日期`,
+                timelineAnalysisDone: completed,
+                timelineAnalysisTotal: days.length
+              });
+            }
+            if (ticket === timelineRequest)
+              set({
+                timelineAnalysisContact: "",
+                timelineAnalysisProgress: "",
+                status: failedDates.length ? `已分析 ${completed} / ${days.length} 个日期，${failedDates.length} 个日期未能分析（${failedDates.slice(0, 2).join("；")}），可再次点击继续分析重试。` : `已完成 ${days.length} 个日期的 AI 分析。`
+              });
+          } catch (error) {
+            if (ticket === timelineRequest)
+              set({
+                timelineAnalysisContact: "",
+                timelineAnalysisProgress: "",
+                status: error.name === "AbortError" ? "已停止 AI 日期分析。" : "AI 日期分析中断：" + (error.message || "请求失败") + "；已完成的日期已保存，点击可继续。"
+              });
+          } finally {
+            if (ticket === timelineRequest) timelineController = null;
+          }
+        }
+        function commitImport2() {
+          const s = store.getSnapshot();
+          if (!E.identityReady(s.pending, s.self, s.target)) return;
+          cancel();
+          const messages = s.pending.messages, pairMessages = messages.filter((m) => m.sender === s.self || m.sender === s.target), avatarFor = (name) => {
+            const id2 = messages.find((message) => message.sender === name && message.senderId)?.senderId;
+            if (!id2) return null;
+            return (s.pending.avatars || []).find(
+              (file) => file.name.replace(/\.[^.]+$/, "").toLowerCase() === id2.toLowerCase()
+            ) || null;
+          }, contact = {
+            id: "contact-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+            self: s.self,
+            target: s.target,
+            selfAvatarFile: avatarFor(s.self),
+            targetAvatarFile: avatarFor(s.target),
+            messages,
+            pairCount: pairMessages.length,
+            mediaAssets: s.pending.assets || [],
+            facts: E.extractFacts(pairMessages.filter((m) => m.sender === s.target)),
+            isSample: s.pending.isSample
+          };
+          const merged = E.mergeContactImport(s.contacts, contact);
+          set({
+            undoImportContacts: s.contacts,
+            importHistory: [
+              ...s.importHistory || [],
+              { name: s.importName || "聊天记录", at: Date.now(), added: merged.added || 0 }
+            ].slice(-20),
+            lastImportResult: {
+              added: merged.added || 0,
+              dates: [...new Set(messages.map((m) => formatChatDayKey(m.timestamp)))].filter((d) => d !== "日期未知").sort(),
+              name: s.importName
+            },
+            contacts: merged.contacts,
+            selectedId: merged.contact.id,
+            drafts: { ...s.drafts || {}, ...s.selectedId ? { [s.selectedId]: savedDraft(s) } : {} },
+            pending: null,
+            ...resetDraft(),
+            status: ""
+          });
+          nav("import", "result");
+          analyzeProfile(merged.contact);
+          analyzeTimeline(merged.contact.id, {});
+        }
+        function ImportView({ s, contact, tab }) {
+          const senders = s.pending ? [...new Set(s.pending.messages.map((m) => m.sender))] : [];
+          if (!s.persistenceReady) return box("正在加载联系人…");
+          if (tab === "result")
+            return contact ? h(
+              "div",
+              null,
+              box(
+                "导入完成",
+                h("h3", null, contact.target + (contact.isSample ? " · 虚构示例" : "")),
+                h("p", null, `新增 ${s.lastImportResult?.added || 0} 条 · 共 ${contact.messages.length} 条消息`),
+                s.lastImportResult?.dates?.length > 0 && h("p", null, `本次记录日期：${s.lastImportResult.dates[0]} 至 ${s.lastImportResult.dates.at(-1)}`),
+                h(
+                  "div",
+                  { className: "rn-actions" },
+                  button("查看联系人档案", () => nav("profile", "basic"), { className: "primary" }),
+                  button("查看行为记录", () => nav("behavior", "metrics")),
+                  button("继续导入", () => nav("import", "file"))
+                )
+              ),
+              timelineAnalysisCard(s, contact)
+            ) : empty();
+          if (tab === "identity")
+            return s.pending ? box(
+              "确认聊天双方",
+              h("p", null, `${s.importName} · ${s.pending.messages.length} 条记录 · ${senders.length} 位发言人`),
+              h(
+                "p",
+                { className: "rn-muted" },
+                `媒体附件：${s.pending.media?.total || 0} 项，已在本地匹配 ${s.pending.media?.linked || 0} 项，未匹配 ${s.pending.media?.missing || 0} 项。`
+              ),
+              h(
+                "div",
+                { className: "rn-form rn-identity" },
+                select(
+                  "哪位是你？",
+                  s.self,
+                  [["", "请选择"], ...senders.map((v) => [v, v])],
+                  (self2) => set(self2 && self2 === s.target ? { self: self2, target: s.self } : { self: self2 })
+                ),
+                button("⇄ 交换", () => set({ self: s.target, target: s.self }), {
+                  disabled: !s.self && !s.target,
+                  "aria-label": "交换双方身份",
+                  title: "交换双方身份"
+                }),
+                select(
+                  "哪位是联系人？",
+                  s.target,
+                  [["", "请选择"], ...senders.map((v) => [v, v])],
+                  (target) => set(target && target === s.self ? { target, self: s.target } : { target })
+                )
+              ),
+              senders.length > 2 && muted("检测到多位发言人：只有你选定的两位之间的消息会进入分析。"),
+              h(
+                "div",
+                { className: "rn-actions" },
+                button("确认并导入", commitImport2, {
+                  className: "primary",
+                  disabled: !E.identityReady(s.pending, s.self, s.target)
+                }),
+                button("重新选择文件", () => nav("import", "file"))
+              )
+            ) : box(
+              "尚未选择文件",
+              muted("先上传聊天文件，再确认双方身份。"),
+              button("选择聊天文件", () => nav("import", "file"))
+            );
+          const onDrag = (e, on) => {
+            e.preventDefault();
+            e.currentTarget.classList.toggle("rn-drag", on);
+          };
+          return box(
+            "导入聊天记录",
+            h(
+              "div",
+              {
+                className: "rn-upload",
+                onDragOver: (e) => onDrag(e, true),
+                onDragEnter: (e) => onDrag(e, true),
+                onDragLeave: (e) => onDrag(e, false),
+                onDrop: (e) => {
+                  onDrag(e, false);
+                  if (s.importBusy) return;
+                  const file = e.dataTransfer?.files?.[0];
+                  if (file) importFile(file);
+                }
+              },
+              h("span", { style: { fontSize: 28 }, "aria-hidden": true }, "↥"),
+              h("strong", null, "拖入或选择单个聊天文件"),
+              muted("支持微信 JSON、HTML、PDF，以及 QQ / 微信 TXT。文件只在本机读取。"),
+              h("input", {
+                type: "file",
+                accept: ".json,.html,.pdf,.txt,.bak",
+                "aria-label": "选择聊天文件",
+                onChange: (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  importFile(file);
+                }
+              }),
+              button(
+                s.importBusy ? "正在读取…" : "选择聊天文件",
+                (e) => {
+                  const input = e.currentTarget.parentElement.querySelector("input[type=file]");
+                  input?.click();
+                },
+                { className: "primary", disabled: s.importBusy }
+              )
+            ),
+            h(
+              "details",
+              { className: "rn-paste-import" },
+              h("summary", null, "粘贴聊天记录"),
+              h("textarea", {
+                "aria-label": "粘贴 TXT 或 JSON 聊天记录",
+                style: { width: "100%", minHeight: 120 },
+                placeholder: "粘贴 TXT 或 JSON 聊天记录"
+              }),
+              button(
+                "读取粘贴内容",
+                (e) => {
+                  const text = e.currentTarget.parentElement.querySelector("textarea").value;
+                  if (text.trim())
+                    importFile(
+                      new File([text], text.trimStart().startsWith("{") ? "粘贴聊天.json" : "粘贴聊天.txt", {
+                        type: "text/plain"
+                      })
+                    );
+                },
+                { disabled: s.importBusy }
+              )
+            ),
+            h(
+              "p",
+              { role: "status", className: "rn-status" + (s.importError ? " rn-error" : "") },
+              s.importError || (s.importBusy ? "正在读取…" : "")
+            )
+          );
+        }
+        function timelineAnalysisCard(s, contact) {
+          const total = E.analyzeDailyTimeline(
+            contact.messages.filter((message) => channelOf(message) === "qq"),
+            contact.self,
+            contact.target,
+            contact.interactionCorrections || []
+          ).days.length + E.analyzeDailyTimeline(
+            contact.messages.filter((message) => channelOf(message) !== "qq"),
+            contact.self,
+            contact.target,
+            contact.interactionCorrections || []
+          ).days.length, count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
+          return box(
+            "AI 聊天分析",
+            muted(
+              busy ? s.timelineAnalysisProgress || "正在分析…" : count ? `已分析 ${count} / ${total} 个有记录日期。` : "分析全部有记录日期。"
+            ),
+            busy && progressBar(s.timelineAnalysisDone, s.timelineAnalysisTotal, "日期分析进度"),
+            button(
+              busy ? "正在分析…" : count >= total ? "重新生成全部日期总结" : count ? "继续分析日期" : "开始 AI 分析",
+              () => analyzeTimeline(contact.id, { force: count >= total }),
+              { className: "primary", disabled: busy }
+            )
+          );
+        }
+        const messageChannel = (m) => /QQ/i.test((m.file || "") + " " + (m.source || "")) ? "qq" : "wechat";
+        function markProfileSettled(contact) {
+          set({
+            contacts: store.getSnapshot().contacts.map((c) => c.id === contact.id ? { ...c, profileNeedsRefresh: false } : c),
+            status: "已标记为整理；需要时可随时手动更新档案。"
+          });
+        }
+        async function analyzeProfile(contact, httpPost = hostPost) {
+          if (store.getSnapshot().profileBusy) return;
+          const ticket = ++profileRequest;
+          profileController?.abort();
+          profileController = new AbortController();
+          const valid = () => ticket === profileRequest && store.getSnapshot().selectedId === contact.id && selected2(store.getSnapshot())?.messages === contact.messages;
+          set({ profileBusy: true, status: "正在整理 QQ 与微信联系人资料…" });
+          const requestMessages = new Map(
+            contact.messages.map((message, id2) => [id2, { ...message, stableId: E.profileMessageId(message) }])
+          );
+          try {
+            const input = contact.messages.map((m, id2) => ({ m, id: id2 })).filter(
+              ({ m }) => m.sender === contact.target && m.text?.trim() && !/^【(?:QQ小程序|图片|视频|语音|表情|系统|媒体|转发)/.test(m.text)
+            ), batches = [];
+            let batch = [];
+            for (const { m, id: id2 } of input) {
+              const row = { id: id2, text: m.text.slice(0, 2e3) };
+              if (batch.length && (batch.length >= 450 || JSON.stringify([...batch, row]).length > 24e3)) {
+                batches.push(batch);
+                batch = [];
+              }
+              batch.push(row);
+            }
+            if (batch.length) batches.push(batch);
+            if (!batches.length) throw new Error("没有可整理的对方文本消息。");
+            const facts = [...contact.facts || []];
+            for (let i = 0; i < batches.length; i++) {
+              set({ status: `正在整理联系人资料 ${i + 1} / ${batches.length}…` });
+              const response = await httpPost(
+                "profile-analysis",
+                { target: contact.target, messages: batches[i] },
+                { signal: profileController.signal }
+              ), data = await response.json();
+              if (!valid()) return;
+              if (!response.ok || !data.ok) throw new Error(data.error || "资料分析失败");
+              const liveMessages = store.getSnapshot().contacts.find((c) => c.id === contact.id)?.messages || [];
+              for (const f of data.facts || []) {
+                const resolved = E.resolveProfileResponseFact(f, requestMessages, liveMessages, contact.target);
+                if (resolved) facts.push(resolved);
+              }
+              const partial = [...new Map(facts.map((f) => [f.field + "|" + f.value, f])).values()], snapshot = store.getSnapshot();
+              set({ contacts: snapshot.contacts.map((c) => c.id === contact.id ? { ...c, facts: partial } : c) });
+            }
+            const unique = [...new Map(facts.map((f) => [f.field + "|" + f.value, f])).values()];
+            const current = store.getSnapshot();
+            set({
+              contacts: current.contacts.map(
+                (c) => c.id === contact.id ? { ...c, facts: unique, profileAnalyzedAt: Date.now() } : c
+              ),
+              status: `已整理 ${unique.length} 条联系人资料。`
+            });
+            await summarizeProfile({ ...contact, facts: unique }, ticket);
+          } catch (error) {
+            if (valid() && error.name !== "AbortError") set({ status: "资料整理失败：" + error.message });
+          } finally {
+            if (ticket === profileRequest) set({ profileBusy: false });
+          }
+        }
+        async function summarizeProfile(contact) {
+          set({ profileBusy: true, status: "正在归纳联系人档案…" });
+          const ticket = profileRequest;
+          const valid = () => ticket === profileRequest && store.getSnapshot().selectedId === contact.id;
+          const requestMessages = new Map(
+            contact.messages.map((message, id2) => [id2, { ...message, stableId: E.profileMessageId(message) }])
+          );
+          try {
+            const ids = [
+              ...new Set(
+                (contact.facts || []).filter(
+                  (f) => (f.quote?.trim().length >= 5 || /^(?:我)?(?:很)?(?:喜欢|爱好|爱吃|偏好|讨厌|不喜欢).{1,10}$/.test(f.quote || "")) && !/某食品|某东西/.test(f.value)
+                ).map(
+                  (f) => contact.messages.findIndex(
+                    (m) => m.sender === contact.target && m.text === f.message?.text && String(m.timestamp) === String(f.message?.timestamp)
+                  )
+                ).filter((id2) => id2 >= 0)
+              )
+            ];
+            const messages = ids.map((id2) => ({ id: id2, text: contact.messages[id2].text.slice(0, 2e3) }));
+            if (!messages.length) {
+              set({
+                contacts: store.getSnapshot().contacts.map((c) => c.id === contact.id ? { ...c, profileNeedsRefresh: false } : c),
+                status: "没有可归纳的新资料，已清除「待整理」提示。"
+              });
+              return;
+            }
+            const response = await hostPost(
+              "profile-analysis",
+              { target: contact.target, messages, mode: "summary" },
+              { signal: profileController.signal }
+            ), data = await response.json();
+            if (!valid()) return;
+            if (!response.ok || !data.ok) throw new Error(data.error || "档案归纳失败");
+            const current = store.getSnapshot(), liveMessages = current.contacts.find((c) => c.id === contact.id)?.messages || [], profileSummary = (data.facts || []).filter(E.supportedProfileSummary).map((f) => E.resolveProfileResponseFact(f, requestMessages, liveMessages, contact.target)).filter(Boolean);
+            set({
+              contacts: current.contacts.map(
+                (c) => c.id === contact.id ? { ...E.mergeProfileAnalysis(c, profileSummary), profileNeedsRefresh: false } : c
+              ),
+              status: "联系人档案已更新。"
+            });
+          } catch (error) {
+            if (valid() && error.name !== "AbortError") set({ status: "档案整理失败：" + error.message });
+          } finally {
+            if (ticket === profileRequest) set({ profileBusy: false });
+          }
+        }
+        function Profile({ contact, tab, s }) {
+          React2.useEffect(() => {
+            if (!contact || !contact.profileNeedsRefresh || s.profileBusy) return;
+            const key = contact.id + "#" + (contact.messages?.length || 0);
+            if (autoProfileTried.has(key)) return;
+            autoProfileTried.add(key);
+            analyzeProfile(contact);
+          }, [contact?.id, contact?.profileNeedsRefresh, s.profileBusy]);
+          const [editing, setEditing] = React2.useState(null), [editValue, setEditValue] = React2.useState(""), [addField, setAddField] = React2.useState("daily"), [editMode, setEditMode] = React2.useState("edit"), [effectiveAt, setEffectiveAt] = React2.useState(""), [view, setView] = React2.useState("active"), [undo, setUndo] = React2.useState(null);
+          React2.useEffect(() => {
+            setEditing(null);
+            setView("active");
+            setUndo(null);
+          }, [contact?.id, tab]);
+          if (!contact) return empty();
+          if (tab === "stage")
+            return box(
+              contact.target + (contact.isSample ? " · 虚构示例" : ""),
+              h(RelationStageView, {
+                contact,
+                onAction: (action) => {
+                  const current = store.getSnapshot();
+                  set({
+                    contacts: current.contacts.map((c) => c.id === contact.id ? E.changeRelationProfile(c, action) : c),
+                    status: "关系画像与阶段已保存。"
+                  });
+                },
+                onEvidence: (ref2) => showEvidence(contact.id, ref2)
+              })
+            );
+          const fields = tab === "basic" ? [
+            ["city", "城市"],
+            ["job", "工作情况"],
+            ["daily", "生活习惯"],
+            ["recent", "最近近况"],
+            ["agreement", "重要约定"],
+            ["style", "沟通风格（行为模式）"],
+            ["boundary", "明确边界"],
+            ["followup", "待跟进事项"],
+            ["inference", "可能解释（推测）"]
+          ] : [
+            ["interests", "兴趣爱好"],
+            ["preferences", "个人偏好"]
+          ], all = E.profileRows(contact), facts = all.filter(
+            (f) => (f.manual || E.supportedProfileSummary(f)) && (view === "active" ? f.status === "active" : view === "pending" ? f.status === "pending" : ["archived", "superseded"].includes(f.status))
+          );
+          const act = (action) => {
+            const current = store.getSnapshot();
+            set({ contacts: current.contacts.map((c) => c.id === contact.id ? E.changeProfile(c, action) : c) });
+          };
+          const open = (fact, mode) => {
+            setEditing(fact?.uid || "new");
+            setEditMode(mode);
+            setEditValue(mode === "update" ? "" : fact?.value || "");
+            setAddField(fact?.field || fields[0][0]);
+            setEffectiveAt(
+              (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false }).slice(0, 16).replace(" ", "T")
+            );
+          };
+          const save = () => {
+            if (!editValue.trim()) return;
+            act({
+              type: editing === "new" ? "add" : editMode,
+              uid: editing,
+              field: addField,
+              value: editValue,
+              effectiveAt: effectiveAt ? effectiveAt.replace("T", " ") : void 0
+            });
+            setEditing(null);
+          };
+          const editor = h(
+            "div",
+            { className: "rn-profile-editor" },
+            editing === "new" && select("资料分类", addField, fields, setAddField),
+            h(
+              "label",
+              null,
+              editMode === "update" ? "现在的情况" : "资料内容",
+              h("textarea", {
+                value: editValue,
+                onChange: (e) => setEditValue(e.target.value),
+                maxLength: 600,
+                rows: 3,
+                "aria-label": "资料内容",
+                placeholder: "填写准确的资料内容"
+              })
+            ),
+            (editMode === "update" || editing === "new") && h(
+              "label",
+              null,
+              "生效时间",
+              h("input", { type: "datetime-local", value: effectiveAt, onChange: (e) => setEffectiveAt(e.target.value) })
+            ),
+            h(
+              "div",
+              { className: "rn-actions" },
+              button("保存", save, { className: "primary", disabled: !editValue.trim() }),
+              button("取消", () => setEditing(null))
+            )
+          );
+          const statusLabels = { active: "当前", archived: "已归档", superseded: "历史情况", pending: "待确认" };
+          return box(
+            contact.target + (contact.isSample ? " · 虚构示例" : ""),
+            h(ProfileLifecycleView, { contact, onAction: act, onEvidence: (ref2) => showEvidence(contact.id, ref2) }),
+            contact.profileNeedsRefresh && h(
+              "div",
+              { className: "rn-profile-undo" },
+              "新增聊天待整理",
+              button("分析新增资料", () => analyzeProfile(contact), { disabled: s.profileBusy }),
+              button("标记为已整理", () => markProfileSettled(contact), { disabled: s.profileBusy })
+            ),
+            h(
+              "div",
+              { className: "rn-profile-filters" },
+              ...["active", "pending", "history"].map(
+                (key) => button(
+                  key === "active" ? "当前资料" : key === "pending" ? "待确认 " + all.filter((f) => f.status === "pending").length : "历史资料",
+                  () => {
+                    setView(key);
+                    setEditing(null);
+                  },
+                  { "aria-pressed": view === key }
+                )
+              )
+            ),
+            undo && h(
+              "div",
+              { className: "rn-profile-undo" },
+              h("span", null, "资料已删除"),
+              button("撤销", () => {
+                act({ type: "undoDelete", uid: undo });
+                setUndo(null);
+              })
+            ),
+            editing === "new" && editor,
+            ...fields.map(([field, label]) => {
+              const rows = facts.filter((f) => f.field === field);
+              if (!rows.length) return null;
+              return h(
+                "section",
+                { className: "rn-fact", key: field },
+                h("h3", null, label),
+                ...rows.map(
+                  (f) => h(
+                    "article",
+                    { key: f.uid, className: "rn-profile-card" },
+                    h(
+                      "div",
+                      { className: "rn-profile-card-head" },
+                      h(
+                        "small",
+                        null,
+                        statusLabels[f.status],
+                        f.confirmed ? " · 已确认" : "",
+                        f.field === "inference" ? " · 推测，不代表真实想法" : "",
+                        f.provenance === "model" ? " · 模型提议" : "",
+                        Number.isFinite(f.confidence) ? " · 可信度 " + Math.round(f.confidence * 100) + "%" : ""
+                      ),
+                      h(
+                        "details",
+                        { className: "rn-profile-menu" },
+                        h("summary", { "aria-label": "资料操作", title: "资料操作" }, "⋯"),
+                        h(
+                          "div",
+                          { className: "rn-profile-menu-items" },
+                          ...f.status === "active" ? [
+                            button("编辑纠错", () => open(f, "edit")),
+                            button("更新近况", () => open(f, "update")),
+                            button("归档", () => act({ type: "archive", uid: f.uid }))
+                          ] : f.status === "pending" ? [
+                            button(
+                              "采用并替换当前资料",
+                              () => act({ type: "accept", uid: f.uid, replaceCurrent: true })
+                            ),
+                            button("作为补充采用", () => act({ type: "accept", uid: f.uid })),
+                            button("编辑后采用", () => open(f, "edit"))
+                          ] : [
+                            button("恢复并替换后续版本", () => act({ type: "restore", uid: f.uid })),
+                            button("恢复并保留现有资料", () => act({ type: "restore", uid: f.uid, keepBoth: true }))
+                          ],
+                          button("删除", () => {
+                            act({ type: "delete", uid: f.uid });
+                            setUndo(f.uid);
+                          })
+                        )
+                      )
+                    ),
+                    f.status === "pending" && h(
+                      "div",
+                      { className: "rn-profile-comparison" },
+                      h("small", null, "当前资料"),
+                      ...all.filter((old) => old.field === f.field && old.status === "active").map((old) => h("p", { key: old.uid }, old.value)),
+                      h("small", null, "新提取的资料")
+                    ),
+                    editing === f.uid ? editor : h("p", null, f.value),
+                    f.effectiveAt && h(
+                      "small",
+                      { className: "rn-profile-date" },
+                      "生效：" + formatChatTimestamp(f.effectiveAt) + (f.effectiveUntil ? " — " + formatChatTimestamp(f.effectiveUntil) : "")
+                    ),
+                    f.quote && h(
+                      "details",
+                      { className: "rn-profile-evidence" },
+                      h("summary", null, "查看依据"),
+                      h("blockquote", null, f.quote),
+                      button(
+                        "定位资料原文",
+                        () => showEvidence(contact.id, {
+                          sourceMessageIds: f.sourceMessageIds,
+                          message: f.message,
+                          quote: f.quote
+                        })
+                      ),
+                      f.message && source(f.message)
+                    ),
+                    f.revisions?.length > 0 && h(
+                      "details",
+                      null,
+                      h("summary", null, "修改记录"),
+                      ...f.revisions.map(
+                        (revision, i) => h("p", { key: i }, formatChatTimestamp(revision.at) + " · " + revision.value)
+                      )
+                    )
+                  )
+                )
+              );
+            }),
+            !facts.length && muted(view === "active" ? "暂无当前资料。" : view === "pending" ? "暂无待确认资料。" : "暂无历史资料。")
+          );
+        }
+        function InteractionEvidence({ contact }) {
+          const analysis = E.analyzeInteractionMetrics(contact), correct = (row, excluded) => {
+            const current = store.getSnapshot();
+            set({
+              contacts: current.contacts.map(
+                (c) => c.id === contact.id ? E.correctInteraction(c, {
+                  key: row.key,
+                  kind: row.kind,
+                  excluded,
+                  note: excluded ? "用户标记误识别" : "用户恢复识别"
+                }) : c
+              )
+            });
+          };
+          const metricValues = [
+            [analysis.score ?? "未评分", "关系指数（全部记录）"],
+            [analysis.indicators.find((item) => item.kind === "positive").count, "正向表达条数"],
+            [analysis.answeredTurns, "回应问题回合"],
+            [analysis.continuedTurns, "承接话题回合"]
+          ];
+          const metricCards = metricValues.map(
+            ([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", null, label), h("strong", null, value))
+          );
+          const sceneLabels = { work: "工作", daily: "日常", mixed: "混合", unknown: "未分类" };
+          const grouped = E.sceneGroups(contact.messages);
+          const sceneRows = ["work", "daily", "mixed"].map((scene) => {
+            const items = grouped[scene];
+            const report = E.analyzeInteractionMetrics({ ...contact, messages: items });
+            return muted(sceneLabels[scene] + "场景消息 " + items.length + " 条，关系指数 " + (report.score ?? "未评分"));
+          });
+          const sceneSummary = Object.entries(sceneLabels).map(([key, label]) => label + " " + analysis.scenes[key]).join("，");
+          const initiativeSummary = Object.entries(sceneLabels).map(([key, label]) => label + " " + analysis.startsByScene[key]).join("，");
+          return box(
+            "互动评分与识别证据",
+            muted(
+              "关系分析 v3 规则层，合并全部回合评分；系统与媒体占位排除计分。下方十类识别是关系指数的输入，标记误识别后所有页面立即重算。指数概括可观察的互动过程，不是好感概率。"
+            ),
+            h("div", { className: "rn-metrics" }, ...metricCards),
+            analysis.v3?.scored && h(
+              "p",
+              { className: "rn-muted" },
+              "维度估计：" + E.DIMENSIONS.map((d) => d.label + " " + Math.round(analysis.v3.dims[d.key].estimate * 100) / 100).join(
+                "、"
+              ) + "；摩擦 " + Math.round(analysis.v3.friction.estimate * 100) / 100 + (analysis.v3.boundary.rule ? "；出现明确边界，指数封顶 30" : "") + "。"
+            ),
+            h("p", null, "对方回合场景：" + sceneSummary),
+            h("p", null, "主动发起场景：" + initiativeSummary),
+            ...sceneRows,
+            analysis.turnEvidence.some((row) => row.needsReview) && h(
+              "details",
+              null,
+              h("summary", null, "待核对的含糊回复"),
+              ...analysis.turnEvidence.filter((row) => row.needsReview).map(
+                (row, index) => h(
+                  "article",
+                  { key: index },
+                  h("blockquote", null, row.quote),
+                  source(row.message),
+                  muted("上下文不足，未计入摩擦分")
+                )
+              )
+            ),
+            analysis.ambiguousCorrectionCount > 0 && h(
+              "p",
+              { role: "status" },
+              "有 " + analysis.ambiguousCorrectionCount + " 条旧纠正无法唯一定位，请重新核对原文。"
+            ),
+            ...analysis.indicators.map(
+              (indicator) => h(
+                "details",
+                { key: indicator.kind },
+                h("summary", null, indicator.label + " · " + indicator.count + " 条"),
+                ...indicator.evidence.map(
+                  (row, index) => h(
+                    "article",
+                    { className: "rn-message", key: row.key + index },
+                    h("blockquote", null, row.quote),
+                    row.signal && h("small", { className: "rn-muted" }, row.signal.label + " · 同轮取最高层级"),
+                    source(row.message),
+                    h("small", null, row.excluded ? "已排除此项识别" : "计入指标"),
+                    button(row.excluded ? "恢复识别" : "标记误识别", () => correct(row, !row.excluded))
+                  )
+                )
+              )
+            ),
+            h(
+              "details",
+              null,
+              h("summary", null, "纠正历史"),
+              ...(contact.interactionCorrections || []).map(
+                (item, index) => h(
+                  "p",
+                  { key: index },
+                  formatChatTimestamp(item.at || item.createdAt) + " · " + item.kind + " · " + (item.excluded ? "排除" : "恢复") + " · " + (item.note || "")
+                )
+              )
+            )
+          );
+        }
+        function Behavior({ contact, tab, s }) {
+          const calendarRef = React2.useRef(null);
+          const [moreOpen, setMoreOpen] = React2.useState(false);
+          const [filter, setFilter] = React2.useState("all"), [evidenceOrder, setEvidenceOrder] = React2.useState("desc"), [evidenceQuery, setEvidenceQuery] = React2.useState(""), [evidenceAppliedQuery, setEvidenceAppliedQuery] = React2.useState(""), [evidencePage, setEvidencePage] = React2.useState(1);
+          const evidenceSearch = React2.useRef(null);
+          if (!evidenceSearch.current)
+            evidenceSearch.current = createDebounced((value) => setEvidenceAppliedQuery(value), EVIDENCE_SEARCH_DELAY);
+          React2.useEffect(() => () => evidenceSearch.current?.cancel(), []);
+          React2.useEffect(() => {
+            setEvidencePage(1);
+          }, [filter, evidenceAppliedQuery, evidenceOrder]);
+          const [granularity, setGranularity] = React2.useState("month"), timeline = React2.useMemo(
+            () => contact ? E.analyzeDailyTimeline(
+              contact.messages,
+              contact.self,
+              contact.target,
+              contact.interactionCorrections || []
+            ) : null,
+            [contact?.messages, contact?.self, contact?.target, contact?.interactionCorrections]
+          ), lastDate = timeline?.days.at(-1)?.date || formatChatDayKey(Date.now()), [month, setMonth] = React2.useState(lastDate.slice(0, 7)), [selectedDate, setSelectedDate] = React2.useState(lastDate), [year, setYear] = React2.useState(lastDate.slice(0, 4));
+          React2.useEffect(() => {
+            if (contact) {
+              const last = s.behaviorDate || timeline?.days.at(-1)?.date || formatChatDayKey(Date.now());
+              setMonth(last.slice(0, 7));
+              setSelectedDate(last);
+              setYear(last.slice(0, 4));
+            }
+          }, [contact?.id, lastDate, s.behaviorDate]);
+          const a = React2.useMemo(
+            () => contact ? E.analyzeConversation(contact.messages, contact.self, contact.target) : null,
+            [contact?.messages, contact?.self, contact?.target]
+          );
+          const media = React2.useMemo(
+            () => contact ? contact.messages.reduce(
+              (out, message) => {
+                for (const attachment of message.attachments || [])
+                  out[attachment.kind] = (out[attachment.kind] || 0) + 1;
+                return out;
+              },
+              { image: 0, video: 0, audio: 0, sticker: 0 }
+            ) : null,
+            [contact?.messages]
+          );
+          if (!contact) return empty();
+          const overallIndex = E.analyzePeriodsCached(contact, "all")[0]?.index ?? null;
+          if (tab === "insight")
+            return h(RelationshipInsightView, {
+              contact,
+              busy: s.affinityBusy === contact.id,
+              progress: s.affinityProgress,
+              error: s.affinityError,
+              modelReady: Boolean(s.provider && s.model),
+              onRun: () => runAffinity(contact.id),
+              onCancel: cancelAffinity,
+              onEvidence: (ref2) => showEvidence(contact.id, ref2),
+              onConfigure: () => nav("settings", "general")
+            });
+          if (tab === "review")
+            return h(PeriodReviewView, {
+              contact,
+              preferences: s.reviewPreferences?.[contact.id] || {},
+              onPreferencesChange: (value) => set({ reviewPreferences: { ...store.getSnapshot().reviewPreferences || {}, [contact.id]: value } }),
+              onEvidence: (ref2) => showEvidence(contact.id, ref2)
+            });
+          if (tab === "daily") {
+            const [calendarYear, monthNumber] = month.split("-").map(Number);
+            const firstWeekday = new Date(Date.UTC(calendarYear, monthNumber - 1, 1)).getUTCDay();
+            const daysInMonth = new Date(Date.UTC(calendarYear, monthNumber, 0)).getUTCDate();
+            const byDate = new Map(timeline.days.map((day) => [day.date, day]));
+            const dates = [
+              ...Array(firstWeekday).fill(null),
+              ...Array.from({ length: daysInMonth }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`)
+            ];
+            const shown = byDate.get(selectedDate), monthLabel = `${calendarYear} 年 ${monthNumber} 月`, storedQq = contact.timelineAnalysis?.[selectedDate + "#qq"], storedWechat = contact.timelineAnalysis?.[selectedDate + "#wechat"], storedDay = storedQq?.version === 4 ? storedQq : storedWechat?.version === 4 ? storedWechat : contact.timelineAnalysis?.[selectedDate], aiDay = storedDay?.version === 4 ? storedDay : null;
+            const moveMonth = (delta) => {
+              const date = new Date(Date.UTC(calendarYear, monthNumber - 1 + delta, 1));
+              setMonth(`${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`);
+            };
+            const weekdays = ["日", "一", "二", "三", "四", "五", "六"].map(
+              (label, i) => h("div", { className: "rn-calendar-weekday", key: "weekday-" + i }, label)
+            );
+            const dayCells = dates.map((date, i) => {
+              if (!date) return h("div", { className: "rn-calendar-cell empty", key: "empty-" + i });
+              const day = byDate.get(date), dayNumber = String(Number(date.slice(-2)));
+              const content = day ? h(
+                "button",
+                {
+                  className: "rn-day",
+                  type: "button",
+                  "aria-pressed": selectedDate === date,
+                  "data-level": day.activityScore >= 70 ? "2" : day.activityScore >= 35 ? "1" : "0",
+                  "aria-label": `${date}，${day.messages.length} 条消息，活跃度 ${day.activityScore}，${day.affinityScore !== null ? "关系指数 " + day.affinityScore : "未评分（对方无回合）"}`,
+                  onClick: () => setSelectedDate(date)
+                },
+                h("strong", null, dayNumber),
+                h("span", { className: "rn-day-count" }, `${day.messages.length} 条 · 活跃 ${day.activityScore}`),
+                h(
+                  "span",
+                  { className: "rn-day-affinity" },
+                  day.affinityScore !== null ? `指数 ${day.affinityScore}` : "未评分"
+                )
+              ) : h("span", { className: "rn-day-gap", title: date + " 当天无记录（缺口），不代表分数下降" }, dayNumber);
+              return h("div", { className: "rn-calendar-cell", key: date }, content);
+            });
+            const recognizedRange = timeline.days.length ? `${timeline.days[0].date} 至 ${timeline.days.at(-1).date}` : "暂无可识别日期";
+            const yearOptions = [...new Set(timeline.days.map((day) => day.date.slice(0, 4)))].sort(
+              (left, right) => right.localeCompare(left)
+            ), chartYear = yearOptions.includes(year) ? year : yearOptions[0] || lastDate.slice(0, 4), annualDays = timeline.days.filter((day) => day.date.startsWith(chartYear));
+            const mergedIndex = (list) => {
+              const rows = list.filter((day) => day.v3Signals);
+              if (!rows.length) return null;
+              return E.scoreMergedPeriods(rows.map((day) => day.v3Signals)).index;
+            };
+            const makeBucket = (label) => ({
+              label,
+              self: 0,
+              target: 0,
+              messages: 0,
+              scoreTotal: 0,
+              scoreDays: 0,
+              averageAffinity: null,
+              recorded: false
+            });
+            const dailyBuckets = annualDays.map((day) => {
+              const bucket = makeBucket(day.date);
+              bucket.self = day.selfMessages;
+              bucket.target = day.targetMessages;
+              bucket.messages = day.messages.length;
+              bucket.turns = day.targetTurns || 0;
+              if (day.affinityScore !== null) {
+                bucket.scoreDays = 1;
+                bucket.averageAffinity = day.affinityScore;
+              }
+              bucket.recorded = bucket.messages > 0;
+              return bucket;
+            });
+            const monthlyBuckets = Array.from({ length: 12 }, (_, index) => makeBucket(String(index + 1) + " 月"));
+            for (const day of annualDays) {
+              const bucket = monthlyBuckets[Number(day.date.slice(5, 7)) - 1];
+              bucket.self += day.selfMessages;
+              bucket.target += day.targetMessages;
+              bucket.messages += day.messages.length;
+              bucket.turns = (bucket.turns || 0) + (day.targetTurns || 0);
+              (bucket.days || (bucket.days = [])).push(day);
+              if (day.affinityScore !== null) bucket.scoreDays++;
+            }
+            for (const bucket of monthlyBuckets) {
+              bucket.recorded = bucket.messages > 0;
+              bucket.averageAffinity = bucket.days ? mergedIndex(bucket.days) : null;
+            }
+            const yearlyBuckets = yearOptions.slice().sort().map((value) => ({ bucket: makeBucket(value + " 年"), year: value }));
+            for (const { bucket, year: bucketYear } of yearlyBuckets)
+              for (const day of timeline.days.filter((item) => item.date.startsWith(bucketYear))) {
+                bucket.self += day.selfMessages;
+                bucket.target += day.targetMessages;
+                bucket.messages += day.messages.length;
+                bucket.turns = (bucket.turns || 0) + (day.targetTurns || 0);
+                (bucket.days || (bucket.days = [])).push(day);
+                if (day.affinityScore !== null) bucket.scoreDays++;
+              }
+            for (const { bucket } of yearlyBuckets) bucket.recorded = bucket.messages > 0;
+            for (const { bucket } of yearlyBuckets)
+              bucket.averageAffinity = bucket.days ? mergedIndex(bucket.days) : null;
+            const buckets = granularity === "day" ? dailyBuckets : granularity === "year" ? yearlyBuckets.map((item) => item.bucket) : monthlyBuckets, scopeLabel = granularity === "year" ? "全部年份" : chartYear + " 年", periodLabel = granularity === "day" ? "每日" : granularity === "year" ? "每年" : "每月";
+            const selectBucket = (bucket) => {
+              const prefix = granularity === "day" ? bucket.label : granularity === "year" ? bucket.label.slice(0, 4) : chartYear + "-" + String(parseInt(bucket.label, 10)).padStart(2, "0");
+              const date = timeline.days.find((day) => day.date.startsWith(prefix))?.date;
+              if (!date) return;
+              setMoreOpen(true);
+              setSelectedDate(date);
+              setMonth(date.slice(0, 7));
+              requestAnimationFrame(() => calendarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+            };
+            const bucketActions = (bucket) => ({
+              tabIndex: bucket.messages ? 0 : void 0,
+              role: bucket.messages ? "button" : void 0,
+              "aria-label": bucket.label + "，" + bucket.messages + " 条消息，查看日历",
+              style: { cursor: bucket.messages ? "pointer" : "default" },
+              onClick: () => selectBucket(bucket),
+              onKeyDown: (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  selectBucket(bucket);
+                }
+              }
+            });
+            const yearSelectOptions = (yearOptions.length ? yearOptions : [chartYear]).map((value) => [
+              value,
+              value + " 年"
+            ]);
+            const chartLeft = 48, chartRight = 704, chartWidth = chartRight - chartLeft, chartX = (index) => chartLeft + (buckets.length <= 1 ? chartWidth / 2 : index * chartWidth / (buckets.length - 1)), scoreSegments = [];
+            let scoreSegment = [];
+            const scoreValues = buckets.map((bucket) => bucket.averageAffinity).filter((value) => typeof value === "number"), scoreLow = scoreValues.length ? Math.max(0, Math.floor((Math.min(...scoreValues) - 4) / 10) * 10) : 0, scoreHigh = scoreValues.length ? Math.min(100, Math.ceil((Math.max(...scoreValues) + 4) / 10) * 10) : 100, scoreSpan = Math.max(10, scoreHigh - scoreLow), scoreY = (value) => 30 + (scoreHigh - value) * 210 / scoreSpan;
+            for (let index = 0; index < buckets.length; index++) {
+              const value = buckets[index].averageAffinity;
+              if (value === null) {
+                if (scoreSegment.length) scoreSegments.push(scoreSegment);
+                scoreSegment = [];
+              } else scoreSegment.push({ index, value });
+            }
+            if (scoreSegment.length) scoreSegments.push(scoreSegment);
+            const scoreGrid = [scoreLow, Math.round((scoreLow + scoreHigh) / 2), scoreHigh].map(
+              (value) => h(
+                "g",
+                { key: "score-grid-" + value },
+                h("line", { x1: 46, y1: scoreY(value), x2: 704, y2: scoreY(value), stroke: "#e7ece8" }),
+                h("text", { x: 34, y: scoreY(value) + 5, textAnchor: "end" }, value)
+              )
+            );
+            const scorePaths = scoreSegments.filter((segment) => segment.length > 1).map(
+              (segment, index) => h("path", {
+                key: "score-line-" + index,
+                d: segment.map((point, position) => (position ? "L" : "M") + chartX(point.index) + " " + scoreY(point.value)).join(" "),
+                fill: "none",
+                stroke: "var(--rn-chart-line,#68aa70)",
+                strokeWidth: 3,
+                strokeLinecap: "round",
+                strokeLinejoin: "round"
+              })
+            );
+            const scorePoints = buckets.map(
+              (bucket, index) => bucket.averageAffinity === null ? null : h(
+                "circle",
+                {
+                  key: "score-point-" + index,
+                  ...bucketActions(bucket),
+                  cx: chartX(index),
+                  cy: scoreY(bucket.averageAffinity),
+                  r: granularity === "day" ? 2.2 : 4,
+                  fill: "var(--rn-chart-line,#68aa70)"
+                },
+                h(
+                  "title",
+                  null,
+                  bucket.label + "：关系指数 " + bucket.averageAffinity + (bucket.scoreDays > 1 ? " · " + bucket.scoreDays + " 个已评分日" : "") + (bucket.turns ? " · 对方 " + bucket.turns + " 个回合" : "")
+                )
+              )
+            ).filter(Boolean);
+            const labelStep = Math.max(1, Math.ceil(buckets.length / (granularity === "day" ? 7 : 10))), labelIndexes = buckets.map((_, index) => index).filter(
+              (index) => granularity === "month" || index === 0 || index === buckets.length - 1 || index % labelStep === 0
+            ), axisLabel = (label) => granularity === "day" ? Number(label.slice(5, 7)) + "/" + Number(label.slice(8, 10)) : label.replace(" 月", "").replace(" 年", "");
+            const scoreLabels = labelIndexes.map(
+              (index) => h(
+                "text",
+                { key: "score-label-" + index, x: chartX(index), y: 278, textAnchor: "middle" },
+                axisLabel(buckets[index].label)
+              )
+            );
+            const scoreValueLabels = buckets.map(
+              (b, i) => b.averageAffinity === null || granularity === "day" && !labelIndexes.includes(i) ? null : h(
+                "text",
+                {
+                  key: "score-value-" + i,
+                  x: chartX(i),
+                  y: scoreY(b.averageAffinity) - 9,
+                  textAnchor: "middle",
+                  fontSize: granularity === "day" ? 10 : 11,
+                  fontWeight: 600,
+                  fill: "var(--rn-chart-text,#3f5f45)"
+                },
+                b.averageAffinity
+              )
+            ).filter(Boolean);
+            const gapIndexes = buckets.map((bucket, index) => bucket.averageAffinity === null ? index : -1).filter((index) => index >= 0), gapMarkers = gapIndexes.map(
+              (index) => h(
+                "g",
+                { key: "score-gap-" + index },
+                h(
+                  "circle",
+                  {
+                    cx: chartX(index),
+                    cy: 290,
+                    r: 3.6,
+                    fill: "var(--rn-bg,#fff)",
+                    stroke: "#9db3a4",
+                    strokeWidth: 1.4,
+                    strokeDasharray: "2 2"
+                  },
+                  h(
+                    "title",
+                    null,
+                    buckets[index].label + "：" + (scoreBucketState(buckets[index]) === "gap" ? "无记录（缺口），不代表分数下降" : "有记录，但对方没有回合，未评分")
+                  )
+                )
+              )
+            ), scoreStats = scoreValues.length ? Math.min(...scoreValues) + "–" + Math.max(...scoreValues) : "暂无", scoreSummary = "共 " + buckets.length + " 个时段，已评分 " + (buckets.length - gapIndexes.length) + " 个、关系指数 " + scoreStats + "，" + gapIndexes.length + " 个无记录或未评分（缺口不代表分数下降）";
+            const scoreGraphic = h(
+              "svg",
+              {
+                className: "rn-annual-chart",
+                viewBox: "0 0 720 300",
+                role: "img",
+                "aria-labelledby": "rn-score-chart-title rn-score-chart-desc",
+                "aria-label": scopeLabel + periodLabel + "关系指数趋势：" + scoreSummary
+              },
+              h("title", { id: "rn-score-chart-title" }, scopeLabel + periodLabel + "关系指数（v3）趋势"),
+              h("desc", { id: "rn-score-chart-desc" }, scoreSummary),
+              ...scoreGrid,
+              ...scorePaths,
+              ...scoreValueLabels,
+              ...scorePoints,
+              ...gapMarkers,
+              ...scoreLabels
+            );
+            const scoreLegend = h(
+              "div",
+              { className: "rn-annual-note" },
+              h(
+                "span",
+                null,
+                h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-line,#68aa70)" } }),
+                "实心点与实线：已评分时段的关系指数，低分同样是实线"
+              ),
+              h(
+                "span",
+                null,
+                h("i", {
+                  className: "rn-annual-swatch",
+                  style: { background: "var(--rn-bg)", border: "1px dashed #9db3a4" }
+                }),
+                "空心点：无记录或未评分"
+              ),
+              h("span", null, "缺口 = 该时段没有聊天记录，不代表分数下降。")
+            );
+            const barMax = Math.max(1, ...buckets.map((bucket) => Math.max(bucket.self, bucket.target))), barTop = 30, barHeight = 210, barBottom = barTop + barHeight, barTicks = [.../* @__PURE__ */ new Set([0, Math.round(barMax / 2), barMax])], slot = buckets.length > 1 ? chartWidth / (buckets.length - 1) : chartWidth, barWidth = Math.max(2, Math.min(16, slot * 0.34));
+            const barGrid = barTicks.map((value) => {
+              const y = barBottom - value / barMax * barHeight;
+              return h(
+                "g",
+                { key: "bar-grid-" + value },
+                h("line", { x1: 38, y1: y, x2: 706, y2: y, stroke: "#e7ece8" }),
+                h("text", { x: 31, y: y + 4, textAnchor: "end" }, value)
+              );
+            });
+            const barGroups = buckets.map((bucket, index) => {
+              const center = chartX(index), selfHeight = bucket.self / barMax * barHeight, targetHeight = bucket.target / barMax * barHeight;
+              return h(
+                "g",
+                { key: "bar-period-" + index, ...bucketActions(bucket) },
+                h(
+                  "rect",
+                  {
+                    x: center - barWidth - 1,
+                    y: barBottom - selfHeight,
+                    width: barWidth,
+                    height: selfHeight,
+                    rx: 2,
+                    fill: "var(--rn-chart-self,#8acb8e)"
+                  },
+                  h("title", null, bucket.label + " " + contact.self + "：" + bucket.self + " 条")
+                ),
+                h(
+                  "rect",
+                  {
+                    x: center + 1,
+                    y: barBottom - targetHeight,
+                    width: barWidth,
+                    height: targetHeight,
+                    rx: 2,
+                    fill: "var(--rn-chart-target,#8da3b3)"
+                  },
+                  h("title", null, bucket.label + " " + contact.target + "：" + bucket.target + " 条")
+                ),
+                bucket.self || bucket.target ? h(
+                  "text",
+                  {
+                    x: center - barWidth / 2 - 1,
+                    y: barBottom - selfHeight - 4,
+                    textAnchor: "middle",
+                    fontSize: 8.5,
+                    fill: "var(--rn-chart-line-strong,#4d8f55)"
+                  },
+                  bucket.self
+                ) : null,
+                bucket.self || bucket.target ? h(
+                  "text",
+                  {
+                    x: center + barWidth / 2 + 1,
+                    y: barBottom - targetHeight - 4,
+                    textAnchor: "middle",
+                    fontSize: 8.5,
+                    fill: "var(--rn-chart-target-text,#5b7285)"
+                  },
+                  bucket.target
+                ) : null,
+                labelIndexes.includes(index) && h("text", { x: center, y: 278, textAnchor: "middle" }, axisLabel(bucket.label))
+              );
+            });
+            const barGraphic = h(
+              "svg",
+              {
+                className: "rn-annual-chart",
+                viewBox: "0 0 720 300",
+                role: "img",
+                "aria-labelledby": "rn-bar-chart-title rn-bar-chart-desc",
+                "aria-label": scopeLabel + periodLabel + "双方消息量柱状图：绿色为" + contact.self + "，蓝色为" + contact.target
+              },
+              h("title", { id: "rn-bar-chart-title" }, scopeLabel + periodLabel + "双方消息量"),
+              h(
+                "desc",
+                { id: "rn-bar-chart-desc" },
+                "每个时段两根柱，绿色为" + contact.self + "的消息条数，蓝色为" + contact.target + "的消息条数。"
+              ),
+              ...barGrid,
+              ...barGroups
+            );
+            const selfTotal = buckets.reduce((sum, bucket) => sum + bucket.self, 0), targetTotal = buckets.reduce((sum, bucket) => sum + bucket.target, 0), shareTotal = selfTotal + targetTotal, pieCenterX = 120, pieCenterY = 86, pieRadius = 62;
+            const piePath = (fraction, startAngle) => {
+              if (fraction <= 0) return "";
+              if (fraction >= 0.999999)
+                return "M " + pieCenterX + " " + (pieCenterY - pieRadius) + " A " + pieRadius + " " + pieRadius + " 0 1 1 " + pieCenterX + " " + (pieCenterY + pieRadius) + " A " + pieRadius + " " + pieRadius + " 0 1 1 " + pieCenterX + " " + (pieCenterY - pieRadius) + " Z";
+              const endAngle = startAngle + fraction * Math.PI * 2, x1 = pieCenterX + pieRadius * Math.cos(startAngle), y1 = pieCenterY + pieRadius * Math.sin(startAngle), x2 = pieCenterX + pieRadius * Math.cos(endAngle), y2 = pieCenterY + pieRadius * Math.sin(endAngle);
+              return "M " + pieCenterX + " " + pieCenterY + " L " + x1 + " " + y1 + " A " + pieRadius + " " + pieRadius + " 0 " + (fraction > 0.5 ? 1 : 0) + " 1 " + x2 + " " + y2 + " Z";
+            };
+            const selfShare = shareTotal ? selfTotal / shareTotal : 0, targetStart = -Math.PI / 2 + selfShare * Math.PI * 2;
+            const pieGraphic = shareTotal ? h(
+              "svg",
+              {
+                className: "rn-annual-chart",
+                viewBox: "0 0 240 172",
+                role: "img",
+                "aria-labelledby": "rn-pie-chart-title rn-pie-chart-desc",
+                "aria-label": scopeLabel + "双方消息占比：" + contact.self + " " + Math.round(selfTotal / shareTotal * 100) + "%，" + contact.target + " " + Math.round(targetTotal / shareTotal * 100) + "%"
+              },
+              h("title", { id: "rn-pie-chart-title" }, scopeLabel + "双方消息占比"),
+              h(
+                "desc",
+                { id: "rn-pie-chart-desc" },
+                "圆形图按消息条数拆分：" + contact.self + " " + selfTotal.toLocaleString() + " 条，" + contact.target + " " + targetTotal.toLocaleString() + " 条。"
+              ),
+              selfTotal > 0 && h("path", { d: piePath(selfShare, -Math.PI / 2), fill: "var(--rn-chart-self,#8acb8e)" }),
+              targetTotal > 0 && h("path", {
+                d: piePath(targetTotal / shareTotal, targetStart),
+                fill: "var(--rn-chart-target,#8da3b3)"
+              })
+            ) : muted("当前范围暂无双方消息。");
+            const pieLegend = h(
+              "div",
+              { className: "rn-annual-pie-legend" },
+              [
+                [contact.self, selfTotal, "var(--rn-chart-self,#8acb8e)"],
+                [contact.target, targetTotal, "var(--rn-chart-target,#8da3b3)"]
+              ].map(
+                ([name, count, color]) => h(
+                  "div",
+                  { className: "rn-annual-pie-row", key: name },
+                  h("span", { className: "rn-annual-swatch", style: { background: color } }),
+                  h("span", null, name),
+                  h("strong", null, shareTotal ? Math.round(count / shareTotal * 100) + "%" : "—"),
+                  h("small", null, count.toLocaleString() + " 条")
+                )
+              )
+            );
+            const granularityOptions = [
+              ["day", "日"],
+              ["month", "月"],
+              ["year", "年"]
+            ].map(
+              ([key, label]) => button(label, () => setGranularity(key), { key, "aria-pressed": granularity === key })
+            );
+            const selectedRange = granularity === "year" ? yearlyBuckets.length + " 个年份" : annualDays.length + " 个有记录日 · " + annualDays.filter((day) => day.affinityScore !== null).length + " 天已评分（对方有回合）";
+            const periodRows = buckets.map(
+              (bucket, index) => h(
+                "tr",
+                { key: "period-row-" + index },
+                h(
+                  "td",
+                  null,
+                  button(bucket.label, () => selectBucket(bucket), { disabled: !bucket.messages })
+                ),
+                h("td", null, bucket.self.toLocaleString()),
+                h("td", null, bucket.target.toLocaleString()),
+                h("td", null, bucket.messages.toLocaleString()),
+                h("td", null, bucket.averageAffinity === null ? "—" : bucket.averageAffinity),
+                h("td", null, bucket.scoreDays.toLocaleString())
+              )
+            );
+            const fullTable = h(
+              "details",
+              { className: "rn-annual-data" },
+              h("summary", null, "查看完整数据表（" + buckets.length + " 行）"),
+              h(
+                "div",
+                { className: "rn-annual-data-scroll" },
+                h(
+                  "table",
+                  null,
+                  h(
+                    "thead",
+                    null,
+                    h(
+                      "tr",
+                      null,
+                      ...["日期 / 时段", contact.self, contact.target, "双方消息", "关系指数（v3）", "已评分日"].map(
+                        (label, index) => h("th", { key: "data-head-" + index }, label)
+                      )
+                    )
+                  ),
+                  h("tbody", null, ...periodRows)
+                )
+              )
+            );
+            const scopeIndex = mergedIndex(granularity === "year" ? timeline.days : annualDays), keyFigures = h(
+              "div",
+              { className: "rn-metrics rn-annual-figures" },
+              ...[
+                [annualDays.length + " 天", "有记录日"],
+                [annualDays.reduce((sum, day) => sum + day.messages.length, 0).toLocaleString() + " 条", "双方消息"],
+                [scopeIndex === null ? "未评分" : scopeIndex + " / 100", "关系指数（" + scopeLabel + "）"],
+                [gapIndexes.length + " 个", "无记录时段（缺口）"]
+              ].map(
+                ([value, label]) => h(
+                  "div",
+                  { className: "rn-metric", key: label },
+                  h("span", { className: "rn-muted" }, label),
+                  h("strong", null, value)
+                )
+              )
+            );
+            const buildAnnualPanel = () => box(
+              "关系指数与互动趋势",
+              h(
+                "div",
+                { className: "rn-annual-head" },
+                muted(selectedRange),
+                h(
+                  "div",
+                  { className: "rn-annual-controls" },
+                  h("div", { className: "rn-annual-granularity", "aria-label": "图表时间粒度" }, ...granularityOptions),
+                  granularity !== "year" && select("年份", chartYear, yearSelectOptions, setYear)
+                )
+              ),
+              keyFigures,
+              h(
+                "div",
+                { className: "rn-annual-top" },
+                h(
+                  "section",
+                  { className: "rn-annual-card rn-annual-trend" },
+                  h("h3", null, periodLabel + "关系指数（v3）趋势"),
+                  muted(
+                    granularity === "day" ? "每日关系指数（规则层）；对方当天没有回合时不评分；缺口=无记录，不代表分数下降" : granularity === "month" ? "把当月各日信号相加后整体评分（不是日指数平均）；缺口=无记录或未评分，不代表分数下降" : "把当年各日信号相加后整体评分；缺口=无记录或未评分，不代表分数下降"
+                  ),
+                  buckets.some((bucket) => bucket.averageAffinity !== null) ? scoreGraphic : muted("当前范围暂无已评分时段（对方没有回合）。"),
+                  scoreLegend
+                ),
+                h(
+                  "section",
+                  { className: "rn-annual-card" },
+                  h("h3", null, periodLabel + "双方消息量"),
+                  h(
+                    "div",
+                    { className: "rn-annual-legend" },
+                    h(
+                      "span",
+                      { className: "rn-annual-legend-item" },
+                      h("i", { className: "rn-annual-swatch", style: { background: "var(--rn-chart-self,#8acb8e)" } }),
+                      contact.self
+                    ),
+                    h(
+                      "span",
+                      { className: "rn-annual-legend-item" },
+                      h("i", {
+                        className: "rn-annual-swatch",
+                        style: { background: "var(--rn-chart-target,#8da3b3)" }
+                      }),
+                      contact.target
+                    )
+                  ),
+                  barGraphic
+                )
+              ),
+              h(
+                "details",
+                { className: "rn-more", open: moreOpen, onToggle: (e) => setMoreOpen(e.currentTarget.open) },
+                h("summary", null, "展开更多分析（消息占比 · 完整数据表 · 每日日历）"),
+                h(
+                  "div",
+                  { className: "rn-annual-grid" },
+                  h(
+                    "section",
+                    { className: "rn-annual-card rn-annual-pie-card" },
+                    h("h3", null, "当前范围消息占比"),
+                    pieGraphic,
+                    pieLegend
+                  ),
+                  fullTable
+                ),
+                h(
+                  "div",
+                  { className: "rn-calendar-detail-layout" },
+                  calendar,
+                  h("aside", { className: "rn-calendar-detail-panel" }, details)
+                )
+              )
+            );
+            const calendar = h(
+              "section",
+              { ref: calendarRef },
+              box(
+                "每日互动日历",
+                muted(
+                  `识别到的聊天日期：${recognizedRange} · 共 ${timeline.days.length} 个有记录日期；活跃度按每天消息数和轮次数相对比较。`
+                ),
+                h(
+                  "div",
+                  { className: "rn-calendar-wrap" },
+                  h(
+                    "div",
+                    { className: "rn-calendar-head" },
+                    button("上个月", () => moveMonth(-1)),
+                    h("strong", null, monthLabel),
+                    button("下个月", () => moveMonth(1))
+                  ),
+                  h("div", { className: "rn-calendar" }, ...weekdays, ...dayCells)
+                ),
+                h(
+                  "div",
+                  { className: "rn-calendar-legend" },
+                  h("span", null, "颜色深浅：当天聊天活跃度"),
+                  h("span", null, "每格显示当天关系指数（v3 规则层）；对方当天没有回合时显示“未评分”。"),
+                  h("span", null, "虚线空心格：当天无记录（缺口），不代表分数下降。")
+                )
+              )
+            );
+            let details;
+            if (shown) {
+              const shownAffinity = shown.affinityScore !== null ? `${shown.affinityScore} / 100（${shown.affinityLow}–${shown.affinityHigh}）` : "未评分";
+              const metrics = [
+                [shown.messages.length, "双方消息"],
+                [`${shown.selfMessages} / ${shown.targetMessages}`, "你 / 对方"],
+                [shown.turns, "交流轮次"],
+                [shown.medianReplyMinutes === null ? void 0 : shown.medianReplyMinutes + " 分钟", "对方回复中位间隔"],
+                [shown.perfunctoryReplies, "敷衍/收尾回合"],
+                [shown.activityScore, "活跃度"],
+                [shownAffinity, "当天关系指数（v3）"],
+                [
+                  shown.affinityChange === null ? "—" : `${shown.affinityChange > 0 ? "+" : ""}${shown.affinityChange}`,
+                  "相较上一个已评分日"
+                ]
+              ];
+              const metricCards = metrics.map(
+                ([value, label]) => h(
+                  "div",
+                  { className: "rn-metric", key: label },
+                  h("span", { className: "rn-muted" }, label),
+                  h("strong", null, value)
+                )
+              );
+              const messages = shown.messages.map(
+                (message, i) => h(
+                  "article",
+                  { className: "rn-message", key: i },
+                  source(message),
+                  h(
+                    "p",
+                    { style: { whiteSpace: "pre-wrap" } },
+                    message.text || "[" + (message.typeName || "媒体消息") + "]"
+                  ),
+                  message.attachments?.length ? muted(`媒体附件 ${message.attachments.length} 项`) : null
+                )
+              );
+              const isTimelineBusy = s.timelineAnalysisContact === contact.id;
+              const channelToday = [
+                ["qq", "QQ"],
+                ["wechat", "微信"]
+              ].filter(([channel]) => (shown?.messages || []).some((message) => channelOf(message) === channel)), cleanSummary = cleanTimelineDisplayText(aiDay?.summary), cleanReason = cleanTimelineDisplayText(aiDay?.activityReason || shown.reason), cleanAffinity = cleanTimelineDisplayText(aiDay?.affinityContext);
+              const aiDetails = box(
+                "当天内容总结",
+                channelToday.length ? h(
+                  "div",
+                  null,
+                  ...channelToday.map(([channel, label]) => {
+                    const entry2 = contact.timelineAnalysis?.[selectedDate + "#" + channel], summary = entry2?.version === 4 ? cleanTimelineDisplayText(entry2.summary) : "";
+                    return h(
+                      "section",
+                      { key: channel, className: "rn-channel-block" },
+                      h("h4", null, label + " 渠道"),
+                      summary ? h("p", { style: { whiteSpace: "pre-wrap" } }, summary) : muted(
+                        isTimelineBusy ? s.timelineAnalysisProgress || "正在生成…" : "这个渠道当天还没有总结，可用下方按钮生成。"
+                      )
+                    );
+                  })
+                ) : muted("当天没有可分渠道的聊天记录。"),
+                isTimelineBusy ? null : button("生成当天总结", () => analyzeTimeline(contact.id, { force: true, onlyDate: selectedDate }), {
+                  className: "primary"
+                })
+              );
+              const addDayGoal = () => {
+                set({ goalPrefill: { contactId: contact.id, date: selectedDate, title: "" } });
+                nav("goals", "current");
+              };
+              details = h(
+                "div",
+                { className: "rn-day-detail" },
+                box(
+                  selectedDate + " · 当天概览",
+                  h("div", { className: "rn-metrics" }, ...metricCards),
+                  button("添加当天约定", addDayGoal),
+                  button("查看打分依据", () => {
+                    set({ behaviorDate: selectedDate });
+                    nav("behavior", "basis");
+                  })
+                ),
+                aiDetails,
+                box(
+                  "聊天量与互动变化",
+                  cleanReason && h("p", null, cleanReason),
+                  cleanAffinity && h("p", null, cleanAffinity)
+                )
+              );
+            } else details = box("选择一个日期", muted("点击有记录的日期查看当天概览。"));
+            return h("div", null, buildAnnualPanel());
+          }
+          if (tab === "basis")
+            return h(ScoringBasisView, {
+              contact,
+              date: s.behaviorDate || timeline?.days.at(-1)?.date || "",
+              onDateChange: (value) => set({ behaviorDate: value }),
+              onOpenDaily: (value) => {
+                set({ behaviorDate: value });
+                nav("behavior", "daily");
+              },
+              onOpenRules: () => nav("behavior", "rules"),
+              onOpenInsight: () => nav("behavior", "insight")
+            });
+          if (tab === "rules")
+            return h(ScoringRulesView, {
+              onOpenInsight: () => nav("behavior", "insight"),
+              onRegenerate: () => analyzeTimeline(contact.id, { force: true })
+            });
+          if (tab === "evidence") {
+            const view = buildEvidenceView(a.evidence, {
+              order: evidenceOrder,
+              type: filter,
+              query: evidenceAppliedQuery,
+              page: evidencePage,
+              pageSize: EVIDENCE_PAGE_SIZE
+            }), rows = view.items.map(
+              (e) => h(
+                "article",
+                { className: "rn-message", key: e.id },
+                h("strong", null, e.label),
+                h("blockquote", null, e.quote),
+                source(e.message)
+              )
+            ), clearSearch = () => {
+              setEvidenceQuery("");
+              setEvidenceAppliedQuery("");
+              evidenceSearch.current.cancel();
+            };
+            return box(
+              "可核对的行为记录",
+              h(
+                "div",
+                { className: "rn-evidence-toolbar" },
+                select("记录类型", filter, EVIDENCE_FILTERS, setFilter),
+                h(
+                  "label",
+                  { className: "rn-evidence-search" },
+                  "搜索消息原文",
+                  h("input", {
+                    type: "search",
+                    value: evidenceQuery,
+                    placeholder: "输入关键词，匹配消息原文",
+                    "aria-label": "搜索记录原文",
+                    onChange: (e) => {
+                      const value = e.target.value;
+                      setEvidenceQuery(value);
+                      evidenceSearch.current(value);
+                    }
+                  })
+                ),
+                button(
+                  "排序：" + orderLabel(evidenceOrder),
+                  () => setEvidenceOrder(evidenceOrder === "desc" ? "asc" : "desc"),
+                  {
+                    "aria-pressed": evidenceOrder === "desc",
+                    "aria-label": "切换排序方向，当前" + (evidenceOrder === "desc" ? "最新在上" : "最早在上")
+                  }
+                )
+              ),
+              h(
+                "p",
+                { className: "rn-evidence-status", role: "status", "aria-live": "polite" },
+                `${view.total ? `第 ${view.start + 1}–${view.end} 条 / 共 ${view.total} 条` : "共 0 条"} · 第 ${view.page} / ${view.pageCount} 页 · ${orderLabel(evidenceOrder)}${view.searching ? ` · 关键词「${view.query}」` : ""}`
+              ),
+              ...view.items.length ? rows : [
+                muted(
+                  view.searching ? `没有匹配「${view.query}」的记录，换个关键词或切换记录类型试试。` : "当前筛选下没有匹配记录。"
+                )
+              ],
+              h(
+                "div",
+                { className: "rn-evidence-pager" },
+                button("上一页", () => setEvidencePage(view.page - 1), { disabled: view.page <= 1 }),
+                h("span", { className: "rn-evidence-page" }, `第 ${view.page} / ${view.pageCount} 页`),
+                button("下一页", () => setEvidencePage(view.page + 1), { disabled: view.page >= view.pageCount }),
+                view.searching ? button("清除搜索", clearSearch) : null
+              )
+            );
+          }
+          return h(
+            "div",
+            null,
+            h(InteractionEvidence, { contact }),
+            h(
+              "div",
+              { className: "rn-metrics" },
+              ...[
+                [contact.messages.length, "完整记录", ""],
+                [
+                  a.messageBalanceScore === null ? "—" : a.messageBalanceScore,
+                  "互动均衡分",
+                  "口径：只比较双方发言条数是否接近，100 表示条数持平。"
+                ],
+                [
+                  overallIndex === null ? "未评分" : overallIndex,
+                  "关系指数（全部记录）",
+                  "口径：关系分析 v3 规则层，把全部回合合并后评分；50 为缺少证据时的中性值。"
+                ],
+                [a.scoringTurns, "交流轮次", ""],
+                [a.boundaryCount, "明确边界", ""],
+                [media.image, "图片附件", ""],
+                [media.video, "视频附件", ""]
+              ].map(
+                ([value, label, note]) => h(
+                  "div",
+                  { className: "rn-metric", key: label },
+                  h("span", { className: "rn-muted" }, label),
+                  h("strong", null, value),
+                  note && h("small", { className: "rn-metric-note" }, note)
+                )
+              )
+            ),
+            h(
+              "p",
+              { className: "rn-metric-scale" },
+              "互动均衡分与关系指数不是同一标尺，不可直接相比：前者数的是双方发言条数，后者按关系分析 v3 评估互动过程。"
+            ),
+            h(
+              "details",
+              { className: "rn-metric-why" },
+              h("summary", null, "两个分数各自怎么算"),
+              h(
+                "p",
+                null,
+                "互动均衡分按双方发言条数计算；关系指数（关系分析 v3）合并全部回合，评估回应性、自我开示、相互性、积极回应、主动投入与语言同步六个维度，按证据量向中性 0.5 收缩，再按摩擦折减、明确边界封顶 30。回复时延与条数失衡只作统计。"
+              )
+            ),
+            box(
+              "统计依据",
+              h("p", null, a.summary),
+              h(
+                "p",
+                null,
+                `${contact.self}：${a.selfCount} 条；${contact.target}：${a.targetCount} 条；双方共 ${a.total} 条消息。`
+              ),
+              h(
+                "p",
+                null,
+                overallIndex === null ? "关系指数（全部记录）未评分" : `关系指数（全部记录） ${overallIndex} / 100`
+              ),
+              h(
+                "p",
+                null,
+                `媒体附件：图片 ${media.image}、视频 ${media.video}、语音 ${media.audio}、表情 ${media.sticker}。可在联系人档案 → 图片与视频中逐项分析。`
+              ),
+              h(
+                "div",
+                { className: "rn-actions" },
+                button("查看每日历程", () => nav("behavior", "daily")),
+                button("核对原文记录", () => nav("behavior", "evidence")),
+                button("查看打分依据", () => nav("behavior", "basis")),
+                button("查看评分规则", () => nav("behavior", "rules"))
+              )
+            )
+          );
+        }
+        function Goals({ s, contact, tab }) {
+          const [title, setTitle] = React2.useState(""), [dueDate, setDueDate] = React2.useState(""), [linkedDate, setLinkedDate] = React2.useState("");
+          React2.useEffect(() => {
+            if (s.goalPrefill?.contactId === contact?.id) {
+              setTitle(s.goalPrefill.title || "");
+              setLinkedDate(s.goalPrefill.date || "");
+            }
+          }, [s.goalPrefill, contact?.id]);
+          if (!contact) return empty();
+          const goals = s.goals.filter((g) => g.contactId === contact.id), shown = tab === "progress" ? goals.filter((g) => g.done) : goals;
+          const titleInput = React2.useRef(null);
+          const update = (goal, change) => set({ goals: store.getSnapshot().goals.map((g) => g.id === goal.id ? { ...g, ...change } : g) }), openDate = (date) => {
+            set({ behaviorDate: date });
+            nav("behavior", "daily");
+          };
+          return box(
+            tab === "progress" ? "已完成的行动" : "我的行动计划",
+            tab === "current" && h(
+              "form",
+              {
+                className: "rn-form rn-goal-form",
+                onSubmit: (e) => {
+                  e.preventDefault();
+                  if (!title.trim()) return;
+                  set({
+                    goals: [
+                      ...store.getSnapshot().goals,
+                      {
+                        id: "goal-" + Date.now(),
+                        contactId: contact.id,
+                        title: title.trim(),
+                        done: false,
+                        status: "planned",
+                        dueDate,
+                        linkedDate
+                      }
+                    ]
+                  });
+                  setTitle("");
+                  setDueDate("");
+                  setLinkedDate("");
+                }
+              },
+              h("input", {
+                ref: titleInput,
+                value: title,
+                onChange: (e) => setTitle(e.target.value),
+                placeholder: "填写约定或具体行动",
+                "aria-label": "新行动计划",
+                maxLength: 160
+              }),
+              h(
+                "label",
+                null,
+                "截止日期",
+                h("input", { type: "date", value: dueDate, onChange: (e) => setDueDate(e.target.value) })
+              ),
+              h(
+                "label",
+                null,
+                "关联聊天日期",
+                h("input", { type: "date", value: linkedDate, onChange: (e) => setLinkedDate(e.target.value) })
+              ),
+              h("button", { type: "submit", disabled: !title.trim(), className: "primary" }, "添加目标")
+            ),
+            h("p", { className: "rn-muted" }, `已完成 ${goals.filter((g) => g.done).length} / ${goals.length}`),
+            ...shown.map(
+              (goal) => h(
+                "div",
+                { className: "rn-goal", key: goal.id, style: { display: "grid", gap: 8 } },
+                h("strong", null, goal.title),
+                select(
+                  "状态",
+                  goal.done ? "done" : goal.status || "planned",
+                  [
+                    ["planned", "待进行"],
+                    ["active", "进行中"],
+                    ["done", "已完成"]
+                  ],
+                  (status) => update(goal, {
+                    status,
+                    done: status === "done",
+                    completedAt: status === "done" ? (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai" }) : ""
+                  })
+                ),
+                h(
+                  "label",
+                  null,
+                  "截止日期",
+                  h("input", {
+                    type: "date",
+                    value: goal.dueDate || "",
+                    onChange: (e) => update(goal, { dueDate: e.target.value })
+                  })
+                ),
+                goal.linkedDate && button("查看 " + goal.linkedDate + " 聊天概览", () => openDate(goal.linkedDate)),
+                goal.completedAt && muted("完成于 " + goal.completedAt),
+                button("删除", () => set({ goals: store.getSnapshot().goals.filter((g) => g.id !== goal.id) }), {
+                  "aria-label": "删除目标：" + goal.title
+                })
+              )
+            ),
+            !shown.length && (tab === "progress" ? muted("还没有已完成的行动。先到「当前目标」把状态改为「已完成」，这里就会按完成时间列出来。") : h(
+              "div",
+              { className: "rn-empty" },
+              h("h3", null, "还没有行动计划"),
+              muted(
+                "行动计划由你手动记录：一条具体的约定或下一步，例如下次见面的时间、需要回复的话题。目前不会自动从聊天记录生成目标。"
+              ),
+              h(
+                "div",
+                { className: "rn-actions", style: { justifyContent: "center" } },
+                button("手动添加目标", () => titleInput.current?.focus(), { className: "primary" }),
+                button("查看最近对话", () => nav("behavior", "daily")),
+                button("查看记录列表", () => nav("behavior", "evidence"))
+              )
+            ))
+          );
+        }
+        function payload(s, contact) {
+          return E.buildReplyPayload(s, {
+            ...contact,
+            messages: s.replyContextMessages || contact.messages,
+            facts: [...contact.facts || []]
+          });
+        }
+        async function models() {
+          const ticket = ++modelRequest;
+          set({ modelBusy: true, modelError: "" });
+          try {
+            const response = await hostPost("models", {});
+            const data = await response.json();
+            if (ticket !== modelRequest) return;
+            if (!response.ok || data.ok === false) throw new Error(data.error || "读取模型失败");
+            const providers = Array.isArray(data.providers) ? data.providers : [], def = data.default;
+            const modelId = (value) => typeof value === "string" ? value : typeof value?.id === "string" ? value.id : typeof value?.modelId === "string" ? value.modelId : typeof value?.model_id === "string" ? value.model_id : typeof value?.model === "string" ? value.model : typeof value?.name === "string" ? value.name : "";
+            const hasProvider = (provider2) => providers.some((item) => item.id === provider2), hasModel = (provider2, model2) => providers.some(
+              (item) => item.id === provider2 && Array.isArray(item.models) && item.models.some((value) => modelId(value) === model2)
+            );
+            const validDefault = def && typeof def.provider === "string" && !!def.provider && typeof def.model === "string" && !!def.model, defaultAvailable = validDefault && hasProvider(def.provider), current = store.getSnapshot();
+            const preserveProvider = current.modelOverride && hasProvider(current.provider), provider = preserveProvider ? current.provider : defaultAvailable ? def.provider : providers[0]?.id || "", preserveModel = preserveProvider && hasModel(provider, current.model), catalog = providers.find((item) => item.id === provider), fallbackModel = (Array.isArray(catalog?.models) ? catalog.models : []).map(modelId).find((value) => !!value) || "", model = preserveModel ? current.model : defaultAvailable && provider === def.provider ? def.model : fallbackModel;
+            const modelError = !providers.length ? "DSH 没有返回可用服务商。" : !catalog ? "请选择服务商。" : catalog.modelsError || (!catalog.models?.length && !model ? "DSH 未返回该服务商的模型列表；可输入已配置的模型 ID。" : !model ? "未找到可用模型，可输入已配置的模型 ID。" : "");
+            set({
+              models: providers,
+              modelCatalogRevision: Date.now(),
+              modelBusy: false,
+              modelDefault: defaultAvailable ? def : null,
+              provider,
+              model,
+              modelError
+            });
+          } catch (error) {
+            if (ticket === modelRequest) set({ modelBusy: false, modelError: error.message || "无法读取模型列表" });
+          }
+        }
+        async function generate(ai, refine = "") {
+          const s = store.getSnapshot(), contact = selected2(s);
+          if (!contact) return;
+          cancel();
+          const ticket = request, previous = s.draft;
+          const keep = (result) => set({ ...result, previousDraft: previous, draftVersions: result.draftVersions || [] });
+          if (!ai) {
+            try {
+              const candidates = ["gentle", "concise", "direct"].map((tone) => {
+                const result = E.generateLocalDraft({ ...contact, scenario: s.scenario, tone, intent: s.intent });
+                return {
+                  label: tone === "gentle" ? "自然接话" : tone === "concise" ? "简短回复" : "直接清晰",
+                  text: result.draft
+                };
+              });
+              keep({
+                draft: candidates[0].text,
+                draftVersions: candidates,
+                draftReason: "",
+                draftSource: "本地草稿",
+                status: "草稿已生成。"
+              });
+            } catch (e) {
+              set({ status: e.message });
+            }
+            return;
+          }
+          if (!s.provider || !s.model) {
+            await models();
+            if (ticket !== request || store.getSnapshot().selectedId !== contact.id || selected2(store.getSnapshot())?.messages !== contact.messages)
+              return;
+            const ready = store.getSnapshot();
+            if (ready.provider && ready.model) return generate(ai, refine);
+            set({ status: "DSH 尚未提供可用模型，请在设置中选择。" });
+            return;
+          }
+          controller = new AbortController();
+          set({ replyBusy: true, status: "正在生成回复…" });
+          try {
+            const variants = refine ? [{ label: refine, tone: s.tone }] : [
+              { label: "自然接话", tone: "gentle" },
+              { label: "简短回复", tone: "concise" },
+              { label: "直接清晰", tone: "direct" }
+            ], results = [];
+            for (const variant of variants) {
+              const state = {
+                ...s,
+                tone: variant.tone,
+                intent: refine ? (s.intent + "；请改写以下草稿，要求" + refine + "：" + previous).slice(0, 500) : s.intent
+              };
+              const response = await hostPost("reply", payload(state, contact), { signal: controller.signal }), data = await response.json();
+              if (ticket !== request || store.getSnapshot().selectedId !== contact.id) return;
+              if (!response.ok || data.ok === false || typeof data.draft !== "string")
+                throw new Error(data.error || "未收到有效草稿");
+              results.push({ label: variant.label, text: data.draft });
+              keep({
+                draft: results[0].text,
+                draftVersions: [...results],
+                draftSource: "AI · " + s.model,
+                draftReason: "",
+                draftEvidence: [],
+                status: "已生成 " + results.length + " 个候选…"
+              });
+            }
+            set({ status: "回复草稿已生成。" });
+          } catch (error) {
+            if (ticket === request)
+              set({ status: error.name === "AbortError" ? "已取消生成。" : "生成失败：" + error.message });
+          } finally {
+            if (ticket === request) {
+              set({ replyBusy: false });
+              controller = null;
+            }
+          }
+        }
+        function DraftEditor({ value, onChange }) {
+          const ref2 = React2.useRef(null);
+          React2.useLayoutEffect(() => {
+            const node = ref2.current;
+            if (!node) return;
+            const resize = () => {
+              node.style.height = "0px";
+              node.style.height = Math.max(64, node.scrollHeight + 2) + "px";
+            };
+            resize();
+            let width = node.clientWidth;
+            const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
+              if (node.clientWidth !== width) {
+                width = node.clientWidth;
+                resize();
+              }
+            });
+            observer?.observe(node);
+            return () => observer?.disconnect();
+          }, [value]);
+          return h("textarea", {
+            ref: ref2,
+            value,
+            onChange,
+            rows: 2,
+            "aria-label": "编辑未发送的 AI 草稿",
+            style: { resize: "none", overflow: "hidden", maxHeight: "none" }
+          });
+        }
+        function Replies({ s, contact }) {
+          const formatTimestamp = formatChatTimestamp;
+          const nextSuggestions = React2.useMemo(
+            () => E.suggestNextSteps({ ...contact, selfProfile: s.selfProfile }),
+            [contact?.messages, contact?.profileSummary, contact?.topicFeedback, s.selfProfile]
+          );
+          const [toolsOpen, setToolsOpen] = React2.useState(false), [listHidden, setListHidden] = React2.useState(false), [messagePreview, setMessagePreview] = React2.useState(null);
+          const [search, setSearch] = React2.useState(""), [jumpDate, setJumpDate] = React2.useState(""), [messageSide, setMessageSide] = React2.useState("target"), [messageText, setMessageText] = React2.useState(""), [messageTime, setMessageTime] = React2.useState(""), [chatSource, setChatSource] = React2.useState("all");
+          const photoInput = React2.useRef(null), selfAvatarInput = React2.useRef(null), targetAvatarInput = React2.useRef(null), historyRef = React2.useRef(null), [recordOpen, setRecordOpen] = React2.useState(false), messageCount = contact?.messages?.length || 0, contactMessages = contact?.messages || emptyMessages;
+          const latestMessages = React2.useMemo(
+            () => contact ? contactMessages.filter(
+              (message) => (message.sender === contact.self || message.sender === contact.target) && (chatSource === "all" || (chatSource === "qq" ? /QQ/i.test((message.file || "") + " " + (message.source || "")) : !/QQ/i.test((message.file || "") + " " + (message.source || ""))))
+            ) : emptyMessages,
+            [contactMessages, contact?.self, contact?.target, chatSource]
+          );
+          const historyChunkSize = 120, [historyStart, setHistoryStart] = React2.useState(() => Math.max(0, latestMessages.length - historyChunkSize)), historyAnchor = React2.useRef(null), restoredHistory = React2.useRef(false);
+          const rememberAnchor = () => {
+            const pane = historyRef.current;
+            if (!pane) return;
+            const top = pane.getBoundingClientRect().top, row = [...pane.querySelectorAll("[data-message-index]")].find(
+              (node) => node.getBoundingClientRect().bottom > top
+            );
+            if (row)
+              historyAnchor.current = { index: row.dataset.messageIndex, offset: row.getBoundingClientRect().top - top };
+          };
+          const loadOlder = () => {
+            if (historyStart <= 0 || historyAnchor.current) return;
+            rememberAnchor();
+            setHistoryStart((start) => Math.max(0, start - historyChunkSize));
+          };
+          const loadNewer = () => {
+            if (historyStart + 360 >= latestMessages.length || historyAnchor.current) return;
+            rememberAnchor();
+            setHistoryStart(
+              (start) => Math.min(Math.max(0, latestMessages.length - historyChunkSize), start + historyChunkSize)
+            );
+          };
+          const daily = React2.useMemo(
+            () => contact ? E.analyzeDailyTimeline(
+              contactMessages,
+              contact.self,
+              contact.target,
+              contact.interactionCorrections || []
+            ) : { days: [] },
+            [contactMessages, contact?.self, contact?.target, contact?.interactionCorrections]
+          );
+          React2.useLayoutEffect(() => {
+            const pane = historyRef.current;
+            if (!pane) return;
+            if (restoredHistory.current !== contact?.id + ":" + chatSource) {
+              restoredHistory.current = contact?.id + ":" + chatSource;
+              pane.scrollTop = pane.scrollHeight;
+              return;
+            }
+            const anchor = historyAnchor.current;
+            if (anchor) {
+              const row = pane.querySelector('[data-message-index="' + anchor.index + '"]');
+              if (row)
+                pane.scrollTop += row.getBoundingClientRect().top - pane.getBoundingClientRect().top - anchor.offset;
+              historyAnchor.current = null;
+              return;
+            }
+            pane.scrollTop = search.trim() ? 0 : pane.scrollHeight;
+          }, [contact?.id, messageCount, Boolean(s.draft), historyStart, search, chatSource]);
+          React2.useEffect(() => {
+            setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
+          }, [contact?.id, messageCount, chatSource]);
+          const [listDrawer, setListDrawer] = React2.useState(false), [toolsHidden, setToolsHidden] = React2.useState(false), [shellWidth, setShellWidth] = React2.useState(0), shellRef = React2.useRef(null);
+          (React2.useLayoutEffect || React2.useEffect)(() => {
+            const node = shellRef.current;
+            if (!node) return;
+            const measure = () => setShellWidth(Math.round(node.getBoundingClientRect().width));
+            measure();
+            if (typeof ResizeObserver === "undefined") return;
+            const observer = new ResizeObserver(measure);
+            observer.observe(node);
+            return () => observer.disconnect();
+          }, [Boolean(contact)]);
+          const layout = E.sessionPaneLayout(shellWidth, { listHidden, listDrawer, toolsOpen, toolsHidden });
+          const toggleList = () => {
+            if (layout.listMode === "drawer") setListDrawer(!listDrawer);
+            else setListHidden(!listHidden);
+          };
+          const toggleTools = () => {
+            if (layout.toolsMode === "overlay") setToolsOpen(!toolsOpen);
+            else setToolsHidden(!toolsHidden);
+          };
+          React2.useEffect(() => {
+            if (!layout.listVisible || layout.listMode !== "drawer") return;
+            const onKey = (e) => {
+              if (e.key === "Escape") setListDrawer(false);
+            };
+            document.addEventListener("keydown", onKey);
+            return () => document.removeEventListener("keydown", onKey);
+          }, [layout.listVisible, layout.listMode]);
+          if (!contact) return empty();
+          const provider = s.models.find((p) => p.id === s.provider), modelOptions = (provider?.models || []).map((m) => {
+            const id2 = typeof m === "string" ? m : m?.id || m?.modelId || m?.model_id || m?.model || m?.name;
+            return typeof id2 === "string" && id2.trim() ? [id2.trim(), typeof m === "string" ? m : m.displayName || m.name || id2.trim()] : null;
+          }).filter(Boolean), lastDay = daily.days.at(-1), latestAffinity = [...daily.days].reverse().find((day) => day.affinityScore !== null);
+          const stamp = (message) => formatTimestamp(message.timestamp);
+          const dayKey2 = (message) => formatChatDayKey(message.timestamp);
+          const fileAvatar = (file, name) => {
+            const src = typeof file === "string" ? file : file ? localFileUrl(file) : "";
+            return h(
+              "span",
+              { className: "rn-session-avatar" },
+              src ? h("img", { src, alt: name + " 头像" }) : Array.from(name || "?")[0]
+            );
+          };
+          const updateContact2 = (patch) => {
+            const current = store.getSnapshot();
+            set({ contacts: current.contacts.map((item) => item.id === contact.id ? { ...item, ...patch } : item) });
+          };
+          const choosePhoto = (file) => {
+            if (!file) return;
+            if (!file.type.startsWith("image/") || file.size > 12 * 1024 * 1024) {
+              set({ status: "请选择 12 MiB 以内的图片文件。" });
+              return;
+            }
+            const reader = new FileReader();
+            reader.onerror = () => set({ status: "图片读取失败，请重新选择。" });
+            reader.onload = () => {
+              if (typeof reader.result === "string") {
+                updateContact2({ sessionPhoto: reader.result });
+                set({ status: "展示图片已更新。" });
+              }
+            };
+            reader.readAsDataURL(file);
+          };
+          const chooseAvatar = (file, side) => {
+            if (!file) return;
+            if (!file.type.startsWith("image/") || file.size > 12 * 1024 * 1024) {
+              set({ status: "请选择 12 MiB 以内的图片文件。" });
+              return;
+            }
+            const reader = new FileReader();
+            reader.onerror = () => set({ status: "头像读取失败，请重新选择。" });
+            reader.onload = () => {
+              if (typeof reader.result === "string") {
+                updateContact2(side === "self" ? { selfAvatarData: reader.result } : { targetAvatarData: reader.result });
+                set({ status: (side === "self" ? "你的" : "对方") + "头像已保存。" });
+              }
+            };
+            reader.readAsDataURL(file);
+          };
+          const previewMedia = (attachment, index, inferredKind) => {
+            const kind = attachment.kind === "file" ? inferredKind || attachment.kind : attachment.kind || "file", label = mediaLabels[kind] || "文件", url = attachment.file ? localFileUrl(attachment.file) : "";
+            return h(
+              "div",
+              { key: index },
+              h("span", { className: "rn-media-placeholder" }, `【${label}】`),
+              url && (kind === "image" || kind === "sticker") ? h("img", { className: "rn-session-media", src: url, alt: `【${label}】`, loading: "lazy" }) : url && kind === "video" ? h("video", { className: "rn-session-media video", src: url, controls: true, preload: "metadata" }) : url && kind === "audio" ? h("audio", { className: "rn-session-media audio", src: url, controls: true, preload: "none" }) : null
+            );
+          };
+          const mediaFallback = (message) => {
+            const kind = messageMediaKind(message);
+            return kind ? h("span", { className: "rn-media-placeholder" }, `【${mediaLabels[kind] || "文件"}】`) : null;
+          };
+          const visibleMessages = search.trim() ? latestMessages.filter(
+            (m) => String(m.text || "").toLowerCase().includes(search.trim().toLowerCase())
+          ) : latestMessages;
+          const jumpToDate = (value) => {
+            setJumpDate(value);
+            if (!value) return;
+            setSearch("");
+            const index = latestMessages.findIndex((m) => dayKey2(m) >= value);
+            if (index < 0) {
+              set({ status: "该日期之后没有记录。" });
+              return;
+            }
+            historyAnchor.current = null;
+            setHistoryStart(Math.max(0, index - 20));
+            requestAnimationFrame(
+              () => requestAnimationFrame(
+                () => historyRef.current?.querySelector('[data-date="' + dayKey2(latestMessages[index]) + '"]')?.scrollIntoView({ block: "start" })
+              )
+            );
+          };
+          const addMessage = () => {
+            if (!messageText.trim()) return;
+            if (!messagePreview) {
+              const lines = messageText.split(/\r?\n/).filter((line) => line.trim()), recognized = lines.map((line) => {
+                const match = /^([^：:]{1,30})[：:]\s*(.+)$/.exec(line);
+                return match && ["我", contact.self, contact.target, "对方"].includes(match[1]) ? {
+                  sender: match[1] === "我" || match[1] === contact.self ? contact.self : contact.target,
+                  text: match[2]
+                } : null;
+              });
+              setMessagePreview(
+                recognized.length > 1 && recognized.every(Boolean) ? recognized : [{ sender: messageSide === "self" ? contact.self : contact.target, text: messageText.trim() }]
+              );
+              return;
+            }
+            const current = store.getSnapshot(), active = selected2(current), timestamp2 = messageTime ? messageTime.replace("T", " ") : (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false });
+            const message = {
+              sender: messageSide === "self" ? active.self : active.target,
+              text: messageText.trim(),
+              timestamp: timestamp2,
+              source: "manual"
+            }, messages = E.sortChatMessages([...active.messages, ...messagePreview.map((row) => ({ ...message, ...row }))]);
+            set({
+              contacts: current.contacts.map(
+                (c) => c.id === active.id ? {
+                  ...c,
+                  messages,
+                  pairCount: messages.filter((m) => m.sender === c.self || m.sender === c.target).length,
+                  timelineAnalysis: Object.fromEntries(
+                    Object.entries(c.timelineAnalysis || {}).filter(
+                      ([date]) => String(date).split("#")[0] !== formatChatDayKey(timestamp2)
+                    )
+                  ),
+                  timelineAnalysisUpdatedAt: null,
+                  profileSummaryUpdatedAt: null
+                } : c
+              ),
+              undoMessageContact: active,
+              status: "新消息已加入时间线。"
+            });
+            setMessageText("");
+            setMessagePreview(null);
+            analyzeTimeline(active.id, { onlyDate: formatChatDayKey(timestamp2) });
+          };
+          const history = [];
+          let prior = "";
+          visibleMessages.slice(search.trim() ? 0 : historyStart, search.trim() ? void 0 : historyStart + 360).forEach((message, visibleIndex) => {
+            const index = historyStart + visibleIndex, date = dayKey2(message);
+            if (date !== prior) {
+              history.push(h("div", { className: "rn-session-day", "data-date": date, key: "day-" + index }, date));
+              prior = date;
+            }
+            const own = message.sender === contact.self, attachments = message.attachments || [], kind = messageMediaKind(message), avatarFile = own ? contact.selfAvatarData || contact.selfAvatarFile : contact.targetAvatarData || contact.targetAvatarFile;
+            history.push(
+              h(
+                "article",
+                {
+                  className: "rn-session-message " + (own ? "self" : "other"),
+                  key: "message-" + index,
+                  "data-message-index": index,
+                  onDoubleClick: () => {
+                    if (search.trim()) {
+                      const found = latestMessages.indexOf(message);
+                      setSearch("");
+                      historyAnchor.current = null;
+                      setHistoryStart(Math.max(0, found - 20));
+                      requestAnimationFrame(
+                        () => requestAnimationFrame(() => {
+                          const pane = historyRef.current, row = pane?.querySelector('[data-message-index="' + found + '"]');
+                          if (row) pane.scrollTop += row.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+                        })
+                      );
+                    }
+                    set({
+                      replyContextMessages: latestMessages.slice(
+                        Math.max(0, latestMessages.indexOf(message) - 11),
+                        latestMessages.indexOf(message) + 1
+                      ),
+                      status: "已选择这段对话作为生成背景。"
+                    });
+                  }
+                },
+                fileAvatar(avatarFile, message.sender),
+                h(
+                  "div",
+                  { className: "rn-session-message-body" },
+                  h(
+                    "div",
+                    { className: "rn-session-message-meta" },
+                    h("span", null, message.sender),
+                    stamp(message) && h("time", null, stamp(message))
+                  ),
+                  h(
+                    "div",
+                    { className: "rn-session-bubble" },
+                    message.text && !(kind && /^【[^】]+】$/.test(message.text.trim())) && h("div", { className: "rn-session-bubble-text" }, message.text),
+                    ...attachments.map((attachment, i) => previewMedia(attachment, i, kind)),
+                    !attachments.length && kind ? mediaFallback(message) : null,
+                    !message.text && !attachments.length && !kind ? h("span", { className: "rn-media-placeholder" }, "【消息】") : null
+                  )
+                )
+              )
+            );
+          });
+          const saveExchange = () => {
+            const current = store.getSnapshot(), active = selected2(current), sent = (current.exchangeSent || current.draft || "").trim(), received = (current.exchangeReply || "").trim();
+            if (!active || !sent || !received) {
+              set({ status: "请填写实际发送内容和对方回复后再记录。" });
+              return;
+            }
+            const timestamp2 = (/* @__PURE__ */ new Date()).toLocaleString("sv-SE", { timeZone: "Asia/Shanghai", hour12: false }), nextMessages = [
+              ...active.messages,
+              { sender: active.self, text: sent, timestamp: timestamp2, source: "manual" },
+              { sender: active.target, text: received, timestamp: timestamp2, source: "manual" }
+            ], targetMessages = nextMessages.filter((message) => message.sender === active.target), updated = {
+              ...active,
+              timelineAnalysis: Object.fromEntries(
+                Object.entries(active.timelineAnalysis || {}).filter(
+                  ([date]) => String(date).split("#")[0] !== formatChatDayKey(timestamp2)
+                )
+              ),
+              timelineAnalysisUpdatedAt: null,
+              messages: nextMessages,
+              pairCount: nextMessages.filter(
+                (message) => message.sender === active.self || message.sender === active.target
+              ).length,
+              facts: E.extractFacts(targetMessages)
+            }, next = E.generateLocalDraft({
+              ...updated,
+              scenario: current.scenario,
+              tone: current.tone,
+              intent: current.intent
+            });
+            set({
+              contacts: current.contacts.map((item) => item.id === active.id ? updated : item),
+              draft: next.draft,
+              draftReason: next.reason,
+              draftSource: "本地规则（根据新回复）",
+              draftEvidence: next.evidence,
+              exchangeSent: "",
+              exchangeReply: "",
+              status: `已把本轮实际往来加入 ${timestamp2.slice(0, 10)} 的时间线；日历和每日统计已更新。`
+            });
+            setRecordOpen(false);
+            analyzeTimeline(active.id, { onlyDate: formatChatDayKey(timestamp2) });
+          };
+          const evidence = s.draftEvidence.map(
+            (item, i) => h("div", { className: "rn-message", key: i }, h("blockquote", null, item.quote), source(item.message))
+          ), lastCount = lastDay?.messages.length ?? 0, latestScore = latestAffinity ? latestAffinity.affinityScore : null, photo = contact.sessionPhoto || "", targetAvatar = contact.targetAvatarData || (contact.targetAvatarFile ? localFileUrl(contact.targetAvatarFile) : "");
+          const photoPane = photo ? h("img", { src: photo, alt: "会话展示图片", style: { objectFit: s.photoFit || "cover" } }) : h(
+            "div",
+            { className: "rn-session-photo-empty" },
+            h("span", { "aria-hidden": true }, "▧"),
+            h("span", null, "选择一张图片作为会话展示"),
+            h(
+              "button",
+              {
+                type: "button",
+                onClick: (e) => {
+                  e.stopPropagation();
+                  photoClick();
+                }
+              },
+              "选择图片"
+            )
+          );
+          const photoClick = () => photoInput.current?.click();
+          const scenarioLabels = {
+            continue: "继续当前话题",
+            question: "轻量提问",
+            invite: "发出邀请",
+            boundary: "表达自己的边界"
+          }, toneLabels = { gentle: "真诚", casual: "轻松", concise: "简短", direct: "直接清晰" };
+          const copyPrompt = async () => {
+            const text = "请以「" + contact.self + "」的身份回复「" + contact.target + "」。场景：" + (scenarioLabels[s.scenario] || "继续当前话题") + "；语气：" + (toneLabels[s.tone] || "真诚") + "。" + (String(s.intent || "").trim() ? "我想表达的意思是：" + String(s.intent).trim() + "。" : "回复要具体、简短，不给对方下结论。") + "只依据聊天原文，不推测对方的真实想法；需要什么就直接说清，不靠试探或冷处理；鼓励对方按自己的意愿回应。";
+            try {
+              await navigator.clipboard.writeText(text);
+              set({ status: "提示词已复制，可粘贴到 DSH 主对话使用。" });
+            } catch {
+              set({ status: "无法复制，请手动选中文字复制。" });
+            }
+          };
+          return h(
+            "div",
+            { ref: shellRef, className: "rn-session-shell " + layout.classes.join(" ") },
+            h(
+              "div",
+              {
+                className: "rn-session",
+                style: {
+                  display: "grid",
+                  gridTemplateColumns: "190px minmax(0,1fr) 250px",
+                  gridTemplateAreas: '"list main right"',
+                  width: "100%",
+                  minWidth: 0,
+                  gap: 14
+                }
+              },
+              layout.listMode === "drawer" && layout.listVisible && h("div", { className: "rn-session-scrim", "aria-hidden": true, onClick: () => setListDrawer(false) }),
+              h(
+                "aside",
+                {
+                  className: "rn-session-pane rn-session-list-pane",
+                  id: "rn-session-list",
+                  "aria-label": "会话列表",
+                  style: { gridArea: "list", minWidth: 0 }
+                },
+                h(
+                  "div",
+                  { className: "rn-session-list" },
+                  h("h3", null, "会话"),
+                  ...s.contacts.map(
+                    (item) => h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "rn-session-contact",
+                        key: item.id,
+                        "aria-current": item.id === contact.id ? "true" : void 0,
+                        onClick: () => {
+                          chooseContact(item.id);
+                          setListDrawer(false);
+                        }
+                      },
+                      fileAvatar(item.targetAvatarData || item.targetAvatarFile, item.target),
+                      h("span", { className: "rn-session-contact-copy" }, h("strong", null, item.target))
+                    )
+                  ),
+                  h(
+                    "div",
+                    { className: "rn-session-links" },
+                    h("h3", null, "相关页面"),
+                    button("关系观察", () => nav("behavior", "metrics")),
+                    button("每日历程", () => nav("behavior", "daily"))
+                  )
+                )
+              ),
+              h(
+                "main",
+                {
+                  className: "rn-session-main",
+                  style: { gridArea: "main", display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }
+                },
+                h(
+                  "header",
+                  { className: "rn-session-pane rn-session-header" },
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => targetAvatarInput.current?.click(),
+                      title: "更换对方头像",
+                      style: { padding: 0, border: 0 }
+                    },
+                    fileAvatar(contact.targetAvatarData || contact.targetAvatarFile, contact.target)
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => selfAvatarInput.current?.click(),
+                      title: "更换我的头像",
+                      style: { padding: 0, border: 0 }
+                    },
+                    fileAvatar(contact.selfAvatarData || contact.selfAvatarFile, contact.self)
+                  ),
+                  h("div", { className: "rn-session-heading" }, h("strong", null, contact.target)),
+                  button("☰ 列表", toggleList, {
+                    "aria-pressed": layout.listVisible,
+                    "aria-expanded": layout.listVisible,
+                    "aria-label": layout.listVisible ? "隐藏会话列表" : "显示会话列表",
+                    title: layout.listVisible ? "隐藏会话列表" : "显示会话列表"
+                  }),
+                  button(layout.toolsVisible ? "收起工具" : "工具", toggleTools, {
+                    "aria-pressed": layout.toolsVisible,
+                    "aria-expanded": layout.toolsVisible,
+                    title: layout.toolsVisible ? "收起沟通工具与头像" : "显示沟通工具与头像"
+                  })
+                ),
+                h(
+                  "div",
+                  { className: "rn-history-toolbar" },
+                  select(
+                    "来源",
+                    chatSource,
+                    [
+                      ["all", "全部"],
+                      ["qq", "QQ"],
+                      ["wechat", "微信"]
+                    ],
+                    setChatSource
+                  ),
+                  h("input", {
+                    type: "search",
+                    value: search,
+                    onChange: (e) => setSearch(e.target.value),
+                    placeholder: "搜索聊天记录",
+                    "aria-label": "搜索聊天记录"
+                  }),
+                  h("input", {
+                    type: "date",
+                    value: jumpDate,
+                    onChange: (e) => jumpToDate(e.target.value),
+                    "aria-label": "跳转日期"
+                  }),
+                  button("最新", () => {
+                    setSearch("");
+                    setHistoryStart(Math.max(0, latestMessages.length - historyChunkSize));
+                    requestAnimationFrame(() => {
+                      if (historyRef.current) historyRef.current.scrollTop = historyRef.current.scrollHeight;
+                    });
+                  })
+                ),
+                h(
+                  "section",
+                  {
+                    className: "rn-session-history",
+                    "aria-label": "聊天历史",
+                    ref: historyRef,
+                    onScroll: (event) => {
+                      if (!search.trim())
+                        historyViews.set(contact.id + ":" + chatSource, {
+                          start: historyStart,
+                          top: event.currentTarget.scrollTop,
+                          count: messageCount
+                        });
+                      if (!search.trim()) {
+                        const pane = event.currentTarget;
+                        if (pane.scrollTop <= 24) loadOlder();
+                        else if (pane.scrollHeight - pane.scrollTop - pane.clientHeight <= 24) loadNewer();
+                      }
+                    }
+                  },
+                  ...history.length ? history : [h("p", { className: "rn-muted", key: "empty" }, "还没有双方聊天记录。")]
+                ),
+                h(
+                  "div",
+                  { className: "rn-session-draft" },
+                  h("strong", null, "AI 草稿 · 未发送"),
+                  s.replyContextMessages && button("恢复最新对话", () => set({ replyContextMessages: null, status: "" })),
+                  (s.draftVersions || []).length > 0 && h(
+                    "div",
+                    { className: "rn-actions" },
+                    ...(s.draftVersions || []).map(
+                      (v, i) => button(v.label, () => set({ draft: v.text }), { key: i, "aria-pressed": s.draft === v.text })
+                    )
+                  ),
+                  !s.draft && (!s.provider || !s.model) && h(
+                    "div",
+                    { className: "rn-empty" },
+                    h("strong", null, "尚未配置模型，暂时不能生成 AI 草稿"),
+                    muted(
+                      "未配置模型时不会调用模型，也不会推断对方的真实想法；可以先用「生成本地草稿」按本地规则拼出模板。"
+                    ),
+                    h(
+                      "div",
+                      { className: "rn-actions", style: { justifyContent: "center" } },
+                      button("去设置选择模型", () => nav("settings", "general"), { className: "primary" }),
+                      button("复制提示词", copyPrompt),
+                      h(
+                        "details",
+                        null,
+                        h("summary", null, "查看如何配置"),
+                        h(
+                          "p",
+                          null,
+                          "设置 → 回复设置与模型授权 → 选择服务商与模型，保存后回到会话点「生成回复」。也可以把提示词粘贴到 DSH 主对话手动生成。"
+                        )
+                      )
+                    )
+                  ),
+                  s.draft ? h(DraftEditor, { value: s.draft, onChange: (e) => set({ draft: e.target.value }) }) : h(
+                    "p",
+                    { className: "rn-session-draft-empty" },
+                    !s.draft && (!s.provider || !s.model) ? "未配置模型：可先用「生成本地草稿」，或按上面的步骤配置模型。" : "生成的回复草稿会显示在这里。"
+                  ),
+                  h(ReplyFeedbackView, {
+                    contactId: contact.id,
+                    draft: s.draft,
+                    selfProfile: s.selfProfile,
+                    onChange: (value) => set({ selfProfile: value })
+                  }),
+                  s.draftSource && muted("来源：" + s.draftSource),
+                  s.draft && s.draftReason && h("p", { className: "rn-session-draft-preview" }, s.draftReason),
+                  ...evidence,
+                  s.draft && h(
+                    "div",
+                    { className: "rn-actions" },
+                    button("短一点", () => generate(true, "短一点"), { disabled: s.replyBusy }),
+                    button("换个说法", () => generate(true, "换个说法"), { disabled: s.replyBusy }),
+                    button("像我的表达", () => generate(true, "贴近我在历史聊天中的表达习惯"), {
+                      disabled: s.replyBusy
+                    }),
+                    s.previousDraft && button("上一版", () => set({ draft: s.previousDraft, previousDraft: s.draft })),
+                    button(
+                      "复制草稿",
+                      async () => {
+                        try {
+                          await navigator.clipboard.writeText(store.getSnapshot().draft);
+                          set({ status: "草稿已复制，尚未发送。" });
+                        } catch {
+                          set({ status: "无法复制，请选中文字手动复制。" });
+                        }
+                      },
+                      { className: "primary" }
+                    )
+                  )
+                ),
+                h(
+                  "section",
+                  { className: "rn-session-pane rn-session-compose" },
+                  h("textarea", {
+                    value: s.intent,
+                    onChange: (e) => set({ intent: e.target.value }),
+                    maxLength: 500,
+                    placeholder: "写下你想表达的意思，可选补充真实意图与边界。（Ctrl/⌘ + Enter 生成）",
+                    rows: 2,
+                    "aria-label": "回复意图",
+                    onKeyDown: (e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent?.isComposing) {
+                        e.preventDefault();
+                        const cur = store.getSnapshot();
+                        if (cur.replyBusy) return;
+                        generate(Boolean(cur.provider && cur.model && !cur.modelBusy));
+                      }
+                    }
+                  }),
+                  h(
+                    "div",
+                    { className: "rn-session-compose-tools" },
+                    select(
+                      "场景",
+                      s.scenario,
+                      [
+                        ["continue", "继续当前话题"],
+                        ["question", "轻量提问"],
+                        ["invite", "发出邀请"],
+                        ["boundary", "表达自己的边界"]
+                      ],
+                      (scenario) => set({ scenario })
+                    ),
+                    select(
+                      "语气",
+                      s.tone,
+                      [
+                        ["gentle", "真诚"],
+                        ["casual", "轻松"],
+                        ["concise", "简短"],
+                        ["direct", "直接清晰"]
+                      ],
+                      (tone) => set({ tone })
+                    ),
+                    button("生成本地草稿", () => generate(false), { disabled: s.replyBusy }),
+                    button(s.replyBusy ? "生成中…" : "生成回复", () => generate(true), {
+                      className: "primary",
+                      disabled: !s.provider || !s.model || s.replyBusy || s.modelBusy
+                    })
+                  )
+                )
+              ),
+              h(
+                "aside",
+                { className: "rn-session-right", style: { gridArea: "right", display: "grid", minWidth: 0 } },
+                h(
+                  "div",
+                  {
+                    className: "rn-session-photo",
+                    role: "button",
+                    tabIndex: 0,
+                    "aria-label": photo ? "点击更换会话展示图片" : "选择会话展示图片",
+                    onClick: photoClick,
+                    onKeyDown: (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        photoClick();
+                      }
+                    }
+                  },
+                  photoPane,
+                  h("input", {
+                    ref: photoInput,
+                    type: "file",
+                    accept: "image/*",
+                    "aria-label": "选择会话展示图片",
+                    onClick: (e) => e.stopPropagation(),
+                    onChange: (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      choosePhoto(file);
+                    }
+                  })
+                ),
+                h(
+                  "section",
+                  { className: "rn-session-pane rn-session-tools" },
+                  h("h3", null, "沟通工具"),
+                  h(InterpretationView, {
+                    contact,
+                    s,
+                    onPause: (id2) => autoAnalysisScheduler?.pause(id2),
+                    onResume: (id2) => autoAnalysisScheduler?.resume(id2),
+                    onOpenSettings: () => nav("settings", "general"),
+                    onEvidence: (ref2) => showEvidence(contact.id, ref2)
+                  }),
+                  h(TopicSuggestionsView, {
+                    result: nextSuggestions,
+                    onFeedback: (item, status) => updateContact2(contact.id, (current) => E.recordTopicFeedback(current, item, status)),
+                    onEvidence: (ref2) => showEvidence(contact.id, ref2)
+                  }),
+                  h(
+                    "div",
+                    { className: "rn-session-stat" },
+                    h("strong", null, `${lastCount} 条消息`),
+                    h(
+                      "small",
+                      null,
+                      [
+                        lastDay ? `${lastDay.date.slice(5)} · 活跃 ${lastDay.activityScore}` : "暂无带日期的记录",
+                        latestScore === null ? "关系指数 —" : `关系指数 ${latestScore}`
+                      ].join(" · ")
+                    )
+                  ),
+                  h(
+                    "div",
+                    { className: "rn-session-tool-buttons" },
+                    button(recordOpen ? "收起回复记录" : "记录本轮回复", () => setRecordOpen(!recordOpen)),
+                    button(
+                      s.timelineAnalysisContact === contact.id ? "正在重算…" : "重算评分",
+                      () => analyzeTimeline(contact.id, { force: true }),
+                      { disabled: s.timelineAnalysisContact === contact.id }
+                    ),
+                    button("模型设置", () => nav("settings", "general"))
+                  ),
+                  h(
+                    "div",
+                    { className: "rn-session-avatar-actions" },
+                    h("input", {
+                      ref: selfAvatarInput,
+                      type: "file",
+                      accept: "image/*",
+                      className: "rn-session-avatar-input",
+                      "aria-label": "设置我的头像",
+                      onChange: (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        chooseAvatar(file, "self");
+                      }
+                    }),
+                    h("input", {
+                      ref: targetAvatarInput,
+                      type: "file",
+                      accept: "image/*",
+                      className: "rn-session-avatar-input",
+                      "aria-label": "设置对方头像",
+                      onChange: (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        chooseAvatar(file, "target");
+                      }
+                    })
+                  ),
+                  recordOpen && h(
+                    "div",
+                    { className: "rn-session-exchange" },
+                    h(
+                      "label",
+                      null,
+                      "我实际发送了",
+                      h("textarea", {
+                        value: s.exchangeSent || s.draft,
+                        onChange: (e) => set({ exchangeSent: e.target.value }),
+                        placeholder: "填入实际发出的内容。"
+                      })
+                    ),
+                    h(
+                      "label",
+                      null,
+                      "对方回复了",
+                      h("textarea", {
+                        value: s.exchangeReply,
+                        onChange: (e) => set({ exchangeReply: e.target.value }),
+                        placeholder: "填入对方的实际回复。"
+                      })
+                    ),
+                    button("记录并更新时间线", saveExchange, {
+                      className: "primary",
+                      disabled: !((s.exchangeSent || s.draft || "").trim() && s.exchangeReply.trim())
+                    })
+                  )
+                ),
+                h(
+                  "details",
+                  { className: "rn-session-details" },
+                  h("summary", null, "补充新消息"),
+                  select(
+                    "发送者",
+                    messageSide,
+                    [
+                      ["target", contact.target],
+                      ["self", "我"]
+                    ],
+                    setMessageSide
+                  ),
+                  h("textarea", {
+                    value: messageText,
+                    onChange: (e) => {
+                      setMessageText(e.target.value);
+                      setMessagePreview(null);
+                    },
+                    placeholder: "输入实际聊天内容；多条可使用“我：… / 对方：…”分行",
+                    "aria-label": "补充新消息"
+                  }),
+                  h("input", {
+                    type: "datetime-local",
+                    value: messageTime,
+                    onChange: (e) => setMessageTime(e.target.value),
+                    "aria-label": "消息时间"
+                  }),
+                  s.undoMessageContact && button("撤销上次录入", () => {
+                    if (timelineController) {
+                      timelineController.abort();
+                      timelineRequest++;
+                      timelineController = null;
+                    }
+                    const before = store.getSnapshot().undoMessageContact;
+                    set({
+                      contacts: store.getSnapshot().contacts.map((c) => c.id === before.id ? before : c),
+                      undoMessageContact: null,
+                      status: "已撤销。"
+                    });
+                  }),
+                  messagePreview && h(
+                    "div",
+                    { className: "rn-message" },
+                    ...messagePreview.map((row, i) => h("p", { key: i }, row.sender + "：" + row.text)),
+                    button("返回修改", () => setMessagePreview(null))
+                  ),
+                  button(messagePreview ? "确认保存" : "预览消息", addMessage, { disabled: !messageText.trim() })
+                ),
+                s.status && h("p", { className: "rn-session-status", role: "status" }, s.status)
+              )
+            )
+          );
+        }
+        function SelfProfileEditor({ s }) {
+          const initial = E.normalizeSelfProfile(s.selfProfile), [draft, setDraft] = React2.useState(initial), [saved, setSaved] = React2.useState(false);
+          React2.useEffect(() => {
+            setDraft(E.normalizeSelfProfile(s.selfProfile));
+          }, [s.selfProfile]);
+          const lines = (value) => String(value).split(/\n/);
+          const update = (key, value) => {
+            setSaved(false);
+            setDraft({ ...draft, [key]: value });
+          };
+          const voice = (key, value) => update("voice", { ...draft.voice, [key]: value });
+          const area = (label, value, onChange, placeholder) => h(
+            "label",
+            null,
+            label,
+            h("textarea", {
+              value,
+              onChange: (e) => onChange(e.target.value),
+              rows: 3,
+              maxLength: 4e3,
+              placeholder,
+              "aria-label": label
+            })
+          );
+          return h(
+            "section",
+            { className: "rn-self-profile" },
+            h("h3", null, "我的表达档案"),
+            muted("填写你认可的表达习惯和真实样例。生成回复时会把这些内容交给你选择的模型；每行填写一项。"),
+            h(
+              "div",
+              { className: "rn-form" },
+              area("常用语气", draft.voice.tone.join("\n"), (value) => voice("tone", lines(value)), "自然、轻松、直接"),
+              select(
+                "句子长度",
+                draft.voice.sentenceLength,
+                [
+                  ["short", "简短"],
+                  ["medium", "适中"],
+                  ["long", "详细"]
+                ],
+                (value) => voice("sentenceLength", value)
+              ),
+              select(
+                "表情使用",
+                draft.voice.emoji,
+                [
+                  ["none", "不用"],
+                  ["rare", "偶尔"],
+                  ["often", "经常"]
+                ],
+                (value) => voice("emoji", value)
+              ),
+              area(
+                "常用语气词与口癖",
+                draft.voice.particles.join("\n"),
+                (value) => voice("particles", lines(value)),
+                "例如：嗯、好呀"
+              ),
+              area(
+                "我的兴趣",
+                draft.interests.join("\n"),
+                (value) => update("interests", lines(value)),
+                "只填你真实愿意聊的兴趣"
+              ),
+              area(
+                "近期计划",
+                draft.plans.map((p) => p.text).join("\n"),
+                (value) => update(
+                  "plans",
+                  lines(value).map((text) => ({ ...draft.plans.find((plan) => plan.text === text), text }))
+                ),
+                "仍然有效且愿意分享的计划"
+              ),
+              area(
+                "我的沟通边界",
+                draft.boundaries.join("\n"),
+                (value) => update("boundaries", lines(value)),
+                "例如：不替我承诺具体时间"
+              ),
+              area(
+                "本人认可的消息样例",
+                draft.samples.map((p) => p.text).join("\n"),
+                (value) => update(
+                  "samples",
+                  lines(value).map((text) => ({ ...draft.samples.find((sample) => sample.text === text), text }))
+                ),
+                "每行一条你自己的消息，最多八条"
+              )
+            ),
+            h(
+              "div",
+              { className: "rn-actions" },
+              button(
+                "保存我的档案",
+                () => {
+                  set({ selfProfile: E.normalizeSelfProfile({ ...draft, updatedAt: (/* @__PURE__ */ new Date()).toISOString() }) });
+                  setSaved(true);
+                },
+                { className: "primary" }
+              ),
+              button("清空我的档案", () => {
+                if (confirm("清空我的表达档案？聊天记录不会删除。")) {
+                  const next = E.normalizeSelfProfile();
+                  setDraft(next);
+                  set({ selfProfile: next });
+                  setSaved(false);
+                }
+              })
+            ),
+            h(SelfPlanView, {
+              profile: draft,
+              onChange: (value) => {
+                setDraft(value);
+                set({ selfProfile: value });
+                setSaved(true);
+              }
+            }),
+            saved && h("p", { role: "status" }, "我的档案已保存，随项目备份一起导出。")
+          );
+        }
+        function Settings({ s }) {
+          const provider = s.models.find((p) => p.id === s.provider), modelOptions = (provider?.models || []).map((m) => {
+            const id2 = typeof m === "string" ? m : m?.id || m?.modelId || m?.name;
+            return [id2, typeof m === "string" ? m : m.displayName || m.name || id2];
+          }).filter((v) => v[0]);
+          const restoreInput = React2.useRef(null), [preview, setPreview] = React2.useState(null), [backupBusy, setBackupBusy] = React2.useState(false), [backupError, setBackupError] = React2.useState(""), [includeBackupMedia, setIncludeBackupMedia] = React2.useState(true);
+          const settingsKeys = ["displayFontSize", "displayDensity", "photoFit"], backupState = (current) => ({
+            ...current.persistenceExtensions,
+            ...persistableState(current),
+            ...Object.fromEntries(settingsKeys.map((key) => [key, current[key]]))
+          });
+          const encodeBackup = async (value) => {
+            if (value instanceof Blob) {
+              const bytes = new Uint8Array(await value.arrayBuffer());
+              let binary = "";
+              for (let i = 0; i < bytes.length; i += 16384)
+                binary += String.fromCharCode(...bytes.subarray(i, i + 16384));
+              return {
+                __rnFile: true,
+                name: value.name || "",
+                type: value.type,
+                lastModified: value.lastModified || 0,
+                data: btoa(binary)
+              };
+            }
+            if (Array.isArray(value)) return Promise.all(value.map(encodeBackup));
+            if (value && typeof value === "object") {
+              const out = {};
+              for (const [key, item] of Object.entries(value)) {
+                if (["__proto__", "constructor", "prototype"].includes(key)) continue;
+                out[key] = await encodeBackup(item);
+              }
+              return out;
+            }
+            return value;
+          };
+          const decodeBackup = (value) => {
+            if (value && value.__rnFile === true) {
+              if (typeof value.data !== "string" || typeof value.type !== "string")
+                throw new Error("备份附件格式不完整。");
+              const binary = atob(value.data), bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+              return value.name ? new File([bytes], value.name, { type: value.type, lastModified: value.lastModified || 0 }) : new Blob([bytes], { type: value.type });
+            }
+            if (Array.isArray(value)) return value.map(decodeBackup);
+            if (value && typeof value === "object") {
+              const out = {};
+              for (const [key, item] of Object.entries(value)) {
+                if (["__proto__", "constructor", "prototype"].includes(key)) continue;
+                out[key] = decodeBackup(item);
+              }
+              return out;
+            }
+            return value;
+          };
+          const validateBackup = (record) => {
+            if (record?.format !== "relationship-notes-backup" || record.version !== 1 || !record.state || !Array.isArray(record.state.contacts) || !Array.isArray(record.state.goals))
+              throw new Error("请选择关系手记导出的完整项目备份。");
+            const ids = /* @__PURE__ */ new Set();
+            for (const contact of record.state.contacts) {
+              if (!contact || typeof contact.id !== "string" || !contact.id || ids.has(contact.id) || typeof contact.self !== "string" || typeof contact.target !== "string" || !Array.isArray(contact.messages))
+                throw new Error("备份中的联系人信息不完整或重复。");
+              ids.add(contact.id);
+              for (const message of contact.messages)
+                if (!message || typeof message.sender !== "string" || typeof message.text !== "string")
+                  throw new Error("备份中的聊天记录格式不正确。");
+            }
+            return record;
+          };
+          const exportBackup = async () => {
+            setBackupBusy(true);
+            setBackupError("");
+            try {
+              const raw = backupState(store.getSnapshot()), withoutMedia = {
+                ...raw,
+                contacts: raw.contacts.map((c) => ({
+                  ...c,
+                  selfAvatarData: null,
+                  targetAvatarData: null,
+                  selfAvatarFile: null,
+                  targetAvatarFile: null,
+                  sessionPhoto: null,
+                  mediaAssets: [],
+                  messages: c.messages.map((m) => ({
+                    ...m,
+                    attachments: (m.attachments || []).map((a) => ({ ...a, file: null }))
+                  }))
+                }))
+              }, state = await encodeBackup(includeBackupMedia ? raw : withoutMedia), record = {
+                format: "relationship-notes-backup",
+                version: 1,
+                schemaVersion: E.WORKSPACE_SCHEMA_VERSION,
+                createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+                state
+              };
+              downloadObjectUrl(
+                new Blob([JSON.stringify(record)], { type: "application/json" }),
+                "关系手记-完整备份-" + (/* @__PURE__ */ new Date()).toLocaleDateString("sv-SE") + ".json"
+              );
+              set({ status: "完整项目备份已导出。" });
+            } catch (error) {
+              setBackupError("导出失败：" + error.message);
+            } finally {
+              setBackupBusy(false);
+            }
+          };
+          const readBackup = async (file) => {
+            if (!file) return;
+            setBackupBusy(true);
+            setBackupError("");
+            setPreview(null);
+            try {
+              if (file.size > 300 * 1024 * 1024) throw new Error("备份文件超过 300 MiB。");
+              const record = validateBackup(E.migrateBackupRecord(JSON.parse(await file.text())));
+              setPreview({ ...record, fileName: file.name });
+            } catch (error) {
+              setBackupError("读取失败：" + error.message);
+            } finally {
+              setBackupBusy(false);
+            }
+          };
+          const restoreBackup = async () => {
+            if (!preview) return;
+            setBackupBusy(true);
+            setBackupError("");
+            set({ sharedContactId: "" });
+            try {
+              const decoded = decodeBackup(preview.state), before = backupState(store.getSnapshot()), defaults = E.createWorkspaceStore().getSnapshot(), next = {
+                ...Object.fromEntries(PERSISTED_KEYS.map((key) => [key, defaults[key]])),
+                ...Object.fromEntries(
+                  [...PERSISTED_KEYS, ...settingsKeys].filter((key) => Object.hasOwn(decoded, key)).map((key) => [key, decoded[key]])
+                )
+              };
+              next.persistenceExtensions = E.persistenceExtensions(decoded, PERSISTED_KEYS);
+              next.selfProfile = E.migrateWorkspaceState(decoded, E.WORKSPACE_SCHEMA_VERSION).selfProfile;
+              next.contacts = next.contacts.map(
+                (contact) => E.ensureContactMessageIds({ ...contact, messages: E.sortChatMessages(contact.messages) })
+              );
+              next.selectedId = next.contacts.some((c) => c.id === next.selectedId) ? next.selectedId : next.contacts[0]?.id || "";
+              await assertStorageSpace({ state: next });
+              cancel();
+              set({
+                ...next,
+                persistenceReadOnly: false,
+                evidenceContext: null,
+                sharedContactId: "",
+                undoRestore: before,
+                undoImportContacts: null,
+                undoMessageContact: null,
+                replyContextMessages: null,
+                persistenceReady: true,
+                status: "项目备份已恢复。",
+                replyBusy: false,
+                modelBusy: false,
+                importBusy: false
+              });
+              setPreview(null);
+            } catch (error) {
+              setBackupError("恢复失败：" + error.message);
+            } finally {
+              setBackupBusy(false);
+            }
+          };
+          const clearLocalData = async () => {
+            if (!confirm("确定清除已保存的聊天记录、头像、媒体副本和草稿？原始导出文件不会被删除。")) return;
+            const before = store.getSnapshot();
+            set({ sharedContactId: "" });
+            try {
+              await persistence.clear();
+              cancel();
+              modelRequest++;
+              importEpoch++;
+              store.set(
+                E.createWorkspaceStore({
+                  feature: "settings",
+                  tab: "general",
+                  undoData: before,
+                  persistenceReady: true,
+                  persistenceReadOnly: false,
+                  persistenceExtensions: {},
+                  sharedContactId: "",
+                  persistenceStatus: "",
+                  status: ""
+                }).getSnapshot()
+              );
+            } catch (error) {
+              set({ persistenceStatus: "", status: "清除失败：" + (error.message || "请重试。") });
+            }
+          };
+          const dates = preview?.state.contacts.flatMap((c) => c.messages.map((m) => formatChatDayKey(m.timestamp))).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort() || [];
+          return box(
+            "通用设置",
+            h(SelfProfileEditor, { s }),
+            h("h3", null, "DSH 主对话读取档案"),
+            h(ShareScopeView, {
+              contact: selected2(s),
+              scope: s.shareScope || {},
+              onApply: (scope) => set({
+                shareScope: scope,
+                sharedContactId: "",
+                profileBridgeStatus: "读取范围已保存；请按新范围重新开启授权。"
+              })
+            }),
+            h(
+              "label",
+              null,
+              h("input", {
+                type: "checkbox",
+                checked: Boolean(s.sharedContactId && s.sharedContactId === s.selectedId),
+                disabled: !s.selectedId,
+                onChange: (e) => set({
+                  sharedContactId: e.target.checked ? s.selectedId : "",
+                  profileBridgeStatus: e.target.checked ? "正在连接当前联系人…" : "已关闭 DSH 读取。"
+                })
+              }),
+              "允许 DSH 读取当前联系人"
+            ),
+            muted(
+              "开启期间 DSH 工具可读取当前联系人的已确认资料和最近最多 500 条消息，会随模型调用发送给所选模型服务。切换联系人或关闭后停止共享；模型新增资料需你确认。"
+            ),
+            s.profileBridgeStatus && h("p", { role: "status" }, s.profileBridgeStatus),
+            h(
+              "details",
+              { className: "rn-session-details" },
+              h("summary", null, "回复设置与模型授权"),
+              s.modelBusy ? muted("正在读取 DSH 模型…") : muted(
+                s.provider && s.model ? `当前模型：${provider?.name || s.provider} / ${modelOptions.find((option) => option[0] === s.model)?.[1] || s.model}` : "尚未选定可用模型。"
+              ),
+              s.modelError && h("p", { className: "rn-error", role: "alert" }, s.modelError),
+              h(
+                "details",
+                { className: "rn-session-details" },
+                h("summary", null, "选择其他模型"),
+                h(
+                  "div",
+                  { className: "rn-form" },
+                  select(
+                    "服务商",
+                    s.provider,
+                    [["", "请选择服务商"], ...s.models.map((p) => [p.id, p.name || p.id])],
+                    (value) => set({ provider: value, model: "", modelOverride: true }),
+                    { disabled: s.replyBusy || s.modelBusy }
+                  ),
+                  modelOptions.length ? select(
+                    "模型",
+                    s.model,
+                    [["", "请选择模型"], ...modelOptions],
+                    (value) => set({ model: value, modelOverride: true }),
+                    { disabled: !s.provider || s.replyBusy || s.modelBusy }
+                  ) : h(
+                    "label",
+                    null,
+                    "模型 ID",
+                    h("input", {
+                      value: s.model,
+                      onChange: (e) => set({ model: e.target.value, modelOverride: true }),
+                      placeholder: "输入该服务商已配置的模型 ID",
+                      disabled: !s.provider || s.replyBusy || s.modelBusy
+                    }),
+                    muted("当前服务商没有返回模型清单；可输入模型 ID，或点击下方重新读取。")
+                  ),
+                  button("重新读取 DSH 模型", models, { disabled: s.modelBusy || s.replyBusy })
+                )
+              ),
+              s.replyBusy && button("取消生成", () => {
+                cancel();
+                set({ replyBusy: false, status: "已取消生成，保留现有草稿。" });
+              })
+            ),
+            h("h3", null, "显示设置"),
+            h(
+              "div",
+              { className: "rn-form" },
+              select(
+                "聊天字号",
+                String(s.displayFontSize || 13),
+                [
+                  ["13", "标准"],
+                  ["15", "较大"],
+                  ["17", "大字"]
+                ],
+                (value) => set({ displayFontSize: Number(value) })
+              ),
+              select(
+                "聊天密度",
+                s.displayDensity || "comfortable",
+                [
+                  ["comfortable", "舒适"],
+                  ["compact", "紧凑"]
+                ],
+                (displayDensity) => set({ displayDensity })
+              ),
+              select(
+                "展示图片",
+                s.photoFit || "cover",
+                [
+                  ["cover", "填满区域"],
+                  ["contain", "完整显示"]
+                ],
+                (photoFit) => set({ photoFit })
+              )
+            ),
+            h("h3", null, "备份与恢复"),
+            h(
+              "label",
+              null,
+              h("input", {
+                type: "checkbox",
+                checked: includeBackupMedia,
+                onChange: (e) => setIncludeBackupMedia(e.target.checked)
+              }),
+              "备份包含头像、图片、语音和视频副本"
+            ),
+            muted(
+              includeBackupMedia ? "完整备份包含聊天及媒体副本，请妥善保管。" : "仅导出聊天、档案和设置；保留附件信息，不包含媒体文件副本。"
+            ),
+            h(
+              "div",
+              { className: "rn-actions" },
+              button(backupBusy ? "处理中…" : "导出完整项目", exportBackup, { disabled: backupBusy }),
+              button("选择备份文件", () => restoreInput.current?.click(), { disabled: backupBusy }),
+              h("input", {
+                ref: restoreInput,
+                type: "file",
+                accept: ".json,application/json",
+                style: { display: "none" },
+                "aria-label": "选择项目备份",
+                onChange: (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  readBackup(file);
+                }
+              }),
+              s.undoRestore && button("撤销本次恢复", () => {
+                set({
+                  ...s.undoRestore,
+                  evidenceContext: null,
+                  sharedContactId: "",
+                  undoRestore: null,
+                  status: "已恢复到导入备份前的数据。"
+                });
+              })
+            ),
+            preview && h(
+              "section",
+              { className: "rn-message" },
+              h("h3", null, "备份预览"),
+              h("p", null, preview.fileName),
+              h(
+                "p",
+                null,
+                `${preview.state.contacts.length} 位联系人 · ${preview.state.contacts.reduce((sum, c) => sum + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${preview.state.goals.length} 条行动计划`
+              ),
+              h("p", null, "联系人：" + preview.state.contacts.map((c) => c.target).join("、")),
+              dates.length > 0 && h("p", null, dates[0] + " 至 " + dates.at(-1)),
+              h(
+                "div",
+                { className: "rn-actions" },
+                button("恢复此备份", restoreBackup, { className: "primary", disabled: backupBusy }),
+                button("取消", () => setPreview(null))
+              )
+            ),
+            backupError && h("p", { className: "rn-error", role: "alert" }, backupError),
+            h("h3", null, "导入记录"),
+            ...(s.importHistory || []).slice().reverse().map(
+              (entry2, i) => h(
+                "p",
+                { key: i },
+                new Date(entry2.at).toLocaleString() + " · " + entry2.name + " · 新增 " + entry2.added + " 条"
+              )
+            ),
+            s.undoImportContacts && button(
+              "撤销最近一次导入",
+              () => set({ contacts: s.undoImportContacts, undoImportContacts: null, status: "已撤销最近一次导入。" })
+            ),
+            h("h3", null, "当前数据"),
+            h(
+              "p",
+              null,
+              `${s.contacts.length} 位联系人 · ${s.contacts.reduce((n, c) => n + c.messages.length, 0).toLocaleString()} 条聊天记录 · ${s.goals.length} 条行动计划`
+            ),
+            h(
+              "div",
+              { className: "rn-actions" },
+              button("清除已保存数据", clearLocalData),
+              s.undoData && button(
+                "撤销清除",
+                () => {
+                  const before = s.undoData;
+                  set({
+                    ...before,
+                    evidenceContext: null,
+                    sharedContactId: "",
+                    undoData: null,
+                    status: "已恢复清除前的数据。",
+                    persistenceReady: true,
+                    persistenceStatus: "",
+                    replyBusy: false,
+                    modelBusy: false,
+                    importBusy: false
+                  });
+                },
+                { className: "primary" }
+              )
+            )
+          );
+        }
+        function TabStrip({ label, items, selected: selected3, onSelect, className }) {
+          const ref2 = React2.useRef(null);
+          const onKeyDown = (e) => {
+            const index = items.findIndex((item) => item[0] === selected3);
+            let next;
+            if (e.key === "ArrowRight") next = (index + 1) % items.length;
+            if (e.key === "ArrowLeft") next = (index + items.length - 1) % items.length;
+            if (e.key === "Home") next = 0;
+            if (e.key === "End") next = items.length - 1;
+            if (next !== void 0) {
+              e.preventDefault();
+              onSelect(items[next][0], true);
+              ref2.current?.querySelectorAll("button")[next]?.focus();
+            }
+          };
+          return h(
+            "div",
+            { className: "rn-tabs " + className, role: "tablist", "aria-label": label, ref: ref2, onKeyDown },
+            ...items.map(
+              ([key, text, icon]) => button(
+                icon ? h(React2.Fragment, null, h(Icon, { name: icon, size: 20 }), h("span", null, text)) : text,
+                () => onSelect(key, false),
+                {
+                  key,
+                  role: "tab",
+                  id: "rn-tab-" + className + "-" + key,
+                  "aria-controls": "rn-panel",
+                  "aria-selected": selected3 === key,
+                  tabIndex: selected3 === key ? 0 : -1
+                }
+              )
+            )
+          );
+        }
+        function SettingsMenu() {
+          const detailsRef = React2.useRef(null), summaryRef = React2.useRef(null), [open, setOpen] = React2.useState(false);
+          const close = (restoreFocus) => {
+            const details = detailsRef.current;
+            if (details) details.open = false;
+            setOpen(false);
+            if (restoreFocus) summaryRef.current?.focus();
+          };
+          React2.useEffect(() => {
+            if (!open) return;
+            const details = detailsRef.current;
+            details?.querySelector("button")?.focus();
+            const onKeyDown = (event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                close(true);
+              }
+            };
+            const onPointerDown = (event) => {
+              if (!details?.contains(event.target)) close(false);
+            };
+            document.addEventListener("keydown", onKeyDown);
+            document.addEventListener("pointerdown", onPointerDown);
+            return () => {
+              document.removeEventListener("keydown", onKeyDown);
+              document.removeEventListener("pointerdown", onPointerDown);
+            };
+          }, [open]);
+          return h(
+            "details",
+            {
+              className: "rn-settings-menu",
+              ref: detailsRef,
+              onToggle: (event) => setOpen(Boolean(event.currentTarget.open))
+            },
+            h("summary", { "aria-label": "设置", title: "设置", ref: summaryRef }, "⚙"),
+            h(
+              "div",
+              { className: "rn-settings-menu-items", role: "group", "aria-label": "设置菜单" },
+              button("聊天导入", () => {
+                close(false);
+                nav("import", "file");
+              }),
+              button("通用设置", () => {
+                close(false);
+                nav("settings", "general");
+              })
+            )
+          );
+        }
+        function HeadSummary({ contact }) {
+          const info2 = React2.useMemo(() => {
+            const msgs = contact.messages || [];
+            let last = "";
+            for (let i = msgs.length - 1; i >= 0 && !last; i--) {
+              const key = formatChatDayKey(msgs[i]?.timestamp);
+              if (key !== "日期未知") last = key;
+            }
+            return { count: msgs.length, last };
+          }, [contact.messages]);
+          return h(
+            "p",
+            { className: "rn-head-sub" },
+            contact.isSample && h("span", { className: "rn-chip" }, "虚构示例"),
+            h("span", null, `${info2.count} 条消息`),
+            info2.last && h("span", null, "最近聊天 " + info2.last.slice(5))
+          );
+        }
+        const PULSE_MAX_MESSAGES = 4e4;
+        function HeadAvatar({ contact }) {
+          const data = contact.targetAvatarData || contact.targetAvatarFile, src = typeof data === "string" ? data : data ? localFileUrl(data) : "";
+          return h(
+            "span",
+            { className: "rn-identity-avatar", "aria-hidden": true },
+            src ? h("img", { src, alt: "" }) : Array.from(contact.target || "?")[0]
+          );
+        }
+        function Pulse({ contact }) {
+          const analysis = (contact.messages?.length || 0) <= PULSE_MAX_MESSAGES ? E.analyzeRelationshipCached(contact) : null;
+          if (!analysis?.current) return null;
+          const pts = analysis.points.slice(-20), W = 112, H = 30, x = (i) => pts.length < 2 ? W / 2 : 3 + i * (W - 6) / (pts.length - 1), y = (v) => H - 3 - v / 100 * (H - 6);
+          const segs = [];
+          let cur = [];
+          pts.forEach((p, i) => {
+            if (!E.isScored(p)) {
+              if (cur.length) segs.push(cur);
+              cur = [];
+            } else cur.push([x(i), y(p.index)]);
+          });
+          if (cur.length) segs.push(cur);
+          const last = pts.map((p, i) => [p, i]).filter(([p]) => E.isScored(p)).at(-1), value = Math.round(analysis.current.ewma ?? analysis.current.index);
+          return h(
+            "button",
+            {
+              type: "button",
+              className: "rn-pulse",
+              onClick: () => nav("behavior", "insight"),
+              "aria-label": `关系指数 ${value}，查看关系分析`,
+              title: "最近 20 周的关系互动指数，点击查看关系分析"
+            },
+            h(
+              "svg",
+              { className: "rn-pulse-line", width: W, height: H, viewBox: `0 0 ${W} ${H}`, "aria-hidden": true },
+              h("line", { x1: 0, x2: W, y1: y(50), y2: y(50), className: "rn-pulse-mid" }),
+              ...segs.map((seg, i) => h("polyline", { key: i, points: seg.map((p) => p.join(",")).join(" ") })),
+              last && h("circle", { cx: x(last[1]), cy: y(last[0].index), r: 3 })
+            ),
+            h(
+              "span",
+              { className: "rn-pulse-copy" },
+              h("strong", { className: "rn-num" }, value),
+              h("small", null, "关系指数")
+            )
+          );
+        }
+        function StatusToast({ text, busy, onClose }) {
+          React2.useEffect(() => {
+            if (busy || /失败|错误|无法|不能|请/.test(text)) return;
+            const timer = setTimeout(() => {
+              if (store.getSnapshot().status === text) onClose();
+            }, 6e3);
+            return () => clearTimeout(timer);
+          }, [text, busy]);
+          const error = /失败|错误|无法/.test(text);
+          return h(
+            "div",
+            { className: "rn-status rn-toast" + (error ? " rn-toast-error" : ""), role: "status", "aria-live": "polite" },
+            h("span", null, text),
+            h("button", { type: "button", onClick: onClose, "aria-label": "关闭提示", title: "关闭" }, "×")
+          );
+        }
+        function NativePanelIcon({ size = 20 }) {
+          return h(
+            "svg",
+            {
+              width: size,
+              height: size,
+              viewBox: "0 0 24 24",
+              fill: "none",
+              stroke: "currentColor",
+              strokeWidth: 1.6,
+              strokeLinecap: "round",
+              strokeLinejoin: "round",
+              "aria-hidden": true
+            },
+            h("path", { d: "M5 4.5h10.5a3 3 0 0 1 3 3V19.5H8a3 3 0 0 1-3-3z" }),
+            h("path", { d: "M5 16.5a3 3 0 0 1 3-3h10.5" }),
+            h("path", {
+              d: "M11.8 10.6c-.9-.9-2.6-.4-2.6 1 0 1.3 2.6 2.6 2.6 2.6s2.6-1.3 2.6-2.6c0-1.4-1.7-1.9-2.6-1z",
+              fill: "currentColor",
+              stroke: "none"
+            })
+          );
+        }
+        function NativePanel() {
+          return h(
+            "div",
+            { className: "rn-native-panel", style: { height: "100%", minHeight: 0, overflow: "hidden" } },
+            h(Page, {})
+          );
+        }
+        function mountWorkspace(ctx2, { entry: entry2, label, namespace }) {
+          const PANEL_ID = "relationship-notes";
+          const hasService = (name) => {
+            try {
+              return Boolean(typeof ctx2.get === "function" && ctx2.get(name));
+            } catch {
+              return false;
+            }
+          };
+          if (typeof ctx2.inject !== "function") {
+            if (ctx2.subdsh) ctx2.effect(() => ctx2.subdsh.register(entry2), "local-relationship-notes: module");
+            return;
+          }
+          let fallback = null;
+          ctx2.inject(["subdsh"], (sub) => {
+            try {
+              fallback?.dispose?.();
+            } catch {
+            }
+            fallback = null;
+            sub.effect(() => sub.subdsh.register(entry2), "local-relationship-notes: module");
+          });
           if (hasService("subdsh")) return;
-          ui.effect(function* () {
-            yield ui.slots.inject("main", () => ui.slots.register({ name: "main", key: PANEL_ID, locale: namespace }, NativePanel));
-            yield ui.slots.inject("sidebar.panellist", () => ui.slots.register({ name: "sidebar.panellist", id: PANEL_ID, order: 30, locale: namespace, label }, NativePanelIcon));
-          }, "local-relationship-notes: native panel");
-        });
+          fallback = ctx2.inject(["slots"], (ui) => {
+            if (hasService("subdsh")) return;
+            ui.effect(function* () {
+              yield ui.slots.inject(
+                "main",
+                () => ui.slots.register({ name: "main", key: PANEL_ID, locale: namespace }, NativePanel)
+              );
+              yield ui.slots.inject(
+                "sidebar.panellist",
+                () => ui.slots.register(
+                  { name: "sidebar.panellist", id: PANEL_ID, order: 30, locale: namespace, label },
+                  NativePanelIcon
+                )
+              );
+            }, "local-relationship-notes: native panel");
+          });
+        }
+        function Page() {
+          const s = useState(), contact = selected2(s), route = E.resolveNavigation(s.feature, s.tab), n = route.item, panelRef = React2.useRef(null), focusMode = React2.useRef("panel"), firstRender = React2.useRef(true), firstMotion = React2.useRef(true);
+          React2.useEffect(() => {
+            if (firstMotion.current) {
+              firstMotion.current = false;
+              return;
+            }
+            const node = panelRef.current;
+            if (!node?.animate || typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)
+              return;
+            node.animate(
+              [
+                { opacity: 0, transform: "translateY(6px)" },
+                { opacity: 1, transform: "none" }
+              ],
+              { duration: 220, easing: "cubic-bezier(.2,.7,.2,1)" }
+            );
+          }, [route.group.id, n.id, route.tab]);
+          React2.useEffect(() => {
+            if (n.id === "replies" || n.id === "behavior" && route.tab === "insight") models();
+          }, [n.id, route.tab]);
+          React2.useEffect(() => {
+            if (firstRender.current) {
+              firstRender.current = false;
+              return;
+            }
+            const mode = focusMode.current;
+            focusMode.current = "panel";
+            if (mode === "none") return;
+            const tab = mode === "context" && typeof document !== "undefined" ? document.getElementById("rn-tab-rn-context-tabs-" + n.id + "__" + route.tab) : mode === "group" && typeof document !== "undefined" ? document.getElementById("rn-tab-rn-group-tabs-" + route.group.id) : null;
+            if (tab && typeof tab.focus === "function") tab.focus({ preventScroll: true });
+            else if (mode === "panel") panelRef.current?.focus?.({ preventScroll: true });
+          }, [route.group.id, n.id, route.tab]);
+          const sourceEnabled = n.id === "behavior" && route.tab !== "insight", sourceChoice = s.recordSource || "all", sourceCounts = contact ? {
+            qq: contact.messages.filter((m) => channelOf(m) === "qq").length,
+            wechat: contact.messages.filter((m) => channelOf(m) !== "qq").length
+          } : { qq: 0, wechat: 0 }, shownContact = contact && sourceEnabled && sourceChoice !== "all" ? {
+            ...contact,
+            messages: contact.messages.filter((m) => channelOf(m) === sourceChoice),
+            pairCount: contact.messages.filter(
+              (m) => channelOf(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)
+            ).length,
+            timelineAnalysis: {}
+          } : contact;
+          let content;
+          if (n.id === "import") content = h(ImportView, { s, contact, tab: route.tab });
+          if (n.id === "profile") content = h(Profile, { s, contact: shownContact, tab: route.tab });
+          if (n.id === "behavior") content = h(Behavior, { s, contact: shownContact, tab: route.tab });
+          if (n.id === "goals") content = h(Goals, { s, contact, tab: route.tab });
+          if (n.id === "replies") content = h(Replies, { s, contact, tab: route.tab });
+          if (n.id === "settings") content = h(Settings, { s, tab: route.tab });
+          const groupItems = E.NAVIGATION.map((group) => [group.id, group.label, group.id]), contextItems = E.groupTabs(route.group).map((tab) => [tab.key, tab.label]), selectedContextKey = n.id + "__" + route.tab;
+          return h(
+            "main",
+            {
+              className: "rnw",
+              style: {
+                "--rn-font": (s.displayFontSize || 13) + "px",
+                "--rn-gap": s.displayDensity === "compact" ? "8px" : "14px"
+              }
+            },
+            h("style", null, hostCss),
+            h(
+              "header",
+              { className: "rn-head" },
+              h(
+                "div",
+                { className: "rn-identity-strip" },
+                contact ? h(HeadAvatar, { contact }) : h(
+                  "span",
+                  { className: "rn-identity-avatar brand", "aria-hidden": true },
+                  h(Icon, { name: "book", size: 22 })
+                ),
+                h(
+                  "div",
+                  { className: "rn-identity" },
+                  h("div", { className: "rn-breadcrumb" }, "关系手记 / " + route.group.label),
+                  h("strong", { className: "rn-identity-name" }, contact ? contact.target : "关系手记"),
+                  contact ? h(HeadSummary, { contact }) : h("p", { className: "rn-head-sub" }, h("span", null, "导入一段聊天，开始记录你们的关系"))
+                )
+              ),
+              h(
+                "div",
+                { className: "rn-head-tools" },
+                contact && h(Pulse, { contact }),
+                !s.contacts.length && button(
+                  h(React2.Fragment, null, h(Icon, { name: "import", size: 18 }), "导入聊天"),
+                  () => nav("import", "file"),
+                  { className: "primary" }
+                ),
+                s.contacts.length > 1 ? select(
+                  "切换联系人",
+                  s.selectedId,
+                  [["", "请选择联系人"], ...s.contacts.map((c) => [c.id, c.target + (c.isSample ? "（示例）" : "")])],
+                  chooseContact,
+                  {}
+                ) : null,
+                h(SettingsMenu, {})
+              )
+            ),
+            h(TabStrip, {
+              label: "主导航",
+              items: groupItems,
+              selected: route.group.id,
+              onSelect: (key, fromKeyboard) => {
+                const group = E.NAVIGATION.find((item) => item.id === key), first = group?.items.find((item) => !item.hidden);
+                if (first) {
+                  focusMode.current = fromKeyboard ? "group" : "none";
+                  nav(first.id, first.tabs[0][0]);
+                }
+              },
+              className: "rn-group-tabs"
+            }),
+            h("div", { className: "rn-page-head" }, h("h1", null, n.label)),
+            contextItems.length > 1 && h(TabStrip, {
+              label: route.group.label + "页面",
+              items: contextItems,
+              selected: selectedContextKey,
+              onSelect: (key, fromKeyboard) => {
+                const [feature, tab] = key.split("__");
+                focusMode.current = fromKeyboard ? "context" : "none";
+                nav(feature, tab);
+              },
+              className: "rn-context-tabs"
+            }),
+            h(
+              "div",
+              {
+                id: "rn-panel",
+                ref: panelRef,
+                tabIndex: -1,
+                style: { width: "100%", minWidth: 0, maxWidth: "none" },
+                role: "tabpanel",
+                "aria-label": n.label
+              },
+              !s.contacts.length && route.item.id === "profile" && route.tab === "basic" && h(StartGuide, {}),
+              sourceEnabled && contact && h(
+                "div",
+                {
+                  className: "rn-actions rn-source-filter",
+                  role: "group",
+                  "aria-label": "记录来源",
+                  style: { marginBottom: 16 }
+                },
+                ...["all", "wechat", "qq"].map(
+                  (key) => button(
+                    key === "all" ? `全部 ${contact.messages.length} 条` : key === "qq" ? `QQ ${sourceCounts.qq} 条` : `微信 ${sourceCounts.wechat} 条`,
+                    () => set({ recordSource: key }),
+                    {
+                      key,
+                      "aria-pressed": sourceChoice === key,
+                      disabled: key !== "all" && sourceChoice !== key && !sourceCounts[key],
+                      title: key !== "all" && !sourceCounts[key] ? "该来源暂无记录" : void 0
+                    }
+                  )
+                )
+              ),
+              !(!s.contacts.length && route.item.id === "profile" && route.tab === "basic") && content
+            ),
+            h(AutoAnalysisStatusView, {
+              contacts: s.contacts,
+              timeline: {
+                contactId: s.timelineAnalysisContact,
+                progress: s.timelineAnalysisProgress,
+                done: s.timelineAnalysisDone,
+                total: s.timelineAnalysisTotal
+              },
+              onPause: (id2) => autoAnalysisScheduler?.pause(id2),
+              onResume: (id2) => autoAnalysisScheduler?.resume(id2)
+            }),
+            s.evidenceContext && h(EvidenceContextView, {
+              contact: s.contacts.find((c) => c.id === s.evidenceContext.contactId),
+              reference: s.evidenceContext.reference,
+              onClose: () => set({ evidenceContext: null })
+            }),
+            s.status && h(StatusToast, {
+              text: s.status,
+              busy: Boolean(s.replyBusy || s.profileBusy || s.importBusy || s.modelBusy || s.timelineAnalysisContact),
+              onClose: () => set({ status: "" })
+            })
+          );
+        }
+        const entry = {
+          id: "relationship-notes",
+          label: t("nav"),
+          order: 20,
+          description: "联系人档案、行为记录与个性化回复",
+          render: Page
+        };
+        mountWorkspace(ctx, { entry, Page, label: () => t("nav"), namespace: id });
       }
-      function Page() {
-        const s = useState(), contact = selected2(s), route = E.resolveNavigation(s.feature, s.tab), n = route.item, panelRef = React2.useRef(null), focusMode = React2.useRef("panel"), firstRender = React2.useRef(true), firstMotion = React2.useRef(true);
-        React2.useEffect(() => {
-          if (firstMotion.current) {
-            firstMotion.current = false;
-            return;
-          }
-          const node = panelRef.current;
-          if (!node?.animate || typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-          node.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.7,.2,1)" });
-        }, [route.group.id, n.id, route.tab]);
-        React2.useEffect(() => {
-          if (n.id === "replies" || n.id === "behavior" && route.tab === "insight") models();
-        }, [n.id, route.tab]);
-        React2.useEffect(() => {
-          if (firstRender.current) {
-            firstRender.current = false;
-            return;
-          }
-          const mode = focusMode.current;
-          focusMode.current = "panel";
-          if (mode === "none") return;
-          const tab = mode === "context" && typeof document !== "undefined" ? document.getElementById("rn-tab-rn-context-tabs-" + n.id + "__" + route.tab) : mode === "group" && typeof document !== "undefined" ? document.getElementById("rn-tab-rn-group-tabs-" + route.group.id) : null;
-          if (tab && typeof tab.focus === "function") tab.focus({ preventScroll: true });
-          else if (mode === "panel") panelRef.current?.focus?.({ preventScroll: true });
-        }, [route.group.id, n.id, route.tab]);
-        const sourceEnabled = n.id === "behavior" && route.tab !== "insight", sourceChoice = s.recordSource || "all", sourceCounts = contact ? { qq: contact.messages.filter((m) => channelOf(m) === "qq").length, wechat: contact.messages.filter((m) => channelOf(m) !== "qq").length } : { qq: 0, wechat: 0 }, shownContact = contact && sourceEnabled && sourceChoice !== "all" ? { ...contact, messages: contact.messages.filter((m) => channelOf(m) === sourceChoice), pairCount: contact.messages.filter((m) => channelOf(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)).length, timelineAnalysis: {} } : contact;
-        let content;
-        if (n.id === "import") content = h(ImportView, { s, contact, tab: route.tab });
-        if (n.id === "profile") content = h(Profile, { s, contact: shownContact, tab: route.tab });
-        if (n.id === "behavior") content = h(Behavior, { s, contact: shownContact, tab: route.tab });
-        if (n.id === "goals") content = h(Goals, { s, contact, tab: route.tab });
-        if (n.id === "replies") content = h(Replies, { s, contact, tab: route.tab });
-        if (n.id === "settings") content = h(Settings, { s, tab: route.tab });
-        const groupItems = E.NAVIGATION.map((group) => [group.id, group.label, group.id]), contextItems = E.groupTabs(route.group).map((tab) => [tab.key, tab.label]), selectedContextKey = n.id + "__" + route.tab;
-        return h("main", { className: "rnw", style: { "--rn-font": (s.displayFontSize || 13) + "px", "--rn-gap": s.displayDensity === "compact" ? "8px" : "14px" } }, h("style", null, hostCss), h("header", { className: "rn-head" }, h("div", { className: "rn-identity-strip" }, contact ? h(HeadAvatar, { contact }) : h("span", { className: "rn-identity-avatar brand", "aria-hidden": true }, h(Icon, { name: "book", size: 22 })), h("div", { className: "rn-identity" }, h("div", { className: "rn-breadcrumb" }, "关系手记 / " + route.group.label), h("strong", { className: "rn-identity-name" }, contact ? contact.target : "关系手记"), contact ? h(HeadSummary, { contact }) : h("p", { className: "rn-head-sub" }, h("span", null, "导入一段聊天，开始记录你们的关系")))), h("div", { className: "rn-head-tools" }, contact && h(Pulse, { contact }), !s.contacts.length && button(h(React2.Fragment, null, h(Icon, { name: "import", size: 18 }), "导入聊天"), () => nav("import", "file"), { className: "primary" }), s.contacts.length > 1 ? select("切换联系人", s.selectedId, [["", "请选择联系人"], ...s.contacts.map((c) => [c.id, c.target + (c.isSample ? "（示例）" : "")])], chooseContact, {}) : null, h(SettingsMenu, {}))), h(TabStrip, { label: "主导航", items: groupItems, selected: route.group.id, onSelect: (key, fromKeyboard) => {
-          const group = E.NAVIGATION.find((item) => item.id === key), first = group?.items.find((item) => !item.hidden);
-          if (first) {
-            focusMode.current = fromKeyboard ? "group" : "none";
-            nav(first.id, first.tabs[0][0]);
-          }
-        }, className: "rn-group-tabs" }), h("div", { className: "rn-page-head" }, h("h1", null, n.label)), contextItems.length > 1 && h(TabStrip, { label: route.group.label + "页面", items: contextItems, selected: selectedContextKey, onSelect: (key, fromKeyboard) => {
-          const [feature, tab] = key.split("__");
-          focusMode.current = fromKeyboard ? "context" : "none";
-          nav(feature, tab);
-        }, className: "rn-context-tabs" }), h("div", { id: "rn-panel", ref: panelRef, tabIndex: -1, style: { width: "100%", minWidth: 0, maxWidth: "none" }, role: "tabpanel", "aria-label": n.label }, !s.contacts.length && route.item.id === "profile" && route.tab === "basic" && h(StartGuide, {}), sourceEnabled && contact && h("div", { className: "rn-actions rn-source-filter", role: "group", "aria-label": "记录来源", style: { marginBottom: 16 } }, ...["all", "wechat", "qq"].map((key) => button(key === "all" ? `全部 ${contact.messages.length} 条` : key === "qq" ? `QQ ${sourceCounts.qq} 条` : `微信 ${sourceCounts.wechat} 条`, () => set({ recordSource: key }), { key, "aria-pressed": sourceChoice === key, disabled: key !== "all" && sourceChoice !== key && !sourceCounts[key], title: key !== "all" && !sourceCounts[key] ? "该来源暂无记录" : void 0 }))), !(!s.contacts.length && route.item.id === "profile" && route.tab === "basic") && content), h(AutoAnalysisStatusView, { contacts: s.contacts, timeline: { contactId: s.timelineAnalysisContact, progress: s.timelineAnalysisProgress, done: s.timelineAnalysisDone, total: s.timelineAnalysisTotal }, onPause: (id2) => autoAnalysisScheduler?.pause(id2), onResume: (id2) => autoAnalysisScheduler?.resume(id2) }), s.evidenceContext && h(EvidenceContextView, { contact: s.contacts.find((c) => c.id === s.evidenceContext.contactId), reference: s.evidenceContext.reference, onClose: () => set({ evidenceContext: null }) }), s.status && h(StatusToast, { text: s.status, busy: Boolean(s.replyBusy || s.profileBusy || s.importBusy || s.modelBusy || s.timelineAnalysisContact), onClose: () => set({ status: "" }) }));
-      }
-      const entry = { id: "relationship-notes", label: t("nav"), order: 20, description: "联系人档案、行为记录与个性化回复", render: Page };
-      mountWorkspace(ctx, { entry, Page, label: () => t("nav"), namespace: id });
-    } };
+    };
   }
 
   // client-entry.js

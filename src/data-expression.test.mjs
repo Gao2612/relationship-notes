@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { scoreBucketState } from './workspace.js';
 import { RECOGNITION_RULES } from './views/scoring-rules.js';
 import * as E from './client-engine.js';
+import { compactSource } from './test-support/compact-source.mjs';
 // 无 DOM 的最小 React：createElement 生成树，renderToStaticMarkup 输出带 class 的文本，足以核对文案与结构。
 const React = {
   createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat(Infinity) })
@@ -24,7 +25,7 @@ const renderToStaticMarkup = node =>
           node.type +
           '>';
 
-const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
+const source = compactSource(readFileSync(new URL('./workspace.js', import.meta.url), 'utf8'));
 
 test('无记录缺口与「有记录但低分」在趋势判定上分开，低分日仍是实心点', () => {
   assert.equal(scoreBucketState({ recorded: false, averageAffinity: null }), 'gap');
@@ -40,7 +41,7 @@ test('无记录缺口与「有记录但低分」在趋势判定上分开，低�
     /const makeBucket=label=>\(\{label,self:0,target:0,messages:0,scoreTotal:0,scoreDays:0,averageAffinity:null,recorded:false\}\)/
   );
   assert.match(source, /bucket\.recorded=bucket\.messages>0;return bucket;\}\);/);
-  assert.match(source, /gapIndexes=buckets\.map\(\(bucket,index\)=>bucket\.averageAffinity===null\?index:-1\)/);
+  assert.match(source, /gapIndexes=buckets\.map\(\(bucket,index\)=>\(?bucket\.averageAffinity===null\?index:-1\)?\)/);
   assert.match(source, /strokeDasharray:'2 2'/, '缺口用空心虚线点，不落在分数线的连续实线上');
   assert.match(source, /实心点与实线：已评分时段的关系指数，低分同样是实线/);
   assert.match(source, /缺口 = 该时段没有聊天记录，不代表分数下降。/);
@@ -54,18 +55,7 @@ test('日历把无记录日画成虚线空心格，有记录的低分日保留�
   assert.match(source, /缺口=无记录，不代表分数下降/);
 });
 
-test('三个图表都带 role=img 与可读标签，数据表兜底保留', () => {
-  const openings = source.match(/h\('svg',\{className:'rn-annual-chart'[^}]*\}/g) || [];
-  assert.equal(openings.length, 3, '每日历程仍是 3 张图');
-  for (const opening of openings) {
-    assert.match(opening, /role:'img'/);
-    assert.match(opening, /'aria-label':/);
-    assert.match(opening, /'aria-labelledby':'rn-(?:score|bar|pie)-chart-title rn-(?:score|bar|pie)-chart-desc'/);
-  }
-  assert.equal((source.match(/h\('title',\{id:'rn-(?:score|bar|pie)-chart-title'\}/g) || []).length, 3);
-  assert.equal((source.match(/h\('desc',\{id:'rn-(?:score|bar|pie)-chart-desc'\}/g) || []).length, 3);
-  assert.match(source, /查看完整数据表（'\+buckets\.length\+' 行）/);
-});
+// 三张图的 role=img / aria-labelledby / <title> / <desc> 与完整数据表行数见 workspace-dom-behavior.test.mjs。
 
 test('评分规则页展示 v3 公式：数值取自模型常量，不另写一份数字', () => {
   const Rules = E.createScoringRulesView(React, E),
@@ -113,7 +103,7 @@ test('关系指数与互动均衡分各带口径说明，并声明不是同一�
 });
 
 test('每日历程首屏只留主趋势图与关键数字，日历和其余图表默认收起', () => {
-  assert.match(source, /const \[moreOpen,setMoreOpen\]=React\.useState\(false\);/);
+  assert.match(source, /const\[moreOpen,setMoreOpen\]=React\.useState\(false\);/);
   assert.match(source, /const buildAnnualPanel=\(\)=>box\('关系指数与互动趋势'/);
   const panel = source.slice(source.indexOf("const buildAnnualPanel=()=>box('关系指数与互动趋势'"));
   const fold = panel.indexOf("h('details',{className:'rn-more',open:moreOpen,onToggle:");

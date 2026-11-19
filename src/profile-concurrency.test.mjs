@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as lifecycle from './profile-lifecycle.js';
-const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8'),
-  functions = source.slice(source.indexOf('  async function analyzeProfile('), source.indexOf('  function Profile('));
+import { compactSource } from './test-support/compact-source.mjs';
+const source = compactSource(readFileSync(new URL('./workspace.js', import.meta.url), 'utf8')),
+  functions = source.slice(source.indexOf('async function analyzeProfile('), source.indexOf('function Profile('));
 test('profile extraction ignores a response after switching contacts or replacing the same-contact messages', async () => {
   for (const mutate of [
     state => ({ ...state, selectedId: 'other' }),

@@ -7,11 +7,12 @@ import * as selfProfile from './self-profile.js';
 import * as messageIdentity from './message-identity.js';
 import * as persistence from './persistence-schema.js';
 import { PERSISTED_KEYS as persistedKeys } from './workspace-persistence.js';
+import { compactSource } from './test-support/compact-source.mjs';
 
-const source = fs.readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
+const source = compactSource(fs.readFileSync(new URL('./workspace.js', import.meta.url), 'utf8'));
 const settingsSource =
   'const ShareScopeView=()=>null,SelfPlanView=()=>null,selected=s=>s.contacts.find(c=>c.id===s.selectedId);' +
-  source.slice(source.indexOf('function SelfProfileEditor({s})'), source.indexOf('  function TabStrip'));
+  source.slice(source.indexOf('function SelfProfileEditor({s})'), source.indexOf('function TabStrip'));
 const E = { ...engine, ...navigation, ...selfProfile, ...persistence, ...messageIdentity };
 function harness(initial = {}) {
   let state = { ...E.createWorkspaceStore().getSnapshot(), models: [], ...initial },

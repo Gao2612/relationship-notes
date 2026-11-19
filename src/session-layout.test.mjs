@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { sessionPaneLayout, SESSION_BREAKPOINTS } from './session-layout.js';
 import { css } from './workspace.js';
+import { compactSource } from './test-support/compact-source.mjs';
 
-const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
+const source = compactSource(readFileSync(new URL('./workspace.js', import.meta.url), 'utf8'));
 
 test('wide layout: list and tools are inline and the buttons mirror the user toggles', () => {
   assert.deepEqual(sessionPaneLayout(1200), {
@@ -61,8 +62,8 @@ test('breakpoints stay in sync with the container queries in the stylesheet', ()
   assert.match(css, /\.list-open \.rn-session-list-pane\{display:block!important/);
 });
 
+// 「☰ 列表」的 aria-pressed / aria-expanded 随实际可见性翻转见 workspace-dom-behavior.test.mjs。
 test('session toolbar buttons are driven by actual visibility, not by stored toggles', () => {
-  assert.match(source, /button\('☰ 列表',toggleList,\{'aria-pressed':layout\.listVisible/);
   assert.match(
     source,
     /button\(layout\.toolsVisible\?'收起工具':'工具',toggleTools,\{'aria-pressed':layout\.toolsVisible/

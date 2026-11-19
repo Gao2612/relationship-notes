@@ -1,6 +1,3 @@
 node_modules/
 client.js
 docs/
-# src/workspace.js 有大量按源码文本断言的测试（workspace.rendering / data-expression 等），
-# 格式化前需先把这些断言改为行为测试，见 docs/ARCHITECTURE.md。
-src/workspace.js
