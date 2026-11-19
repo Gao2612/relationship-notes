@@ -23,7 +23,7 @@ export * from './views/share-scope.js';
 export * from './views/self-plans.js';
 export * from './views/scoring-basis.js';
 export * from './views/scoring-rules.js';
-export {engagementSignals} from './interaction-signals.js';
+export { engagementSignals } from './interaction-signals.js';
 export * from './topic-feedback.js';
 export * from './reply-feedback.js';
 export * from './period-review.js';

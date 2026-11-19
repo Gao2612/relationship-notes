@@ -19,10 +19,16 @@
 2. 或在该功能未启用时跳过 media list 轮询；
 3. 若用户不关心语音输入，可在 DSH 设置中关闭该实验功能以消除刷屏。
 
-## 未启用自动化 DOM 回归（见交付说明 not_done）
+## 真实 DOM 冒烟测试（2026-11-19 已解决）
 
-`package.json` 只有 `esbuild` 与 `pdfjs-dist` 两个 devDependency，`node_modules` 中没有 jsdom / happy-dom，且本次任务禁止联网安装依赖，因此没有加入“真实 DOM 冒烟测试”。现有回归仍为源码断言 + 纯模块单测（`verify-v3.mjs`，38 个测试文件）。恢复网络后的建议方案：
+此前因无法联网安装 jsdom，回归只有源码断言与纯模块单测。现已加入 `workspace-dom.test.mjs`：devDependencies 新增 `jsdom`、`react`/`react-dom`（18.3.1，与宿主 React 运行时同为 18）和 `fake-indexeddb`，在 jsdom 中用真实 React 渲染构建产物 `client.js`，依次验证：
 
-1. 在 devDependencies 增加 `jsdom`（或 `happy-dom`），`pnpm install` 写入 lockfile；
-2. 新增 `src/workspace.dom.test.mjs`：用 jsdom 提供 `window`/`document`/`indexedDB` 桩，注入最小 `React`（可直接用已打包的 `react` 运行时或手写 `createElement`），断言首屏渲染出 `#rn-panel`、切换到“互动评分”后出现评分节点、切到“设置”后出现备份按钮；
-3. 该测试只覆盖渲染装配，不替代现有行为断言。
+1. 首屏引导渲染出 `.rnw` 工作区；
+2. 载入内置虚构示例 → 选择双方身份 → 导入完成；
+3. 联系人、记录与评分（关系分析 / 每日历程 / 互动评分 / 打分依据 / 周月复盘 / 记录列表 / 评分规则）、沟通（会话 / 当前目标 / 进展记录）、设置共 13 个页面均渲染出各自的关键内容；
+4. 关闭后在新的页面实例中从 IndexedDB 恢复联系人；
+5. 全程没有 React / 控制台错误。
+
+测试不发网络请求（`fetch` 固定返回本地 404），只覆盖渲染装配与主流程，不替代现有行为断言。运行前需 `pnpm install`。
+
+仍未覆盖：`src/workspace.js` 的大量源码文本断言（`workspace.rendering.test.mjs` 等）使该文件暂不能自动格式化，已列入 `.prettierignore`；把这些断言逐步改写为基于本 DOM 测试的行为断言后，即可移除该例外。

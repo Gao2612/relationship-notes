@@ -118,7 +118,7 @@ node tools/package-release.mjs --out <新的输出目录> --dry-run
 node tools/package-release.mjs --out <新的输出目录>
 ```
 
-打包工具使用 Windows PowerShell 与 .NET 压缩库。它按发布文件清单选取内容，排除依赖、测试与历史归档，生成 ZIP、SHA256 和逐文件清单。已有同名输出会拒绝覆盖，源码晚于客户端产物时需先重新构建。
+打包工具只用 Node.js 内置模块写 ZIP，Windows、macOS 与 Linux 均可运行。它按发布文件清单选取内容，排除依赖、测试与历史归档，生成 ZIP、SHA256 和逐文件清单。已有同名输出会拒绝覆盖，源码晚于客户端产物时需先重新构建。
 
 ## 使用
 

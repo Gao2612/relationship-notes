@@ -1,6 +1,6 @@
 # 维护边界
 
-更新：2026-11-01。
+更新：2026-11-19。
 
 ## 运行链路
 
@@ -30,7 +30,7 @@
 | `src/workspace-media.js` | objectURL 注册表（每 File 一个 URL）、媒体类型判定、导出的下载 URL 回收 | 无内部依赖 |
 | `src/host-api.js` | 宿主请求适配：API 前缀、JSON POST 报文、keepalive 标志 | 无内部依赖 |
 
-拆分后 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节。每个模块抽取后均单独跑过 `verify-v3.mjs`（38 个测试文件全绿）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
+拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB（2026-11-19，54 个测试文件）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
 
 ## 遗留文件归档
 
@@ -45,6 +45,8 @@
 
 2026-11-05 二次归档：根目录历史备份移入 `docs/archive/backups/`（`reply-service.js.before-timeline-fix`、`src/*.before-*`），复审查阅日志移入 `docs/archive/reviews/`（`REVIEW-*.md`），验证日志移入 `docs/archive/logs/`（`*.log`）；设计文档（`CAPTURE-RESEARCH.md`、`FEATURES-3.2.md`、`IMPLEMENTATION-ROADMAP.md`、`IMPORT-QUEUE-DECISION.md`、`MESSAGE-IDENTITY.md`、`PERSISTENCE-MIGRATION.md`、`PROFILE-TOOLS.md`、`THIRD-PARTY-EVALUATION.md`）移入 `docs/`。根目录只保留运行所需文件、测试入口、许可证与 README/CHANGELOG/package/build。
 
+2026-11-19 三次清理：删除与 `docs/archive/backups/` 内容相同的 `src/workspace.js.before-timeline-fix`，以及与 `locale/*.json` 内容相同、无引用的 `locale/locale/` 嵌套目录；v2.3 公式图 `好感线索分-数学公式.jpg` 移入 `docs/archive/images/`（仅作历史参考，当前公式见 [AFFINITY-V3](AFFINITY-V3.md)）。
+
 ## 一次性迁移工具
 
 旧 `port-engine.mjs` 已移至 `tools/port-engine.mjs`。默认运行直接退出，`--help` 只显示说明。只有显式 `--overwrite` 才考虑执行，且必须同时满足批准原型和当前 engine 的 SHA256 基线。已有手改、缺失原型或基线变化都会中止；不得通过随意更新哈希绕过保护。
@@ -53,10 +55,10 @@
 
 ## 检查与发布
 
-当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
+当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`（含真实 DOM 冒烟测试 `workspace-dom.test.mjs`，需先 `pnpm install`）。源码格式由 Prettier 统一（`pnpm run format` / `format:check`，配置见 `.prettierrc.json`）；`src/workspace.js` 因源码文本断言暂列入 `.prettierignore`。GitHub Actions（`.github/workflows/ci.yml`）在每次推送与 PR 上运行格式检查、构建一致性检查（重新构建后 `client.js` 与 `locale/*.json` 不得有差异）、全部测试和打包预览。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
 
 发布源码与安装产物应来自同一版本；GitHub 源码不得含真实聊天、本人样例、媒体、备份、凭据及本机日志。归档仅用于保留历史来源，安装包应按 `package.json.files` 的明确清单分发，不把归档当可执行入口。
 
-冻结源码并构建/验证后，可运行 `node tools/package-release.mjs --out <新的交付目录>`。工具按package.files匹配运行文件，并附带package、README、许可证和Markdown说明，排除依赖与历史归档；生成ZIP、SHA256和逐文件清单。已有同名ZIP时拒绝覆盖，源码时间晚于client时要求重新构建。可先加 `--dry-run` 审查文件清单。打包工具依赖Windows PowerShell/.NET压缩库，不是客户端运行依赖。
+冻结源码并构建/验证后，可运行 `node tools/package-release.mjs --out <新的交付目录>`。工具按package.files匹配运行文件，并附带package、README、许可证和Markdown说明，排除依赖与历史归档；生成ZIP、SHA256和逐文件清单。已有同名ZIP时拒绝覆盖，源码时间晚于client时要求重新构建。可先加 `--dry-run` 审查文件清单。打包工具只用 Node.js 内置 `zlib` 写 ZIP（2026-11-19 起不再依赖 Windows PowerShell/.NET），跨平台可用，不是客户端运行依赖。
 
 共享预览由纯模块 `src/share-scope.js` 处理：可选择包含首尾日期的上海时区范围和1–500条上限，日期筛选时排除未知时间，单条仍裁为2000字符；预览不包含消息正文。`createProfileBridgeSnapshot(contact,options)`采用相同范围，默认维持最近500条。日期范围仅作用于聊天消息，当前有效且已确认的档案事实另行共享；界面应明确显示这个区别。
