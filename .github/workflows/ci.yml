@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format check
+        run: pnpm run format:check
+      - name: Build
+        run: pnpm run build
+      - name: client.js and locales match sources
+        run: git diff --exit-code -- client.js locale PDFJS-LICENSE.md
+      - name: Tests
+        run: pnpm test
+      - name: Release package (dry run)
+        run: node tools/package-release.mjs --out "$RUNNER_TEMP/release" --dry-run

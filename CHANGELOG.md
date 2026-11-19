@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — 2026-11-19（工程维护：清理、格式化、跨平台打包、DOM 测试与 CI）
+
+- 清理：删除与归档内容相同的 `src/workspace.js.before-timeline-fix`、无引用的 `locale/locale/` 嵌套目录；v2.3 公式图移入 `docs/archive/images/`。
+- 格式化：引入 Prettier（`.prettierrc.json`，`pnpm run format` / `format:check`），统一格式化源码与测试；纯格式变更，重新构建的 `client.js` 压缩后与此前产物一致。`src/workspace.js` 因源码文本断言暂不格式化。
+- 打包：`tools/package-release.mjs` 改用 Node 内置 `zlib` 写 ZIP，不再依赖 Windows PowerShell/.NET，三平台通用；测试改为跨平台的 ZIP 回读与 CRC 校验。
+- 测试：新增真实 DOM 冒烟测试 `workspace-dom.test.mjs`（jsdom + React 18 + fake-indexeddb），覆盖示例导入、13 个页面渲染与 IndexedDB 恢复（55 个文件 / 370 项）。
+- CI：新增 GitHub Actions，运行格式检查、构建一致性检查、全部测试与打包预览。
+- 文档：`docs/ARCHITECTURE.md`、`docs/KNOWN-ISSUES.md` 更新过时的数字与说明；三语 README 更新打包工具说明。
+
 ## Unreleased — 2026-11-17（正式采用关系分析 v3）
 
 - 评分统一为关系分析 v3：每日历程（日历、日/月/年趋势图、数据表）、互动评分、打分依据、评分规则、关系阶段、统计页与回复/每日总结的模型载荷都改用 v3 公式。

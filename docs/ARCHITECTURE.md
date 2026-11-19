@@ -55,7 +55,7 @@
 
 ## 检查与发布
 
-当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
+当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`（含真实 DOM 冒烟测试 `workspace-dom.test.mjs`，需先 `pnpm install`）。源码格式由 Prettier 统一（`pnpm run format` / `format:check`，配置见 `.prettierrc.json`）；`src/workspace.js` 因源码文本断言暂列入 `.prettierignore`。GitHub Actions（`.github/workflows/ci.yml`）在每次推送与 PR 上运行格式检查、构建一致性检查（重新构建后 `client.js` 与 `locale/*.json` 不得有差异）、全部测试和打包预览。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
 
 发布源码与安装产物应来自同一版本；GitHub 源码不得含真实聊天、本人样例、媒体、备份、凭据及本机日志。归档仅用于保留历史来源，安装包应按 `package.json.files` 的明确清单分发，不把归档当可执行入口。
 
