@@ -1,6 +1,6 @@
 # 维护边界
 
-更新：2026-11-01。
+更新：2026-11-19。
 
 ## 运行链路
 
@@ -30,7 +30,7 @@
 | `src/workspace-media.js` | objectURL 注册表（每 File 一个 URL）、媒体类型判定、导出的下载 URL 回收 | 无内部依赖 |
 | `src/host-api.js` | 宿主请求适配：API 前缀、JSON POST 报文、keepalive 标志 | 无内部依赖 |
 
-拆分后 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节。每个模块抽取后均单独跑过 `verify-v3.mjs`（38 个测试文件全绿）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
+拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB（2026-11-19，54 个测试文件）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
 
 ## 遗留文件归档
 
@@ -44,6 +44,8 @@
 发现的旧运行引用仅位于过期 `verify.mjs` 自身；`parser-errors.json` 仅由旧的一次性生成器写入。路线图中的文件名是说明文字，不属于运行依赖。归档可逆：按归档目录中的原相对路径恢复即可；恢复前应核对目标不存在，避免覆盖当前代码。归档中的校验/生成器是历史材料，不作为当前构建或测试入口，也不应执行。
 
 2026-11-05 二次归档：根目录历史备份移入 `docs/archive/backups/`（`reply-service.js.before-timeline-fix`、`src/*.before-*`），复审查阅日志移入 `docs/archive/reviews/`（`REVIEW-*.md`），验证日志移入 `docs/archive/logs/`（`*.log`）；设计文档（`CAPTURE-RESEARCH.md`、`FEATURES-3.2.md`、`IMPLEMENTATION-ROADMAP.md`、`IMPORT-QUEUE-DECISION.md`、`MESSAGE-IDENTITY.md`、`PERSISTENCE-MIGRATION.md`、`PROFILE-TOOLS.md`、`THIRD-PARTY-EVALUATION.md`）移入 `docs/`。根目录只保留运行所需文件、测试入口、许可证与 README/CHANGELOG/package/build。
+
+2026-11-19 三次清理：删除与 `docs/archive/backups/` 内容相同的 `src/workspace.js.before-timeline-fix`，以及与 `locale/*.json` 内容相同、无引用的 `locale/locale/` 嵌套目录；v2.3 公式图 `好感线索分-数学公式.jpg` 移入 `docs/archive/images/`（仅作历史参考，当前公式见 [AFFINITY-V3](AFFINITY-V3.md)）。
 
 ## 一次性迁移工具
 
