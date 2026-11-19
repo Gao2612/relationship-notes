@@ -1,6 +1,6 @@
 # 已知问题
 
-更新：2026-11-05。
+更新：2026-11-19。
 
 ## 控制台 `[ui-voice] companion media list failed: TypeError`
 
@@ -31,4 +31,22 @@
 
 测试不发网络请求（`fetch` 固定返回本地 404），只覆盖渲染装配与主流程，不替代现有行为断言。运行前需 `pnpm install`。
 
-仍未覆盖：`src/workspace.js` 的大量源码文本断言（`workspace.rendering.test.mjs` 等）使该文件暂不能自动格式化，已列入 `.prettierignore`；把这些断言逐步改写为基于本 DOM 测试的行为断言后，即可移除该例外。
+## `src/workspace.js` 不能自动格式化（2026-11-19 已解决）
+
+此前约 130 条测试断言直接用正则匹配 `src/workspace.js` 的源码文本（`workspace.rendering.test.mjs`、`data-expression.test.mjs`、`workspace-theme.test.mjs`、`views/icons.test.mjs`、`session-layout.test.mjs` 与 `verify-v3.mjs`），另有 5 个测试按固定缩进截取函数源码执行，因此该文件只能保持压缩排版并列入 `.prettierignore`。现已：
+
+- 把 DOM 夹具抽成共享的 `test-support/workspace-dom.mjs`（打开/挂载、导入示例或任意文本聊天、按文字点击、键盘与文件输入、`fetch` 替身、IndexedDB 预置快照、焦点断言），把检查用户可见行为的断言改写为真实 DOM 断言；
+- 样式规则改为核对插件实际挂载的样式表（导出的 `css` / 页面里的 `<style>`），不再读源码；
+- 安全不变量（不用 `localStorage` / `sessionStorage` / `dangerouslySetInnerHTML` / `iframe` / `ctx.styles`、调用 `hostPost` 不预先 `JSON.stringify`）保留为与空白无关的源码检查；
+- 截取函数执行的测试改用 `test-support/source-slice.mjs` 按忽略空白的锚点定位；
+- 只锁定实现细节的断言（内部变量名、缓存调用方式、具体语句写法）删除。
+
+`src/workspace.js` 已按 `.prettierrc.json` 格式化并移出 `.prettierignore`；重新构建的 `client.js` 经 esbuild 压缩后与格式化前逐字节一致。
+
+## 恢复项目备份失败：`assertStorageSpace is not defined`
+
+**状态：未修复（2026-11-19 由真实 DOM 测试发现）。**
+
+设置 → 备份与恢复 → 选择备份文件 → 「恢复此备份」会显示“恢复失败：assertStorageSpace is not defined”，备份不会被恢复。原因：`src/workspace.js` 中 `Settings` 的 `restoreBackup` 调用了 `assertStorageSpace`，但该函数只定义在 `src/workspace-persistence.js` 的 `createWorkspacePersistence` 闭包里，没有导出到工作区作用域；构建产物 `client.js` 里同样是未定义的全局引用。`src/backup-settings.test.mjs` 截取 `Settings` 源码执行时注入了一个桩 `assertStorageSpace`，所以没有发现。
+
+修复方向：让 `createWorkspacePersistence` 返回 `assertStorageSpace` 并在工作区里解构使用，同时在 `workspace-dom.test.mjs` 增加一条“导出 → 恢复”的真实 DOM 用例。修复会改变 `client.js`，应单独提交。

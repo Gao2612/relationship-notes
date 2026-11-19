@@ -30,7 +30,7 @@
 | `src/workspace-media.js` | objectURL 注册表（每 File 一个 URL）、媒体类型判定、导出的下载 URL 回收 | 无内部依赖 |
 | `src/host-api.js` | 宿主请求适配：API 前缀、JSON POST 报文、keepalive 标志 | 无内部依赖 |
 
-拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB（2026-11-19，54 个测试文件）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
+拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB（2026-11-19，54 个测试文件）；同日按 Prettier 格式化后为 5,536 行 / 约 270KB（代码未变，压缩后的构建产物一致）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
 
 ## 遗留文件归档
 
@@ -55,7 +55,14 @@
 
 ## 检查与发布
 
-当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`（含真实 DOM 冒烟测试 `workspace-dom.test.mjs`，需先 `pnpm install`）。源码格式由 Prettier 统一（`pnpm run format` / `format:check`，配置见 `.prettierrc.json`）；`src/workspace.js` 因源码文本断言暂列入 `.prettierignore`。GitHub Actions（`.github/workflows/ci.yml`）在每次推送与 PR 上运行格式检查、构建一致性检查（重新构建后 `client.js` 与 `locale/*.json` 不得有差异）、全部测试和打包预览。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
+当前构建由 `build.mjs` 负责，测试入口为 `verify-v3.mjs`（含真实 DOM 冒烟测试 `workspace-dom.test.mjs`，需先 `pnpm install`）。源码格式由 Prettier 统一（`pnpm run format` / `format:check`，配置见 `.prettierrc.json`），包括 `src/workspace.js`；`.prettierignore` 只排除依赖、构建产物 `client.js` 和 `docs/`。
+
+页面测试不依赖源码排版：
+
+- 用户可见行为在真实 DOM 中断言。共享夹具 `test-support/workspace-dom.mjs` 用 jsdom + React 18 + fake-indexeddb 渲染构建产物 `client.js`，可导入内置示例或任意文本聊天、替换宿主 `fetch`、向 IndexedDB 预置快照；`workspace-dom.test.mjs` 与 `src/*.test.mjs` 中的页面测试都用它。注意这些测试运行的是构建产物，改了 `src/` 要先 `pnpm run build`。
+- 样式规则核对导出的 `css`（即页面挂载的样式表），不读源码文本。
+- 少数无法稳定在 DOM 中构造的竞态（响应返回前切换联系人、修改消息等）仍截取 `createPlugin` 闭包内的函数注入依赖执行，定位用 `test-support/source-slice.mjs` 的忽略空白锚点。
+- 直接检查源码的只剩安全不变量（`verify-v3.mjs`、`workspace-reliability.test.mjs`），写成与空白无关的正则。GitHub Actions（`.github/workflows/ci.yml`）在每次推送与 PR 上运行格式检查、构建一致性检查（重新构建后 `client.js` 与 `locale/*.json` 不得有差异）、全部测试和打包预览。模块变更要覆盖相应行为；归档只需检查运行引用和构建链路。测试 runner、构建和包清单由主集成任务维护。
 
 发布源码与安装产物应来自同一版本；GitHub 源码不得含真实聊天、本人样例、媒体、备份、凭据及本机日志。归档仅用于保留历史来源，安装包应按 `package.json.files` 的明确清单分发，不把归档当可执行入口。
 

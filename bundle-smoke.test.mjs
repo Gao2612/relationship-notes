@@ -153,6 +153,92 @@ test('hosts that provide subdsh do not also get the sidebar fallback', () => {
   assert.equal(slots.length, 0);
 });
 
+test('a subdsh container that appears before the slot fallback runs prevents the sidebar fallback', () => {
+  const plugin = loadClient(),
+    slots = [],
+    registrations = [],
+    pending = {};
+  const services = {
+    slots: {
+      inject: (name, fn) => fn(),
+      register: o => {
+        slots.push(o.name);
+        return () => {};
+      }
+    }
+  };
+  // 宿主按需提供服务：先把 inject 回调挂起，模拟 subdsh 晚于插件启动才就绪。
+  const make = () => ({
+    ...services,
+    get: name => services[name],
+    effect(fn, label) {
+      if (!/module|native panel/.test(label || '')) return;
+      const out = fn();
+      if (out && typeof out.next === 'function') for (const step of out) void step;
+    },
+    inject(names, cb) {
+      pending[names.join()] = () => cb(make());
+      return { dispose: () => delete pending[names.join()] };
+    },
+    locale: { bind: () => key => key, register() {} }
+  });
+  plugin.apply(make());
+  assert.deepEqual(Object.keys(pending).sort(), ['slots', 'subdsh']);
+  services.subdsh = {
+    register: entry => {
+      registrations.push(entry.id);
+      return () => {};
+    }
+  };
+  pending.slots();
+  assert.deepEqual(slots, [], 'subdsh 已就绪时退路不再注册侧栏面板');
+  pending.subdsh();
+  assert.deepEqual(registrations, ['relationship-notes']);
+});
+
+test('a subdsh container that appears after the sidebar fallback replaces it', () => {
+  const plugin = loadClient(),
+    disposed = [],
+    registrations = [];
+  let subdshReady;
+  const services = {
+    slots: {
+      inject: (name, fn) => fn(),
+      register: o => {
+        return () => disposed.push(o.name);
+      }
+    }
+  };
+  const make = () => ({
+    ...services,
+    get: name => services[name],
+    effect(fn, label) {
+      if (!/module|native panel/.test(label || '')) return;
+      const out = fn();
+      if (out && typeof out.next === 'function') for (const step of out) void step;
+    },
+    inject(names, cb) {
+      if (names[0] === 'subdsh') {
+        subdshReady = () => cb(make());
+        return { dispose() {} };
+      }
+      cb(make());
+      return { dispose: () => disposed.push('fallback') };
+    },
+    locale: { bind: () => key => key, register() {} }
+  });
+  plugin.apply(make());
+  services.subdsh = {
+    register: entry => {
+      registrations.push(entry.id);
+      return () => {};
+    }
+  };
+  subdshReady();
+  assert.deepEqual(disposed, ['fallback'], '退路面板被撤下');
+  assert.deepEqual(registrations, ['relationship-notes']);
+});
+
 test('published host entry registers executable routes and tools together', () => {
   const routes = [],
     tools = [];

@@ -3,9 +3,9 @@
 ## Unreleased — 2026-11-19（工程维护：清理、格式化、跨平台打包、DOM 测试与 CI）
 
 - 清理：删除与归档内容相同的 `src/workspace.js.before-timeline-fix`、无引用的 `locale/locale/` 嵌套目录；v2.3 公式图移入 `docs/archive/images/`。
-- 格式化：引入 Prettier（`.prettierrc.json`，`pnpm run format` / `format:check`），统一格式化源码与测试；纯格式变更，重新构建的 `client.js` 压缩后与此前产物一致。`src/workspace.js` 因源码文本断言暂不格式化。
+- 格式化：引入 Prettier（`.prettierrc.json`，`pnpm run format` / `format:check`），统一格式化源码与测试；纯格式变更，重新构建的 `client.js` 压缩后与此前产物一致。随后把针对 `src/workspace.js` 源码文本的测试断言改写为真实 DOM 行为断言（共享夹具 `test-support/workspace-dom.mjs`），该文件也已格式化并移出 `.prettierignore`。
 - 打包：`tools/package-release.mjs` 改用 Node 内置 `zlib` 写 ZIP，不再依赖 Windows PowerShell/.NET，三平台通用；测试改为跨平台的 ZIP 回读与 CRC 校验。
-- 测试：新增真实 DOM 冒烟测试 `workspace-dom.test.mjs`（jsdom + React 18 + fake-indexeddb），覆盖示例导入、13 个页面渲染与 IndexedDB 恢复（55 个文件 / 370 项）。
+- 测试：新增真实 DOM 冒烟测试 `workspace-dom.test.mjs`（jsdom + React 18 + fake-indexeddb），覆盖示例导入、13 个页面渲染与 IndexedDB 恢复（55 个文件 / 374 项）。
 - CI：新增 GitHub Actions，运行格式检查、构建一致性检查、全部测试与打包预览。
 - 文档：`docs/ARCHITECTURE.md`、`docs/KNOWN-ISSUES.md` 更新过时的数字与说明；三语 README 更新打包工具说明。
 

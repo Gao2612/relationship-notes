@@ -4,17 +4,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as analysis from './src/client-engine.js';
 import { suggestNextSteps } from './src/suggestions.js';
+import { sliceBetween } from './test-support/source-slice.mjs';
 const text = fs.readFileSync(new URL('./src/workspace.js', import.meta.url), 'utf8'),
-  body = text
-    .slice(text.indexOf('  function Replies('), text.indexOf('function Settings('))
-    .replace(
-      '  function payload(s,contact){return E.buildReplyPayload(s,{...contact,messages:s.replyContextMessages||contact.messages,facts:[...(contact.facts||[])]});}\n',
-      ''
-    )
-    .replace(
-      '  function saveProfileFact(action){const state=store.getSnapshot(),contact=selected(state);if(!contact)return;set({contacts:state.contacts.map(item=>item.id===contact.id?E.changeProfile(item,action):item)});}\n',
-      ''
-    );
+  body = sliceBetween(text, 'function Replies(', 'function Settings(');
 const node = (type, props, ...children) => ({ type, props: props || {}, children });
 function renderSource(source) {
   let index = 0;

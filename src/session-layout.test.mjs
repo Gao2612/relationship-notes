@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { sessionPaneLayout, SESSION_BREAKPOINTS } from './session-layout.js';
 import { css } from './workspace.js';
 
-const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
+import { openWorkspace, closeAllWorkspaces } from '../test-support/workspace-dom.mjs';
+
+test.afterEach(() => closeAllWorkspaces());
 
 test('wide layout: list and tools are inline and the buttons mirror the user toggles', () => {
   assert.deepEqual(sessionPaneLayout(1200), {
@@ -61,11 +62,38 @@ test('breakpoints stay in sync with the container queries in the stylesheet', ()
   assert.match(css, /\.list-open \.rn-session-list-pane\{display:block!important/);
 });
 
-test('session toolbar buttons are driven by actual visibility, not by stored toggles', () => {
-  assert.match(source, /button\('☰ 列表',toggleList,\{'aria-pressed':layout\.listVisible/);
-  assert.match(
-    source,
-    /button\(layout\.toolsVisible\?'收起工具':'工具',toggleTools,\{'aria-pressed':layout\.toolsVisible/
-  );
-  assert.doesNotMatch(source, /'aria-pressed':!listHidden/);
+test('session toolbar buttons are driven by actual visibility, not by stored toggles', async () => {
+  const toolbar = async sessionWidth => {
+    const ws = openWorkspace({ sessionWidth });
+    await ws.mount();
+    await ws.importSample();
+    await ws.click('沟通');
+    const state = () => {
+      const list = ws.findButton('☰ 列表'),
+        tools = ws.findButton(/^(?:收起工具|工具)$/);
+      return {
+        list: list.getAttribute('aria-pressed'),
+        tools: [ws.labelOf(tools), tools.getAttribute('aria-pressed')]
+      };
+    };
+    return { ws, state };
+  };
+  // 宽屏：列表与工具栏都在，按钮按下；点按后跟着收起。
+  const wide = await toolbar(1200);
+  assert.deepEqual(wide.state(), { list: 'true', tools: ['收起工具', 'true'] });
+  await wide.ws.click('☰ 列表');
+  await wide.ws.click('收起工具');
+  assert.deepEqual(wide.state(), { list: 'false', tools: ['工具', 'false'] });
+
+  // 中等宽度：列表被容器查询藏起，虽然没有手动收起，按钮也不能显示为按下；打开抽屉后才按下。
+  const compact = await toolbar(800);
+  assert.deepEqual(compact.state(), { list: 'false', tools: ['收起工具', 'true'] });
+  await compact.ws.click('☰ 列表');
+  assert.equal(compact.state().list, 'true');
+
+  // 手机宽度：工具栏默认不可见。
+  const phone = await toolbar(390);
+  assert.deepEqual(phone.state(), { list: 'false', tools: ['工具', 'false'] });
+  await phone.ws.click('工具');
+  assert.deepEqual(phone.state().tools, ['收起工具', 'true']);
 });

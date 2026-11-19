@@ -3,17 +3,18 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createMediaUrls } from './workspace-media.js';
 import { createDebounced } from './evidence-list.js';
+import { sliceBetween } from '../test-support/source-slice.mjs';
 
 const source = readFileSync(new URL('./workspace.js', import.meta.url), 'utf8');
 
 test('宿主适配器调用传入对象而非已编码字符串', () => {
-  assert.doesNotMatch(source, /(?:hostPost|httpPost)\([^,]+,JSON\.stringify/);
+  // 源码不变量：hostPost 自己负责 JSON 编码，调用方不能再传 JSON.stringify 的结果（忽略排版空白）。
+  assert.match(source, /\bhostPost\(/);
+  assert.doesNotMatch(source, /(?:hostPost|httpPost)\(\s*[^,]+,\s*JSON\.stringify/);
 });
 
 test('行为页面初始化声明全部状态并缓存未变化的统计输入', () => {
-  const start = source.indexOf('  function Behavior({contact,tab,s}){');
-  const end = source.indexOf('if(!contact)return empty();', start);
-  const prefix = source.slice(start, end);
+  const prefix = sliceBetween(source, 'function Behavior({contact,tab,s}){', 'if(!contact)return empty();');
   const hooks = [];
   let cursor = 0,
     calculations = 0;
