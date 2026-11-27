@@ -32,17 +32,20 @@ export function shanghaiTimestamp(value) {
   return Number.isFinite(millis) ? millis : null;
 }
 
+// Intl.DateTimeFormat 的构造开销远大于 format 本身；日期键在分析中按消息逐条计算，必须复用同一个实例。
+const SHANGHAI_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
+
 export function shanghaiDateKey(value) {
   if (value === null || value === undefined || value === '') return null;
   const millis = shanghaiTimestamp(value);
   if (millis === null) return null;
   const date = new Date(millis);
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
+  return SHANGHAI_DAY.format(date);
 }
 export function reviewPeriodRange(period = 'week', anchor = shanghaiDateKey(Date.now())) {
   if (

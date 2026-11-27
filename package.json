@@ -50,6 +50,7 @@
     "test": "node verify-v3.mjs",
     "format": "prettier --write \"**/*.{js,mjs}\"",
     "format:check": "prettier --check \"**/*.{js,mjs}\"",
+    "bench": "node tools/bench-analysis.mjs",
     "prepublishOnly": "node verify-v3.mjs"
   },
   "dsh": {

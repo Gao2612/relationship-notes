@@ -59,6 +59,13 @@ const lexicon = Object.entries(LSM_CATEGORIES)
   .flatMap(([category, words]) => words.map(word => ({ word, category })))
   .sort((a, b) => b.word.length - a.word.length);
 const cjk = /[㐀-鿿]/u;
+// 按首字索引词表（每组仍按词长降序），逐字匹配时只检查以该字开头的词，结果与整表线性查找相同。
+const lexiconByFirst = new Map();
+for (const entry of lexicon) {
+  const bucket = lexiconByFirst.get(entry.word[0]);
+  if (bucket) bucket.push(entry);
+  else lexiconByFirst.set(entry.word[0], [entry]);
+}
 /** 每 100 个汉字中各类虚词的出现次数（最长匹配，类别不重复计数）。 */
 export function functionWordRates(text) {
   const source = String(text || ''),
@@ -69,7 +76,7 @@ export function functionWordRates(text) {
       i++;
       continue;
     }
-    const hit = lexicon.find(entry => source.startsWith(entry.word, i));
+    const hit = lexiconByFirst.get(source[i])?.find(entry => source.startsWith(entry.word, i));
     if (hit) {
       counts[hit.category]++;
       chars += hit.word.length;

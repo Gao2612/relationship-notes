@@ -26,8 +26,23 @@ export const textPairs = {
     'Contact profiles, daily interaction analysis, and communication assistance.'
   ]
 };
+// 会话按消息逐条格式化时间；Intl.DateTimeFormat 构造很贵，复用模块级实例。
+const CHAT_DAY_FORMAT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
+const CHAT_TIME_FORMAT = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  month: 'numeric',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  hourCycle: 'h23'
+});
 export function formatChatDayKey(value) {
-  const timezone = 'Asia/Shanghai';
   let date = null;
   if (typeof value === 'number' || (typeof value === 'string' && /^\d{10,13}$/.test(value))) {
     const n = Number(value);
@@ -38,17 +53,10 @@ export function formatChatDayKey(value) {
     if (local) return `${local[1]}-${local[2].padStart(2, '0')}-${local[3].padStart(2, '0')}`;
     date = new Date(raw);
   } else if (value instanceof Date) date = value;
-  if (date && Number.isFinite(date.getTime()))
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).format(date);
+  if (date && Number.isFinite(date.getTime())) return CHAT_DAY_FORMAT.format(date);
   return '日期未知';
 }
 export function formatChatTimestamp(value) {
-  const timezone = 'Asia/Shanghai';
   let date = null;
   if (typeof value === 'number' || (typeof value === 'string' && /^\d{10,13}$/.test(value))) {
     const n = Number(value);
@@ -60,16 +68,7 @@ export function formatChatTimestamp(value) {
       return `${Number(local[2])}/${Number(local[3])}${local[4] !== undefined ? ` ${local[4].padStart(2, '0')}:${local[5]}` : ''}`;
     date = new Date(raw);
   }
-  if (date && Number.isFinite(date.getTime()))
-    return new Intl.DateTimeFormat('zh-CN', {
-      timeZone: timezone,
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      hourCycle: 'h23'
-    }).format(date);
+  if (date && Number.isFinite(date.getTime())) return CHAT_TIME_FORMAT.format(date);
   return value
     ? String(value)
         .replace('T', ' ')
@@ -753,6 +752,28 @@ export function createPlugin(React, E, dictionaries) {
         let done = 0,
           stored = 0,
           consecutive = 0;
+        // buildTurns 对全部消息重建回合（2 万条约 1 秒）；只要消息、身份与纠正不变就复用，
+        // 不再在每周请求前后各重建一次。
+        let turnsCache = null;
+        const turnsFor = c => {
+          if (
+            turnsCache &&
+            turnsCache.messages === c.messages &&
+            turnsCache.self === c.self &&
+            turnsCache.target === c.target &&
+            turnsCache.corrections === c.interactionCorrections
+          )
+            return turnsCache.turns;
+          const turns = E.buildTurns(c);
+          turnsCache = {
+            messages: c.messages,
+            self: c.self,
+            target: c.target,
+            corrections: c.interactionCorrections,
+            turns
+          };
+          return turns;
+        };
         set({ affinityBusy: contactId, affinityProgress: '准备中…', affinityError: '' });
         try {
           for (const week of pending) {
@@ -760,7 +781,7 @@ export function createPlugin(React, E, dictionaries) {
             const current = store.getSnapshot(),
               contact = current.contacts.find(c => c.id === contactId);
             if (!contact) break;
-            const turns = E.buildTurns(contact),
+            const turns = turnsFor(contact),
               fingerprint = E.weekFingerprint(contact, week, turns);
             const previous = Object.entries(contact.affinityV3?.weeks || {})
               .filter(([key, entry]) => key < week && entry?.result?.summary)
@@ -793,7 +814,7 @@ export function createPlugin(React, E, dictionaries) {
             const latest = store.getSnapshot(),
               target = latest.contacts.find(c => c.id === contactId);
             if (!target) break;
-            if (E.weekFingerprint(target, week) === fingerprint) {
+            if (E.weekFingerprint(target, week, turnsFor(target)) === fingerprint) {
               set({
                 contacts: latest.contacts.map(c =>
                   c.id === contactId
@@ -1523,20 +1544,37 @@ export function createPlugin(React, E, dictionaries) {
           )
         );
       }
-      function timelineAnalysisCard(s, contact) {
+      // 分析进度每一跳都会重渲染这张卡片；有记录日期数只随消息、身份与纠正变化，按这些输入缓存，
+      // 避免每次渲染都对全部消息跑两遍完整的每日分析。
+      const timelineDayTotals = new WeakMap();
+      function timelineDayTotal(contact) {
+        const corrections = contact.interactionCorrections || emptyMessages,
+          cached = timelineDayTotals.get(contact.messages);
+        if (
+          cached &&
+          cached.corrections === corrections &&
+          cached.self === contact.self &&
+          cached.target === contact.target
+        )
+          return cached.total;
         const total =
-            E.analyzeDailyTimeline(
-              contact.messages.filter(message => channelOf(message) === 'qq'),
-              contact.self,
-              contact.target,
-              contact.interactionCorrections || []
-            ).days.length +
-            E.analyzeDailyTimeline(
-              contact.messages.filter(message => channelOf(message) !== 'qq'),
-              contact.self,
-              contact.target,
-              contact.interactionCorrections || []
-            ).days.length,
+          E.analyzeDailyTimeline(
+            contact.messages.filter(message => channelOf(message) === 'qq'),
+            contact.self,
+            contact.target,
+            corrections
+          ).days.length +
+          E.analyzeDailyTimeline(
+            contact.messages.filter(message => channelOf(message) !== 'qq'),
+            contact.self,
+            contact.target,
+            corrections
+          ).days.length;
+        timelineDayTotals.set(contact.messages, { corrections, self: contact.self, target: contact.target, total });
+        return total;
+      }
+      function timelineAnalysisCard(s, contact) {
+        const total = timelineDayTotal(contact),
           count = Object.values(contact.timelineAnalysis || {}).filter(day => day?.version === 4).length,
           busy = s.timelineAnalysisContact === contact.id;
         return box(
@@ -1969,22 +2007,35 @@ export function createPlugin(React, E, dictionaries) {
         );
       }
       function InteractionEvidence({ contact }) {
-        const analysis = E.analyzeInteractionMetrics(contact),
-          correct = (row, excluded) => {
-            const current = store.getSnapshot();
-            set({
-              contacts: current.contacts.map(c =>
-                c.id === contact.id
-                  ? E.correctInteraction(c, {
-                      key: row.key,
-                      kind: row.kind,
-                      excluded,
-                      note: excluded ? '用户标记误识别' : '用户恢复识别'
-                    })
-                  : c
-              )
-            });
+        // 全部记录与三个场景各做一次完整评分（2 万条合计约 5 秒），只随消息、身份与纠正变化。
+        const { analysis, grouped, sceneReports } = React.useMemo(() => {
+          const groups = E.sceneGroups(contact.messages);
+          return {
+            analysis: E.analyzeInteractionMetrics(contact),
+            grouped: groups,
+            sceneReports: Object.fromEntries(
+              ['work', 'daily', 'mixed'].map(scene => [
+                scene,
+                E.analyzeInteractionMetrics({ ...contact, messages: groups[scene] })
+              ])
+            )
           };
+        }, [contact.messages, contact.self, contact.target, contact.interactionCorrections]);
+        const correct = (row, excluded) => {
+          const current = store.getSnapshot();
+          set({
+            contacts: current.contacts.map(c =>
+              c.id === contact.id
+                ? E.correctInteraction(c, {
+                    key: row.key,
+                    kind: row.kind,
+                    excluded,
+                    note: excluded ? '用户标记误识别' : '用户恢复识别'
+                  })
+                : c
+            )
+          });
+        };
         const metricValues = [
           [analysis.score ?? '未评分', '关系指数（全部记录）'],
           [analysis.indicators.find(item => item.kind === 'positive').count, '正向表达条数'],
@@ -1995,10 +2046,9 @@ export function createPlugin(React, E, dictionaries) {
           h('div', { className: 'rn-metric', key: label }, h('span', null, label), h('strong', null, value))
         );
         const sceneLabels = { work: '工作', daily: '日常', mixed: '混合', unknown: '未分类' };
-        const grouped = E.sceneGroups(contact.messages);
         const sceneRows = ['work', 'daily', 'mixed'].map(scene => {
-          const items = grouped[scene];
-          const report = E.analyzeInteractionMetrics({ ...contact, messages: items });
+          const items = grouped[scene],
+            report = sceneReports[scene];
           return muted(sceneLabels[scene] + '场景消息 ' + items.length + ' 条，关系指数 ' + (report.score ?? '未评分'));
         });
         const sceneSummary = Object.entries(sceneLabels)

@@ -1,4 +1,10 @@
 import { messageIdentity } from './message-identity.js';
+const SHANGHAI_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
 const signature = f => [f.field, f.quote || '', f.value].join('|');
 const hash = value => {
   let result = 2166136261;
@@ -14,16 +20,7 @@ export function profileExpiryTime(value) {
   if (typeof value !== 'string') return NaN;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const date = new Date(value + 'T00:00:00+08:00');
-    if (
-      !Number.isFinite(date.getTime()) ||
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Shanghai',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).format(date) !== value
-    )
-      return NaN;
+    if (!Number.isFinite(date.getTime()) || SHANGHAI_DAY.format(date) !== value) return NaN;
     return date.getTime() + 86400000 - 1;
   }
   const time = Date.parse(value);

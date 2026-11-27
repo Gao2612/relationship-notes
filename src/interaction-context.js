@@ -38,18 +38,29 @@ export function sceneGroups(messages) {
   return groups;
 }
 
+// 在循环外建一次：terms() 会对每条消息的每个二字片段调用。
+const COMMON_TERMS = new Set([
+  '今天',
+  '明天',
+  '昨天',
+  '现在',
+  '最近',
+  '时候',
+  '感觉',
+  '其实',
+  '真的',
+  '一点',
+  '刚才',
+  '已经'
+]);
+const LEADING_FILLER = /^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/;
+
 function terms(text) {
   const result = new Set();
   for (const part of String(text).match(/[\u4e00-\u9fff]{2,}/g) || []) {
     for (let i = 0; i < part.length - 1; i++) {
       const term = part.slice(i, i + 2);
-      if (
-        !/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term) &&
-        !new Set(['今天', '明天', '昨天', '现在', '最近', '时候', '感觉', '其实', '真的', '一点', '刚才', '已经']).has(
-          term
-        )
-      )
-        result.add(term);
+      if (!LEADING_FILLER.test(term) && !COMMON_TERMS.has(term)) result.add(term);
     }
   }
   return result;
