@@ -236,6 +236,29 @@ const ev = (message, type, index) => ({
   quote: message.text,
   message
 });
+/** 消息来源：文件名或来源中含 QQ 的记为 qq，其余为 wechat（与工作区的来源筛选一致）。 */
+export const messageChannel = m =>
+  /QQ/i.test(((m && m.file) || '') + ' ' + ((m && m.source) || '')) ? 'qq' : 'wechat';
+
+/** 按 QQ / 微信分别统计有记录的日期数之和（AI 聊天分析按来源逐日生成总结）。 */
+export function timelineDayCount(messages, self, target, corrections = []) {
+  const list = Array.isArray(messages) ? messages : [];
+  return (
+    analyzeDailyTimeline(
+      list.filter(m => messageChannel(m) === 'qq'),
+      self,
+      target,
+      corrections
+    ).days.length +
+    analyzeDailyTimeline(
+      list.filter(m => messageChannel(m) !== 'qq'),
+      self,
+      target,
+      corrections
+    ).days.length
+  );
+}
+
 export function analyzeConversation(messages, self, target) {
   const list = selected(messages, self, target),
     evidence = [];

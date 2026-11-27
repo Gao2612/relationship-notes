@@ -40,6 +40,20 @@ const worker = (
     write: false
   })
 ).outputFiles[0].text;
+// 分析 Worker：只含分析纯模块，压缩后以字符串内嵌，运行时用 Blob URL 启动（与 PDF Worker 相同）。
+const analysisWorker = (
+  await build({
+    absWorkingDir: root,
+    entryPoints: ['src/analysis-worker.js'],
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: 'chrome120',
+    charset: 'utf8',
+    minify: true,
+    write: false
+  })
+).outputFiles[0].text;
 const result = await build({
   absWorkingDir: root,
   stdin: {
@@ -55,6 +69,10 @@ const result = await build({
   external: ['react'],
   charset: 'utf8',
   write: false,
+  // 去空白并简化语法，但保留标识符：宿主报错时堆栈里仍是可读的函数名。
+  minifyWhitespace: true,
+  minifySyntax: true,
+  legalComments: 'none',
   inject: ['rn:pdf-runtime'],
   plugins: [
     {
@@ -62,7 +80,7 @@ const result = await build({
       setup(api) {
         api.onResolve({ filter: /^rn:pdf-runtime$/ }, () => ({ path: 'pdf-runtime', namespace: 'rn' }));
         api.onLoad({ filter: /.*/, namespace: 'rn' }, () => ({
-          contents: `export * as PDFJS from 'pdfjs-dist/legacy/build/pdf.mjs';export const PDF_WORKER_SOURCE=${JSON.stringify(worker)};`,
+          contents: `export const loadPDFJS=()=>import('pdfjs-dist/legacy/build/pdf.mjs');export const PDF_WORKER_SOURCE=${JSON.stringify(worker)};export const ANALYSIS_WORKER_SOURCE=${JSON.stringify(analysisWorker)};`,
           resolveDir: root,
           loader: 'js'
         }));

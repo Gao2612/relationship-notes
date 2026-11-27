@@ -2,6 +2,7 @@
 // 不发网络请求（fetch 固定返回本地 404）；IndexedDB 由 fake-indexeddb 提供。
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
@@ -20,7 +21,55 @@ export function closeAllWindows() {
 }
 
 /** 打开一个新的工作区页面；fresh=true 时换用空的 IndexedDB。 */
-export function openWorkspace({ fresh = false } = {}) {
+/**
+ * 在 jsdom 中模拟 Blob URL + Web Worker：Worker 源码在独立的 vm 上下文里执行，消息经结构化克隆异步投递。
+ * hold() 之后 Worker 的回复会被扣住，release() 再一次性放行，用来观察“正在后台分析”状态。
+ */
+function installWorker(w) {
+  const blobs = new Map();
+  let seq = 0;
+  const control = { jobs: 0, held: [], holding: false };
+  control.hold = () => (control.holding = true);
+  control.release = () => {
+    control.holding = false;
+    for (const deliver of control.held.splice(0)) deliver();
+  };
+  w.URL.createObjectURL = blob => {
+    const url = 'blob:rn/' + ++seq;
+    blobs.set(url, blob);
+    return url;
+  };
+  w.URL.revokeObjectURL = url => blobs.delete(url);
+  w.Worker = class Worker {
+    constructor(url) {
+      const blob = blobs.get(url);
+      if (!blob) throw new Error('unknown blob url');
+      this.onmessage = null;
+      this.onerror = null;
+      const self = {
+        postMessage: message => {
+          const data = structuredClone(message);
+          const deliver = () => setTimeout(() => this.onmessage?.({ data }), 0);
+          if (control.holding) control.held.push(deliver);
+          else deliver();
+        }
+      };
+      this.ready = blob.text().then(source => {
+        vm.runInNewContext(source, { self, Intl, Date, Math, JSON, Map, Set, WeakMap, Array, Object, String, Number });
+        return self;
+      });
+    }
+    postMessage(data) {
+      control.jobs++;
+      const copy = structuredClone(data);
+      this.ready.then(self => setTimeout(() => self.onmessage({ data: copy }), 0));
+    }
+    terminate() {}
+  };
+  return control;
+}
+
+export function openWorkspace({ fresh = false, worker = false } = {}) {
   if (fresh) globalThis.indexedDB = new IDBFactory();
   const dom = new JSDOM('<!doctype html><div id="root"></div>', {
     url: 'http://localhost/',
@@ -58,6 +107,7 @@ export function openWorkspace({ fresh = false } = {}) {
   w.indexedDB = globalThis.indexedDB;
   w.IDBKeyRange = globalThis.IDBKeyRange;
   w.fetch = async () => new w.Response('{}', { status: 404 });
+  const workerControl = worker ? installWorker(w) : null;
   // react-dom 在全局 window/document 上工作。
   globalThis.window = w;
   globalThis.document = w.document;
@@ -144,7 +194,20 @@ export function openWorkspace({ fresh = false } = {}) {
     await click('确认并导入');
     await wait(500);
   };
+  const importText = async (name, text) => {
+    await click('聊天导入');
+    const input = d.querySelector('input[type=file]');
+    assert.ok(input, '文件输入框');
+    const file = new w.File([text], name, { type: 'text/plain' });
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    await act(async () => {
+      input.dispatchEvent(new w.Event('change', { bubbles: true }));
+    });
+    await wait(600);
+  };
   return {
+    workerControl,
+    importText,
     w,
     d,
     text,
