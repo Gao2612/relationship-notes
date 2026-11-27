@@ -1,4 +1,4 @@
-import { scoringMessage } from './interaction-context.js';
+import { scoringMessage, sceneGroups } from './interaction-context.js';
 import { analyzePeriods } from './affinity/index.js';
 import { interactionDetectors as detectors, engagementSignals, positiveSignal } from './interaction-signals.js';
 // Evidence keys survive message sorting and incremental import; no body is logged.
@@ -147,5 +147,19 @@ export function correctInteraction(contact, action, now = Date.now()) {
         }))
       }
     ]
+  };
+}
+
+/** 「互动评分」页所需的全部评分：全部记录，以及工作 / 日常 / 混合三个场景各自的评分。 */
+export function analyzeInteractionEvidence(contact = {}) {
+  const groups = sceneGroups(contact.messages || []);
+  return {
+    analysis: analyzeInteractionMetrics(contact),
+    sceneReports: Object.fromEntries(
+      ['work', 'daily', 'mixed'].map(scene => [
+        scene,
+        analyzeInteractionMetrics({ ...contact, messages: groups[scene] })
+      ])
+    )
   };
 }

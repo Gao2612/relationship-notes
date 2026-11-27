@@ -32,6 +32,24 @@
 
 拆分时 `workspace.js` 648 行 / 175,865 字节 → 624 行 / 166,048 字节，每个模块抽取后均单独跑过 `verify-v3.mjs`（当时 38 个测试文件全绿）；之后随关系分析 v3 增长到 722 行 / 约 182KB；2026-11-19 用 Prettier 格式化后为 5,536 行（逻辑不变）。仍有副作用但未拆的候选（宿主档案同步桥、PDF 文本解析）留在 `workspace.js`，因为它们的闭包同时持有渲染期状态，硬拆会改变行为。
 
+## 分析 Web Worker（2026-11-27）
+
+大体量聊天的整段分析（每日历程、会话分析、各时段评分、关系分析、互动评分、关系阶段）在 Web Worker 中预先计算，主线程只读缓存：
+
+| 模块 | 职责 |
+| --- | --- |
+| `src/analysis-offload.js` | `createAnalysisOffload(E)`：包装 `OPS` 中的纯函数（按参数 / 联系人相关字段的引用做缓存键）、`warm(contact)` 后台预计算、`isReady(contact)`、`computeAsync`、消息精简（`slimMessages`）与结果还原（`rehydrate`，消息副本换回原对象）、Worker 侧 `runWorkerJob` |
+| `src/analysis-worker.js` | Worker 入口，只打包分析纯模块；`build.mjs` 构建为压缩字符串 `ANALYSIS_WORKER_SOURCE`（约 51KB），运行时用 Blob URL 启动（与 PDF Worker 相同） |
+
+- `createPlugin` 一开始把 `E` 换成 `offload.engine`；所有视图与组件照旧同步调用。缓存命中直接返回，未命中时在主线程当场计算，结果始终正确。
+- 消息数 ≥ 3000 且 Worker 可用时，`Page` 在渲染后 `warm` 当前联系人（含来源筛选后的视图）；完成前「记录与评分」与「关系阶段」显示“正在后台分析”，页头脉搏图暂不显示，会话中的每日分数暂空，导入结果页显示“正在统计”。其他页面照常可用。
+- 只有 AI 周评定（`affinityV3`）、关系画像或每日总结变化时，先返回同一份聊天上次的结果并在后台重算（stale-while-revalidate），存入每周 AI 结果时页面不会回到等待状态。
+- Worker 不可用（测试、jsdom、宿主 CSP 禁止 blob Worker）或运行出错时自动退回主线程同步计算。
+- 每个 `OPS` 条目的依赖字段已按实现核对：`CORE`（messages / self / target / interactionCorrections），时段与关系分析加 `affinityV3`，关系阶段加 `relationProfile` / `timelineAnalysis`。新增或修改这些函数读取的联系人字段时，必须同步更新 `OPS`。
+- 来源筛选后的联系人按（联系人, 来源）缓存（`sourceView`），避免每次渲染新建消息数组让缓存失效。
+
+测试：`src/analysis-offload.test.mjs`（假 Worker，含 esbuild 式只读命名空间）、`analysis-worker-bundle.test.mjs`（执行 `client.js` 内嵌的 Worker 源码）、`workspace-dom-worker.test.mjs`（jsdom 中模拟 Worker，导入 4000 条消息观察等待与完成）。
+
 ## 遗留文件归档
 
 2026-11-01 检查 build、入口、包清单、当前测试及源码引用后，将旧文件移到 `docs/archive/legacy/`：

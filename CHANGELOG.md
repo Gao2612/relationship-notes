@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — 2026-11-27（分析 Web Worker）
+
+- 新增 `src/analysis-offload.js` 与 `src/analysis-worker.js`：大体量聊天（≥ 3000 条）的整段分析在 Web Worker 中预先计算，主线程同步读缓存；Worker 不可用时自动退回主线程。
+- 后台计算期间，「记录与评分」「关系阶段」显示“正在后台分析 N 条消息”，导入结果页显示“正在统计”，其他页面照常使用；只更新 AI 结果时先显示上次结果再后台刷新。
+- 「开始 AI 分析」的逐日拆分改为在 Worker 中计算（`E.computeAsync`）。
+- 来源筛选（微信 / QQ）后的联系人改为缓存，此前每次渲染都会让所有分析重算。
+- 新增 `E.timelineDayCount`、`E.analyzeInteractionEvidence`、`E.messageChannel`。
+- 实测（Chromium，导入 1 万条）：主线程长任务合计 24.6 s → 0.42 s（无 Worker 时 4.8 s），最长一次 3.4 s → 0.2 s；导入后打开「记录与评分」19.1 s → 0.5 s。
+- 测试：61 个文件 / 392 项。
+
 ## Unreleased — 2026-11-27（性能：大体量聊天的分析与渲染）
 
 以 2 万条消息为基准（`pnpm run bench`）：

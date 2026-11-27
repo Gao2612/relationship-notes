@@ -202,6 +202,25 @@ export const css =
 // 输出给宿主的最终样式：兜底链里补上 DSH Web 的 --dsw-alias-* 令牌。
 export const hostCss = adaptHostTokens(css);
 export function createPlugin(React, E, dictionaries) {
+  // 大体量聊天的整段分析在 Web Worker 中预先计算；E 换成读缓存的同名函数（见 analysis-offload.js）。
+  const analysisWorkerSource = typeof ANALYSIS_WORKER_SOURCE === 'string' ? ANALYSIS_WORKER_SOURCE : '';
+  const offload = E.createAnalysisOffload(E, {
+    createWorker:
+      analysisWorkerSource &&
+      typeof Worker === 'function' &&
+      typeof Blob === 'function' &&
+      typeof URL?.createObjectURL === 'function'
+        ? () => {
+            const url = URL.createObjectURL(new Blob([analysisWorkerSource], { type: 'text/javascript' }));
+            try {
+              return new Worker(url);
+            } finally {
+              URL.revokeObjectURL(url);
+            }
+          }
+        : null
+  });
+  E = offload.engine;
   const ScoringBasisView = E.createScoringBasisView(React, E),
     ScoringRulesView = E.createScoringRulesView(React, E),
     AutoAnalysisStatusView = E.createAutoAnalysisStatusView(React),
@@ -243,7 +262,11 @@ export function createPlugin(React, E, dictionaries) {
       const persistence = createWorkspacePersistence({ E, store });
       const set = change => store.set(change),
         nav = (feature, tab) => store.navigate(feature, tab);
-      const useState = () => React.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+      const useState = () => {
+        // 后台分析完成时也要重渲染：等待中的页面据此换成结果。
+        React.useSyncExternalStore(offload.subscribe, offload.version, offload.version);
+        return React.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+      };
       const selected = s => s.contacts.find(c => c.id === s.selectedId);
       const cancel = () => {
         request++;
@@ -1149,13 +1172,30 @@ export function createPlugin(React, E, dictionaries) {
             ['wechat', contact.messages.filter(message => channelOf(message) !== 'qq')]
           ],
           known = contact.timelineAnalysis || {},
-          days = channelSets.flatMap(([channel, messages]) =>
-            E.analyzeDailyTimeline(messages, contact.self, contact.target, contact.interactionCorrections || [])
-              .days.filter(
-                day => (force || known[day.date + '#' + channel]?.version !== 4) && (!onlyDate || day.date === onlyDate)
+          // 大联系人的每日分析交给 Worker（E.computeAsync），不在点击时卡住界面。
+          timelines = E.computeAsync
+            ? await Promise.all(
+                channelSets.map(([, messages]) =>
+                  E.computeAsync(
+                    'analyzeDailyTimeline',
+                    messages,
+                    contact.self,
+                    contact.target,
+                    contact.interactionCorrections || []
+                  )
+                )
               )
-              .map(day => ({ ...day, channel, key: day.date + '#' + channel }))
-          );
+            : channelSets.map(([, messages]) =>
+                E.analyzeDailyTimeline(messages, contact.self, contact.target, contact.interactionCorrections || [])
+              );
+        if (ticket !== timelineRequest) return;
+        const days = channelSets.flatMap(([channel], index) =>
+          timelines[index].days
+            .filter(
+              day => (force || known[day.date + '#' + channel]?.version !== 4) && (!onlyDate || day.date === onlyDate)
+            )
+            .map(day => ({ ...day, channel, key: day.date + '#' + channel }))
+        );
         if (!days.length) {
           timelineController = null;
           set({ status: '没有可分析的聊天日期。' });
@@ -1544,37 +1584,16 @@ export function createPlugin(React, E, dictionaries) {
           )
         );
       }
-      // 分析进度每一跳都会重渲染这张卡片；有记录日期数只随消息、身份与纠正变化，按这些输入缓存，
-      // 避免每次渲染都对全部消息跑两遍完整的每日分析。
-      const timelineDayTotals = new WeakMap();
-      function timelineDayTotal(contact) {
-        const corrections = contact.interactionCorrections || emptyMessages,
-          cached = timelineDayTotals.get(contact.messages);
-        if (
-          cached &&
-          cached.corrections === corrections &&
-          cached.self === contact.self &&
-          cached.target === contact.target
-        )
-          return cached.total;
-        const total =
-          E.analyzeDailyTimeline(
-            contact.messages.filter(message => channelOf(message) === 'qq'),
-            contact.self,
-            contact.target,
-            corrections
-          ).days.length +
-          E.analyzeDailyTimeline(
-            contact.messages.filter(message => channelOf(message) !== 'qq'),
-            contact.self,
-            contact.target,
-            corrections
-          ).days.length;
-        timelineDayTotals.set(contact.messages, { corrections, self: contact.self, target: contact.target, total });
-        return total;
-      }
       function timelineAnalysisCard(s, contact) {
-        const total = timelineDayTotal(contact),
+        // 有记录日期数由 E.timelineDayCount 计算并缓存；大联系人在后台算完前先显示统计中。
+        if (!(!E.isAnalysisReady || E.isAnalysisReady(contact)))
+          return box('AI 聊天分析', muted('正在后台统计有记录的日期（' + contact.messages.length + ' 条消息）…'));
+        const total = E.timelineDayCount(
+            contact.messages,
+            contact.self,
+            contact.target,
+            contact.interactionCorrections || []
+          ),
           count = Object.values(contact.timelineAnalysis || {}).filter(day => day?.version === 4).length,
           busy = s.timelineAnalysisContact === contact.id;
         return box(
@@ -2007,20 +2026,9 @@ export function createPlugin(React, E, dictionaries) {
         );
       }
       function InteractionEvidence({ contact }) {
-        // 全部记录与三个场景各做一次完整评分（2 万条合计约 5 秒），只随消息、身份与纠正变化。
-        const { analysis, grouped, sceneReports } = React.useMemo(() => {
-          const groups = E.sceneGroups(contact.messages);
-          return {
-            analysis: E.analyzeInteractionMetrics(contact),
-            grouped: groups,
-            sceneReports: Object.fromEntries(
-              ['work', 'daily', 'mixed'].map(scene => [
-                scene,
-                E.analyzeInteractionMetrics({ ...contact, messages: groups[scene] })
-              ])
-            )
-          };
-        }, [contact.messages, contact.self, contact.target, contact.interactionCorrections]);
+        // 全部记录与三个场景的评分（2 万条合计约 5 秒）：由 E.analyzeInteractionEvidence 计算并缓存。
+        const grouped = React.useMemo(() => E.sceneGroups(contact.messages), [contact.messages]);
+        const { analysis, sceneReports } = E.analyzeInteractionEvidence(contact);
         const correct = (row, excluded) => {
           const current = store.getSnapshot();
           set({
@@ -3631,7 +3639,7 @@ export function createPlugin(React, E, dictionaries) {
         };
         const daily = React.useMemo(
           () =>
-            contact
+            contact && (!E.isAnalysisReady || E.isAnalysisReady(contact))
               ? E.analyzeDailyTimeline(
                   contactMessages,
                   contact.self,
@@ -3639,7 +3647,13 @@ export function createPlugin(React, E, dictionaries) {
                   contact.interactionCorrections || []
                 )
               : { days: [] },
-          [contactMessages, contact?.self, contact?.target, contact?.interactionCorrections]
+          [
+            contactMessages,
+            contact?.self,
+            contact?.target,
+            contact?.interactionCorrections,
+            !E.isAnalysisReady || E.isAnalysisReady(contact)
+          ]
         );
         React.useLayoutEffect(() => {
           const pane = historyRef.current;
@@ -5217,7 +5231,9 @@ export function createPlugin(React, E, dictionaries) {
       // 页头的“关系脉搏”：最近 20 周的互动指数折线 + 最新平滑值。点击进入关系分析。
       function Pulse({ contact }) {
         const analysis =
-          (contact.messages?.length || 0) <= PULSE_MAX_MESSAGES ? E.analyzeRelationshipCached(contact) : null;
+          (contact.messages?.length || 0) <= PULSE_MAX_MESSAGES && (!E.isAnalysisReady || E.isAnalysisReady(contact))
+            ? E.analyzeRelationshipCached(contact)
+            : null;
         if (!analysis?.current) return null;
         const pts = analysis.points.slice(-20),
           W = 112,
@@ -5345,6 +5361,21 @@ export function createPlugin(React, E, dictionaries) {
           }, 'local-relationship-notes: native panel');
         });
       }
+      // 来源筛选后的联系人按（联系人, 来源）缓存：每次渲染都新建消息数组会让所有分析缓存失效。
+      const sourceViews = new WeakMap();
+      function sourceView(contact, source) {
+        const hit = sourceViews.get(contact)?.[source];
+        if (hit) return hit;
+        const messages = contact.messages.filter(m => channelOf(m) === source),
+          view = {
+            ...contact,
+            messages,
+            pairCount: messages.filter(m => m.sender === contact.self || m.sender === contact.target).length,
+            timelineAnalysis: {}
+          };
+        sourceViews.set(contact, { ...sourceViews.get(contact), [source]: view });
+        return view;
+      }
       function Page() {
         const s = useState(),
           contact = selected(s),
@@ -5403,16 +5434,16 @@ export function createPlugin(React, E, dictionaries) {
               }
             : { qq: 0, wechat: 0 },
           shownContact =
-            contact && sourceEnabled && sourceChoice !== 'all'
-              ? {
-                  ...contact,
-                  messages: contact.messages.filter(m => channelOf(m) === sourceChoice),
-                  pairCount: contact.messages.filter(
-                    m => channelOf(m) === sourceChoice && (m.sender === contact.self || m.sender === contact.target)
-                  ).length,
-                  timelineAnalysis: {}
-                }
-              : contact;
+            contact && sourceEnabled && sourceChoice !== 'all' ? sourceView(contact, sourceChoice) : contact;
+        React.useEffect(() => {
+          if (contact) offload.warm(contact);
+          if (shownContact && shownContact !== contact) offload.warm(shownContact);
+        });
+        // 大联系人在后台分析完成前，需要整段分析的页面先显示等待，避免主线程卡住数秒。
+        const analysisWaiting =
+          contact &&
+          (n.id === 'behavior' || (n.id === 'profile' && route.tab === 'stage')) &&
+          !(!E.isAnalysisReady || E.isAnalysisReady(shownContact));
         let content;
         if (n.id === 'import') content = h(ImportView, { s, contact, tab: route.tab });
         if (n.id === 'profile') content = h(Profile, { s, contact: shownContact, tab: route.tab });
@@ -5420,6 +5451,15 @@ export function createPlugin(React, E, dictionaries) {
         if (n.id === 'goals') content = h(Goals, { s, contact, tab: route.tab });
         if (n.id === 'replies') content = h(Replies, { s, contact, tab: route.tab });
         if (n.id === 'settings') content = h(Settings, { s, tab: route.tab });
+        if (analysisWaiting)
+          content = box(
+            '正在后台分析',
+            h(
+              'p',
+              { role: 'status', className: 'rn-muted' },
+              `正在后台分析 ${shownContact.messages.length} 条消息，完成后自动显示；其他页面可以照常使用。`
+            )
+          );
         const groupItems = E.NAVIGATION.map(group => [group.id, group.label, group.id]),
           contextItems = E.groupTabs(route.group).map(tab => [tab.key, tab.label]),
           selectedContextKey = n.id + '__' + route.tab;
