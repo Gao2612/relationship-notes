@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — 2026-11-27（性能：大体量聊天的分析与渲染）
+
+以 2 万条消息为基准（`pnpm run bench`）：
+
+- 日期键与会话时间改为复用模块级 `Intl.DateTimeFormat`，不再每条消息新建一次（原先占分析耗时近一半）：每日分析 7.8 s → 2.4 s，关系分析 4.0 s → 1.2 s，各时段评分约 3.5 s → 1.2 s。
+- `interaction-context` 的停用词集合移出循环；LSM 虚词匹配按首字建索引。
+- 导入结果页的「AI 聊天分析」卡片按消息、身份与纠正缓存有记录日期数；此前分析进度每跳一次就对全部消息跑两遍每日分析。
+- 「互动评分」页的全部记录与三个场景评分改用 `useMemo`；此前每次渲染约 5 s。
+- 关系分析逐周请求时复用回合（`buildTurns`），不再在每周请求前后各重建一次（每周约 2 s 主线程卡顿）。
+- 新增 `src/shared/dates.test.mjs`（防止格式化器回到逐次新建）与 `tools/bench-analysis.mjs`。
+
 ## Unreleased — 2026-11-19（workspace.js 格式化与 DOM 行为测试）
 
 - `src/workspace.js` 用 Prettier 格式化（722 → 5,536 行），移出 `.prettierignore`；纯排版，重新构建的 `client.js` 压缩后与此前一致。

@@ -32320,17 +32320,18 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     const millis = Date.parse(value.trim());
     return Number.isFinite(millis) ? millis : null;
   }
+  var SHANGHAI_DAY = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
   function shanghaiDateKey(value) {
     if (value === null || value === void 0 || value === "") return null;
     const millis = shanghaiTimestamp(value);
     if (millis === null) return null;
     const date = new Date(millis);
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Shanghai",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
-    }).format(date);
+    return SHANGHAI_DAY.format(date);
   }
   function reviewPeriodRange(period = "week", anchor = shanghaiDateKey(Date.now())) {
     if (!["week", "month"].includes(period) || !/^\d{4}-\d{2}-\d{2}$/.test(anchor || "") || shanghaiDateKey(anchor) !== anchor)
@@ -32844,15 +32845,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     flush();
     return groups;
   }
+  var COMMON_TERMS = /* @__PURE__ */ new Set([
+    "今天",
+    "明天",
+    "昨天",
+    "现在",
+    "最近",
+    "时候",
+    "感觉",
+    "其实",
+    "真的",
+    "一点",
+    "刚才",
+    "已经"
+  ]);
+  var LEADING_FILLER = /^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/;
   function terms(text) {
     const result = /* @__PURE__ */ new Set();
     for (const part of String(text).match(/[\u4e00-\u9fff]{2,}/g) || []) {
       for (let i = 0; i < part.length - 1; i++) {
         const term = part.slice(i, i + 2);
-        if (!/^(我|你|的|了|是|有|不|也|就|这|那|个|啊|呀)/.test(term) && !(/* @__PURE__ */ new Set(["今天", "明天", "昨天", "现在", "最近", "时候", "感觉", "其实", "真的", "一点", "刚才", "已经"])).has(
-          term
-        ))
-          result.add(term);
+        if (!LEADING_FILLER.test(term) && !COMMON_TERMS.has(term)) result.add(term);
       }
     }
     return result;
@@ -32928,6 +32941,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   }
 
   // src/profile-lifecycle.js
+  var SHANGHAI_DAY2 = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
   var signature = (f) => [f.field, f.quote || "", f.value].join("|");
   var hash = (value) => {
     let result = 2166136261;
@@ -32943,13 +32962,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
     if (typeof value !== "string") return NaN;
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
       const date = /* @__PURE__ */ new Date(value + "T00:00:00+08:00");
-      if (!Number.isFinite(date.getTime()) || new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Shanghai",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      }).format(date) !== value)
-        return NaN;
+      if (!Number.isFinite(date.getTime()) || SHANGHAI_DAY2.format(date) !== value) return NaN;
       return date.getTime() + 864e5 - 1;
     }
     const time = Date.parse(value);
@@ -33599,6 +33612,12 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var LSM_MIN_CHARS = 40;
   var lexicon = Object.entries(LSM_CATEGORIES).flatMap(([category, words]) => words.map((word) => ({ word, category }))).sort((a, b) => b.word.length - a.word.length);
   var cjk = /[㐀-鿿]/u;
+  var lexiconByFirst = /* @__PURE__ */ new Map();
+  for (const entry of lexicon) {
+    const bucket = lexiconByFirst.get(entry.word[0]);
+    if (bucket) bucket.push(entry);
+    else lexiconByFirst.set(entry.word[0], [entry]);
+  }
   function functionWordRates(text) {
     const source = String(text || ""), counts = Object.fromEntries(Object.keys(LSM_CATEGORIES).map((key) => [key, 0]));
     let chars = 0;
@@ -33607,7 +33626,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         i++;
         continue;
       }
-      const hit = lexicon.find((entry) => source.startsWith(entry.word, i));
+      const hit = lexiconByFirst.get(source[i])?.find((entry) => source.startsWith(entry.word, i));
       if (hit) {
         counts[hit.category]++;
         chars += hit.word.length;
@@ -39594,8 +39613,22 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
   var autoSummaryTried = /* @__PURE__ */ new Set();
   var autoProfileTried = /* @__PURE__ */ new Set();
   var channelOf = (m) => /QQ/i.test((m && m.file || "") + " " + (m && m.source || "")) ? "qq" : "wechat";
+  var CHAT_DAY_FORMAT = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  var CHAT_TIME_FORMAT = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    hourCycle: "h23"
+  });
   function formatChatDayKey(value) {
-    const timezone = "Asia/Shanghai";
     let date = null;
     if (typeof value === "number" || typeof value === "string" && /^\d{10,13}$/.test(value)) {
       const n = Number(value);
@@ -39605,17 +39638,10 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
       if (local) return `${local[1]}-${local[2].padStart(2, "0")}-${local[3].padStart(2, "0")}`;
       date = new Date(raw);
     } else if (value instanceof Date) date = value;
-    if (date && Number.isFinite(date.getTime()))
-      return new Intl.DateTimeFormat("en-CA", {
-        timeZone: timezone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      }).format(date);
+    if (date && Number.isFinite(date.getTime())) return CHAT_DAY_FORMAT.format(date);
     return "日期未知";
   }
   function formatChatTimestamp(value) {
-    const timezone = "Asia/Shanghai";
     let date = null;
     if (typeof value === "number" || typeof value === "string" && /^\d{10,13}$/.test(value)) {
       const n = Number(value);
@@ -39626,16 +39652,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
         return `${Number(local[2])}/${Number(local[3])}${local[4] !== void 0 ? ` ${local[4].padStart(2, "0")}:${local[5]}` : ""}`;
       date = new Date(raw);
     }
-    if (date && Number.isFinite(date.getTime()))
-      return new Intl.DateTimeFormat("zh-CN", {
-        timeZone: timezone,
-        month: "numeric",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-        hourCycle: "h23"
-      }).format(date);
+    if (date && Number.isFinite(date.getTime())) return CHAT_TIME_FORMAT.format(date);
     return value ? String(value).replace("T", " ").replace(/\.\d+Z?$/, "").slice(0, 19) : "";
   }
   function cleanTimelineDisplayText(value) {
@@ -40206,13 +40223,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           if (!first) return;
           const pending = E.analyzeRelationship(first).pending, failed = [];
           let done = 0, stored = 0, consecutive = 0;
+          let turnsCache = null;
+          const turnsFor = (c) => {
+            if (turnsCache && turnsCache.messages === c.messages && turnsCache.self === c.self && turnsCache.target === c.target && turnsCache.corrections === c.interactionCorrections)
+              return turnsCache.turns;
+            const turns = E.buildTurns(c);
+            turnsCache = {
+              messages: c.messages,
+              self: c.self,
+              target: c.target,
+              corrections: c.interactionCorrections,
+              turns
+            };
+            return turns;
+          };
           set({ affinityBusy: contactId, affinityProgress: "准备中…", affinityError: "" });
           try {
             for (const week of pending) {
               if (controller2.signal.aborted) break;
               const current = store.getSnapshot(), contact = current.contacts.find((c) => c.id === contactId);
               if (!contact) break;
-              const turns = E.buildTurns(contact), fingerprint = E.weekFingerprint(contact, week, turns);
+              const turns = turnsFor(contact), fingerprint = E.weekFingerprint(contact, week, turns);
               const previous = Object.entries(contact.affinityV3?.weeks || {}).filter(([key, entry2]) => key < week && entry2?.result?.summary).sort((a, b) => b[0].localeCompare(a[0]))[0];
               const body = E.buildAffinityRequest(contact, week, {
                 previousSummary: previous?.[1].result.summary,
@@ -40240,7 +40271,7 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
               consecutive = 0;
               const latest = store.getSnapshot(), target = latest.contacts.find((c) => c.id === contactId);
               if (!target) break;
-              if (E.weekFingerprint(target, week) === fingerprint) {
+              if (E.weekFingerprint(target, week, turnsFor(target)) === fingerprint) {
                 set({
                   contacts: latest.contacts.map(
                     (c) => c.id === contactId ? E.storeAiWeek(c, week, {
@@ -40881,18 +40912,27 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             )
           );
         }
-        function timelineAnalysisCard(s, contact) {
+        const timelineDayTotals = /* @__PURE__ */ new WeakMap();
+        function timelineDayTotal(contact) {
+          const corrections = contact.interactionCorrections || emptyMessages, cached = timelineDayTotals.get(contact.messages);
+          if (cached && cached.corrections === corrections && cached.self === contact.self && cached.target === contact.target)
+            return cached.total;
           const total = E.analyzeDailyTimeline(
             contact.messages.filter((message) => channelOf(message) === "qq"),
             contact.self,
             contact.target,
-            contact.interactionCorrections || []
+            corrections
           ).days.length + E.analyzeDailyTimeline(
             contact.messages.filter((message) => channelOf(message) !== "qq"),
             contact.self,
             contact.target,
-            contact.interactionCorrections || []
-          ).days.length, count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
+            corrections
+          ).days.length;
+          timelineDayTotals.set(contact.messages, { corrections, self: contact.self, target: contact.target, total });
+          return total;
+        }
+        function timelineAnalysisCard(s, contact) {
+          const total = timelineDayTotal(contact), count = Object.values(contact.timelineAnalysis || {}).filter((day) => day?.version === 4).length, busy = s.timelineAnalysisContact === contact.id;
           return box(
             "AI 聊天分析",
             muted(
@@ -41249,7 +41289,20 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
           );
         }
         function InteractionEvidence({ contact }) {
-          const analysis = E.analyzeInteractionMetrics(contact), correct = (row, excluded) => {
+          const { analysis, grouped, sceneReports } = React2.useMemo(() => {
+            const groups = E.sceneGroups(contact.messages);
+            return {
+              analysis: E.analyzeInteractionMetrics(contact),
+              grouped: groups,
+              sceneReports: Object.fromEntries(
+                ["work", "daily", "mixed"].map((scene) => [
+                  scene,
+                  E.analyzeInteractionMetrics({ ...contact, messages: groups[scene] })
+                ])
+              )
+            };
+          }, [contact.messages, contact.self, contact.target, contact.interactionCorrections]);
+          const correct = (row, excluded) => {
             const current = store.getSnapshot();
             set({
               contacts: current.contacts.map(
@@ -41272,10 +41325,8 @@ fn fs_main(in : VertexOutput) -> @location(0) vec4<f32> {
             ([value, label]) => h("div", { className: "rn-metric", key: label }, h("span", null, label), h("strong", null, value))
           );
           const sceneLabels = { work: "工作", daily: "日常", mixed: "混合", unknown: "未分类" };
-          const grouped = E.sceneGroups(contact.messages);
           const sceneRows = ["work", "daily", "mixed"].map((scene) => {
-            const items = grouped[scene];
-            const report = E.analyzeInteractionMetrics({ ...contact, messages: items });
+            const items = grouped[scene], report = sceneReports[scene];
             return muted(sceneLabels[scene] + "场景消息 " + items.length + " 条，关系指数 " + (report.score ?? "未评分"));
           });
           const sceneSummary = Object.entries(sceneLabels).map(([key, label]) => label + " " + analysis.scenes[key]).join("，");
