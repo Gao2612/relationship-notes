@@ -10,12 +10,14 @@ import { slimMessages, rehydrate } from './src/analysis-offload.js';
 const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8');
 
 function workerSource() {
-  const start = client.indexOf('ANALYSIS_WORKER_SOURCE = ');
-  assert.ok(start > 0, 'client.js 内嵌了分析 Worker');
-  const quote = client[start + 'ANALYSIS_WORKER_SOURCE = '.length];
-  let i = start + 'ANALYSIS_WORKER_SOURCE = '.length + 1;
+  // 赋值形如 ANALYSIS_WORKER_SOURCE = "…" 或压缩后的 ANALYSIS_WORKER_SOURCE='…'。
+  const match = /ANALYSIS_WORKER_SOURCE\s*=\s*(['"`])/.exec(client);
+  assert.ok(match, 'client.js 内嵌了分析 Worker');
+  const open = match.index + match[0].length - 1,
+    quote = match[1];
+  let i = open + 1;
   while (client[i] !== quote) i += client[i] === '\\' ? 2 : 1;
-  return vm.runInNewContext(client.slice(start + 'ANALYSIS_WORKER_SOURCE = '.length, i + 1));
+  return vm.runInNewContext(client.slice(open, i + 1));
 }
 
 test('embedded analysis worker answers a job with results equal to the synchronous engine', async () => {

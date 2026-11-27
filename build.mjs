@@ -69,6 +69,10 @@ const result = await build({
   external: ['react'],
   charset: 'utf8',
   write: false,
+  // 去空白并简化语法，但保留标识符：宿主报错时堆栈里仍是可读的函数名。
+  minifyWhitespace: true,
+  minifySyntax: true,
+  legalComments: 'none',
   inject: ['rn:pdf-runtime'],
   plugins: [
     {
@@ -76,7 +80,7 @@ const result = await build({
       setup(api) {
         api.onResolve({ filter: /^rn:pdf-runtime$/ }, () => ({ path: 'pdf-runtime', namespace: 'rn' }));
         api.onLoad({ filter: /.*/, namespace: 'rn' }, () => ({
-          contents: `export * as PDFJS from 'pdfjs-dist/legacy/build/pdf.mjs';export const PDF_WORKER_SOURCE=${JSON.stringify(worker)};export const ANALYSIS_WORKER_SOURCE=${JSON.stringify(analysisWorker)};`,
+          contents: `export const loadPDFJS=()=>import('pdfjs-dist/legacy/build/pdf.mjs');export const PDF_WORKER_SOURCE=${JSON.stringify(worker)};export const ANALYSIS_WORKER_SOURCE=${JSON.stringify(analysisWorker)};`,
           resolveDir: root,
           loader: 'js'
         }));

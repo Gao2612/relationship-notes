@@ -41,6 +41,8 @@
 | `src/analysis-offload.js` | `createAnalysisOffload(E)`：包装 `OPS` 中的纯函数（按参数 / 联系人相关字段的引用做缓存键）、`warm(contact)` 后台预计算、`isReady(contact)`、`computeAsync`、消息精简（`slimMessages`）与结果还原（`rehydrate`，消息副本换回原对象）、Worker 侧 `runWorkerJob` |
 | `src/analysis-worker.js` | Worker 入口，只打包分析纯模块；`build.mjs` 构建为压缩字符串 `ANALYSIS_WORKER_SOURCE`（约 51KB），运行时用 Blob URL 启动（与 PDF Worker 相同） |
 
+构建产物 `client.js` 去空白并简化语法、保留标识符（约 2.5MB）；PDF.js 经动态 `import()` 在第一次导入 PDF 时才初始化（`loadPDFJS`）。
+
 - `createPlugin` 一开始把 `E` 换成 `offload.engine`；所有视图与组件照旧同步调用。缓存命中直接返回，未命中时在主线程当场计算，结果始终正确。
 - 消息数 ≥ 3000 且 Worker 可用时，`Page` 在渲染后 `warm` 当前联系人（含来源筛选后的视图）；完成前「记录与评分」与「关系阶段」显示“正在后台分析”，页头脉搏图暂不显示，会话中的每日分数暂空，导入结果页显示“正在统计”。其他页面照常可用。
 - 只有 AI 周评定（`affinityV3`）、关系画像或每日总结变化时，先返回同一份聊天上次的结果并在后台重算（stale-while-revalidate），存入每周 AI 结果时页面不会回到等待状态。

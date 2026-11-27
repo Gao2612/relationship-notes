@@ -704,7 +704,9 @@ export function createPlugin(React, E, dictionaries) {
         );
       }
       async function parsePdfFile(file) {
-        if (typeof PDFJS === 'undefined') throw new Error('PDF 解析组件未加载，请重新构建关系手记。');
+        if (typeof loadPDFJS !== 'function') throw new Error('PDF 解析组件未加载，请重新构建关系手记。');
+        // PDF.js 体积大，只在第一次导入 PDF 时初始化（esbuild 把动态 import 打包为延迟执行的模块）。
+        const PDFJS = await loadPDFJS();
         if (file.size > 256 * 1024 * 1024) throw new Error('PDF 超过 256 MiB，无法在本机读取。');
         if (!pdfWorkerUrl) {
           pdfWorkerUrl = URL.createObjectURL(new Blob([PDF_WORKER_SOURCE], { type: 'text/javascript' }));

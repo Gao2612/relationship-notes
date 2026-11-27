@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — 2026-11-27（构建：压缩产物、PDF.js 按需加载）
+
+- `client.js` 构建时去空白并简化语法（保留标识符，堆栈仍可读）：2,973 KB → 2,474 KB（gzip 780 → 732 KB）。
+- PDF.js 改为第一次导入 PDF 时才初始化（动态 `import()`，esbuild 打包为延迟模块）；Chromium 中 PDF 导入实测正常。冷启动在两种方式下都约 120–140 ms，差异在测量误差内。
+- `analysis-worker-bundle.test.mjs` 改为不依赖赋值处的空白。
+
 ## Unreleased — 2026-11-27（分析 Web Worker）
 
 - 新增 `src/analysis-offload.js` 与 `src/analysis-worker.js`：大体量聊天（≥ 3000 条）的整段分析在 Web Worker 中预先计算，主线程同步读缓存；Worker 不可用时自动退回主线程。
